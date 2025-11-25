@@ -1,6 +1,7 @@
 use clap::{Parser, Subcommand};
 use std::path::PathBuf;
 use rpassword;
+use serde::{Deserialize, Serialize};
 
 
 #[derive(Parser)]
@@ -15,7 +16,7 @@ struct CLI {
 
 #[derive(Subcommand)]
 enum Command {
-    /// Initializes a new PasswordManager
+    /// Initializes a new PasswordManager.
     Init{},
 
     /// Adds a new password to database.
@@ -53,6 +54,7 @@ enum Command {
     
 }
 
+#[derive(Serialize, Deserialize, Clone)]
 struct PasswordEntry {
     name: String,
     username: Option<String>,
@@ -61,3 +63,16 @@ struct PasswordEntry {
     notes: Option<String>,
 } 
 
+fn main() {
+    let cli = CLI::parse();
+
+    match cli.command {
+        Command::Init {} => todo!(),
+        Command::Add { name, username, url, notes } => todo!(),
+        Command::Get {  } => todo!(),
+        Command::List {  } => todo!(),
+        Command::Remove {  } => todo!(),
+        Command::Generate {  } => todo!(),
+        Command::ChangeMaster {  } => todo!(),
+    }
+}
