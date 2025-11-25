@@ -32,14 +32,32 @@ enum Command {
         notes: Option<String>,
     },
 
+    /// Get an Entry of the Database.
+    // maybe implement parameter: with or without the password visible
     Get {},
 
+    /// List all Entrys.
+    // maybe implement filters e.g. all passwords with that email, or on that URL.
     List {},
 
-    Generate{},
+    /// Generate a password.
+    // maybe implement interaction (abfrage) if with special cases, numbers etc.
+    Generate{}, 
 
+    /// Remove an entry from Database.
     Remove{},
 
+    /// Change the Masterpassword.
+    // implement not visible, old password required. Verschlüsselt Vault sofort
     ChangeMaster{},
     
 }
+
+struct PasswordEntry {
+    name: String,
+    username: Option<String>,
+    password: Option<String>,
+    url: Option<String>,
+    notes: Option<String>,
+} 
+
