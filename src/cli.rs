@@ -1,4 +1,4 @@
-use clap::{Parser, Subcommand};
+use clap::{Parser, Subcommand, command};
 use std::path::PathBuf;
 use rpassword;
 use serde::{Deserialize, Serialize};
@@ -51,6 +51,10 @@ enum Command {
     /// Change the Masterpassword.
     // implement not visible, old password required. Verschlüsselt Vault sofort
     ChangeMaster{},
+
+    /// Modify a given password
+    //
+    Modify{},
     
 }
 
@@ -74,5 +78,6 @@ fn main() {
         Command::Remove {  } => todo!(),
         Command::Generate {  } => todo!(),
         Command::ChangeMaster {  } => todo!(),
+        Command::Modify {  } => todo!(),
     }
 }
