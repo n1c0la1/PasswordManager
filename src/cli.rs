@@ -59,6 +59,9 @@ pub enum CommandCLI {
     //
     Modify{},
     
+    /// Quits the input loop
+    Quit{},
+
 }
 
 #[derive(Serialize, Deserialize, Clone)]
