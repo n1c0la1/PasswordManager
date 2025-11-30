@@ -6,7 +6,7 @@ use serde::{Deserialize, Serialize};
 
 #[derive(Parser)]
 #[command(name = "pw")]
-struct CLI {
+pub struct CLI {
     #[arg(short, long)]
     database: PathBuf,
 
@@ -28,6 +28,9 @@ enum Command {
 
         #[arg(short, long)]
         url: Option<String>,
+
+        #[arg(short, long)]
+        password: Option<String>,
 
         #[arg(short, long)]
         notes: Option<String>,
@@ -72,7 +75,7 @@ fn main() {
 
     match cli.command {
         Command::Init {} => todo!(),
-        Command::Add { name, username, url, notes } => todo!(),
+        Command::Add { name, username, url, notes , password} => todo!(),
         Command::Get {  } => todo!(),
         Command::List {  } => todo!(),
         Command::Remove {  } => todo!(),
