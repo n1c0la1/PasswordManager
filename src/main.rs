@@ -1,3 +1,12 @@
+use std::fs; //imports rusts file system module
+use serde_json::Value; //imports value type (represents json data)
+use clap::Parser;
+
 fn main() {
-    println!("Hello, world!");
+    let string_from_json = fs::read_to_string("src/passwords_file.json").expect("could not read file");
+    let json_data: Value = serde_json::from_str(&string_from_json).expect("invalid json");
+
+    println!("{json_data}"); 
+
+
 }
