@@ -8,14 +8,14 @@ use serde::{Deserialize, Serialize};
 #[command(name = "pw")]
 pub struct CLI {
     #[arg(short, long)]
-    database: PathBuf,
+    pub database: PathBuf,
 
     #[command(subcommand)]
-    command: Command,
+    pub command: CommandCLI,
 }
 
 #[derive(Subcommand)]
-enum Command {
+pub enum CommandCLI {
     /// Initializes a new PasswordManager.
     Init{},
 
@@ -70,7 +70,7 @@ struct PasswordEntry {
     notes: Option<String>,
 } 
 
-fn main() {
+/*fn main() {
     let cli = CLI::parse();
 
     match cli.command {
@@ -83,4 +83,4 @@ fn main() {
         Command::ChangeMaster {  } => todo!(),
         Command::Modify {  } => todo!(),
     }
-}
+}*/
