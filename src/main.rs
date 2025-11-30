@@ -16,17 +16,20 @@ fn main() {
 
     password_manager::intro_animation();
     println!("Hello, world!");
+    loop {
+        println!("What action do you want to do?");
 
-    let input = CLI::parse();
-
-    match input.command {
-        CommandCLI::Init {} => todo!(),
-        CommandCLI::Add { name, username, url, notes , password} => todo!(),
-        CommandCLI::Get {  } => todo!(),
-        CommandCLI::List {  } => todo!(),
-        CommandCLI::Remove {  } => todo!(),
-        CommandCLI::Generate {  } => todo!(),
-        CommandCLI::ChangeMaster {  } => todo!(),
-        CommandCLI::Modify {  } => todo!(),
+        let input = CLI::parse();
+        match input.command {
+            CommandCLI::Init {} => todo!(),
+            CommandCLI::Add { name, username, url, notes , password} => todo!(),
+            CommandCLI::Get {  } => todo!(),
+            CommandCLI::List {  } => todo!(),
+            CommandCLI::Remove {  } => todo!(),
+            CommandCLI::Generate {  } => todo!(),
+            CommandCLI::ChangeMaster {  } => todo!(),
+            CommandCLI::Modify {  } => todo!(),
+            CommandCLI::Quit {  } => break,
+        }
     }
 }
