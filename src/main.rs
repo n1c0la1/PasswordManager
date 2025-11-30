@@ -6,7 +6,7 @@ use rpassword;
 
 
 fn main() {
-    passwordManager::intro_animation();
+    password_manager::intro_animation();
     println!("Hello, world!");
 
     let input: CLI = CLI::parse();
