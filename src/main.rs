@@ -16,6 +16,22 @@ fn main() {
 
     password_manager::intro_animation();
     println!("Hello, world!");
+
+    // loop can only start after vault is initialized and master password is verified
+    // if no vault exists, prompt to create and name one
+    // if more than one vault exists, prompt to select one
+    // this vault = selected vault
+    // prompt for master password and verify
+    // unklar wie vault funktionieren soll, deshalb erstmal nur für die JSON Datei
+    if !PathBuf::from("src/passwords_file.json").exists() {
+        println!("No vault found, please initialize a new vault.");
+        // Call init
+    } else {
+        println!("Vault found, please enter your master password.");
+        // Verify password
+        
+    }
+
     loop {
         println!("What action do you want to do?");
 
