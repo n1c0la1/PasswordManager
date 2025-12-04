@@ -1,3 +1,5 @@
+use crate::vault_manager;
+
 use clap::{Parser, Subcommand, command};
 use std::path::PathBuf;
 use rpassword;

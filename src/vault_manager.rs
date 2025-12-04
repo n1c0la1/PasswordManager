@@ -1,10 +1,10 @@
+use anyhow;
 use enc_file::{AeadAlg, EncryptOptions, decrypt_bytes, encrypt_bytes};
 use secrecy::SecretString;
 use serde::{Deserialize, Serialize};
-use anyhow;
 use std::fs::File;
 use std::io::{Read, Write};
-use std::path::{Path};
+use std::path::Path;
 use std::str;
 
 #[derive(Debug, Serialize, Deserialize)]
@@ -35,7 +35,11 @@ impl Vault {
         self.key = None;
     }
 
-    pub fn change_master_key(&mut self, key_old: String, key_new: String) -> Result<(), &'static str> {
+    pub fn change_master_key(
+        &mut self,
+        key_old: String,
+        key_new: String,
+    ) -> Result<(), &'static str> {
         if Some(key_old) != self.key {
             return Err("INVALID KEY");
         }
@@ -65,7 +69,10 @@ impl Vault {
     }
 
     pub fn get_entry(&mut self, name: String) -> Option<Entry> {
-        self.entries.iter().find(|value| value.entryname == name).cloned()
+        self.entries
+            .iter()
+            .find(|value| value.entryname == name)
+            .cloned()
     }
 
     pub fn remove_entry(&mut self, name: String) {
@@ -138,7 +145,6 @@ impl Entry {
     pub fn remove_notes(&mut self) {
         self.notes = None;
     }
-
 }
 
 pub fn initialize_vault(name: String, key: String) -> Result<Vault, &'static str> {
@@ -165,7 +171,11 @@ fn vault_from_json(input: &str) -> Result<Vault, serde_json::Error> {
     serde_json::from_str(input)
 }
 
-fn encrypt_vault(name: String, password: SecretString, vault_json: String) -> Result<(), anyhow::Error> {
+fn encrypt_vault(
+    name: String,
+    password: SecretString,
+    vault_json: String,
+) -> Result<(), anyhow::Error> {
     let encrypted_vault = encrypt_string(password, vault_json.as_bytes())?;
     let path = format!("vaults/{name}.psdb");
     let mut file = File::create(path)?;
@@ -186,7 +196,7 @@ fn decrypt_string(pw: SecretString, msg: &[u8]) -> Result<String, anyhow::Error>
     let pt = decrypt_bytes(msg, pw)?;
     let result_string = str::from_utf8(&pt)?;
     Ok(result_string.into())
-     /*match {
+    /*match {
         Ok(x) => x,
         Err(e) => match e {
             enc_file::EncFileError::Crypto => "Password incorrect".into(),
