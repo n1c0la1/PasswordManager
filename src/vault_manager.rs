@@ -9,6 +9,7 @@ use std::str;
 #[derive(Debug, Serialize, Deserialize)]
 struct Vault {
     name: String,
+    key: Option<String>,
     entries: Vec<Entry>,
 }
 
@@ -16,6 +17,7 @@ impl Vault {
     fn new(name: String) -> Vault {
         Vault {
             name: name,
+            key: None,
             entries: vec![],
         }
     }
@@ -68,25 +70,10 @@ impl Entry {
     }
 }
 
-fn create_database() -> String {
-    let mut vault = Vault::new("Vault1".to_owned());
-    let entry_0 = Entry::new(
-        "name0".to_owned(),
-        Some("user0".to_owned()),
-        Some("1234".to_owned()),
-        None,
-        None,
-    );
-    let entry_1 = Entry::new(
-        "name1".to_owned(),
-        None,
-        Some("4321".to_owned()),
-        None,
-        Some("TestNotes".to_owned()),
-    );
-    vault.add_entry(entry_0);
-    vault.add_entry(entry_1);
-    vault.to_json()
+fn initialize_vault(name: String, key: String) -> Vault {
+    let mut vault: Vault = Vault::new(name);
+    vault.key = Some(key);
+    vault
 }
 
 fn encrypt_string(pw: SecretString, msg: &[u8]) -> Result<(), enc_file::EncFileError> {
