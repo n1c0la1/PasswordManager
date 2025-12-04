@@ -8,3 +8,5 @@ clap = { version = "4.5.53", features = ["derive"] }
 serde = {version = "1.0", features = ["derive"]}
 serde_json = "1.0"
 rpassword = "7.4"
+enc_file = "0.6.3"
+secrecy = "0.10.3"

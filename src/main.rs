@@ -1,4 +1,5 @@
 mod cli;
+mod vault_manager;
 
 use clap::{Parser, Command, Subcommand, command};
 use serde_json::Value; //imports value type (represents json data)
