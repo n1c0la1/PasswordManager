@@ -27,9 +27,17 @@ impl Vault {
         serde_json::to_string_pretty(self).expect("Conversion failed")
     }
 
+    fn set_key(&mut self, key: String) {
+        self.key = Some(key);
+    }
+
+    fn remove_key(&mut self) {
+        self.key = None;
+    }
+
     pub fn close(&mut self) {
         let key = self.key.clone().unwrap();
-        self.key = None;
+        self.remove_key();
         let password = SecretString::new(key.into());
         let _ = encrypt_vault(self.name.clone(), password, self.to_json());
     }
@@ -42,7 +50,7 @@ impl Vault {
         self.entries.push(entry);
     }
 
-    pub fn remove_entry() {
+    pub fn remove_entry(&mut self, entry: Entry) {
 
     }
 
@@ -119,19 +127,23 @@ impl Entry {
 
 }
 
-pub fn initialize_vault(name: String, key: String) -> Vault {
+pub fn initialize_vault(name: String, key: String) -> Result<Vault, &'static str> {
+    let path = format!("vaults/{name}.psdb");
+    if Path::new(&path).exists() {
+        return Err("FILENAME ALREADY EXISTS");
+    }
     let mut vault: Vault = Vault::new(name);
-    vault.key = Some(key);
-    vault
+    vault.set_key(key);
+    Ok(vault)
 }
 
 pub fn open_vault(file_name: String, key: String) -> Result<Vault, anyhow::Error> {
     let path = format!("vaults/{file_name}.psdb");
-    let encrypted_bytes = read_file_to_bytes(&path).expect("FILE NOT READEABLE");
+    let encrypted_bytes = read_file_to_bytes(&path)?;
     let password = SecretString::new(key.clone().into());
     let decrypted_json = decrypt_string(password, &encrypted_bytes)?;
     let mut vault = vault_from_json(&decrypted_json)?;
-    vault.key = Some(key);
+    vault.set_key(key);
     Ok(vault)
 }
 
@@ -156,9 +168,9 @@ fn encrypt_string(pw: SecretString, msg: &[u8]) -> Result<Vec<u8>, enc_file::Enc
     encrypt_bytes(msg, pw.clone(), &opts)
 }
 
-fn decrypt_string(pw: SecretString, msg: &[u8]) -> Result<String, enc_file::EncFileError> {
+fn decrypt_string(pw: SecretString, msg: &[u8]) -> Result<String, anyhow::Error> {
     let pt = decrypt_bytes(msg, pw)?;
-    let result_string = str::from_utf8(&pt).expect("UNVALID UTF-8");
+    let result_string = str::from_utf8(&pt)?;
     Ok(result_string.into())
      /*match decrypted_string {
         Ok(x) => x,
