@@ -35,6 +35,14 @@ impl Vault {
         self.key = None;
     }
 
+    pub fn change_master_key(&mut self, key_old: String, key_new: String) -> Result<(), &'static str> {
+        if Some(key_old) != self.key {
+            return Err("INVALID KEY");
+        }
+        self.key = Some(key_new);
+        Ok(())
+    }
+
     pub fn close(&mut self) {
         let key = self.key.clone().unwrap();
         self.remove_key();
@@ -50,12 +58,12 @@ impl Vault {
         self.entries.push(entry);
     }
 
-    pub fn remove_entry(&mut self, entry: Entry) {
-
+    pub fn get_entry(&mut self, name: String) -> Option<Entry> {
+        self.entries.iter().find(|value| value.entryname == name).cloned()
     }
 
-    pub fn find_entries(&mut self, entry: Entry) -> Option<Entry> {
-        self.entries.iter().find(|value| **value == entry).cloned()
+    pub fn remove_entry(&mut self, name: String) {
+        self.entries.retain(|value| value.entryname != name);
     }
 
     pub fn list_entries(&self) {
@@ -172,7 +180,7 @@ fn decrypt_string(pw: SecretString, msg: &[u8]) -> Result<String, anyhow::Error>
     let pt = decrypt_bytes(msg, pw)?;
     let result_string = str::from_utf8(&pt)?;
     Ok(result_string.into())
-     /*match decrypted_string {
+     /*match {
         Ok(x) => x,
         Err(e) => match e {
             enc_file::EncFileError::Crypto => "Password incorrect".into(),
