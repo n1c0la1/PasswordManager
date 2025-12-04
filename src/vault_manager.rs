@@ -1,10 +1,10 @@
-use enc_file::{AeadAlg, EncFileError, EncryptOptions, decrypt_bytes, encrypt_bytes};
+use enc_file::{AeadAlg, EncryptOptions, decrypt_bytes, encrypt_bytes};
 use secrecy::SecretString;
 use serde::{Deserialize, Serialize};
 use anyhow;
 use std::fs::File;
 use std::io::{Read, Write};
-use std::path::{Path, PathBuf};
+use std::path::{Path};
 use std::str;
 
 #[derive(Debug, Serialize, Deserialize)]
@@ -43,7 +43,13 @@ impl Vault {
         Ok(())
     }
 
-    pub fn close(&mut self) {
+    pub fn safe_vault(&self) {
+        let key = self.key.clone().unwrap();
+        let password = SecretString::new(key.into());
+        let _ = encrypt_vault(self.name.clone(), password, self.to_json());
+    }
+
+    pub fn close(mut self) {
         let key = self.key.clone().unwrap();
         self.remove_key();
         let password = SecretString::new(key.into());
