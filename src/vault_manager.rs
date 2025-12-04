@@ -26,6 +26,13 @@ impl Vault {
         serde_json::to_string_pretty(self).expect("Conversion failed")
     }
 
+    fn close(&mut self) {
+        let key = self.key.clone().unwrap();
+        self.key = None;
+        let password = SecretString::new(key.into());
+        let _ = encrypt_vault(self.name.clone(), password, self.to_json());
+    }
+
     fn set_Name(&mut self, name: String) {
         self.name = name;
     }
@@ -77,7 +84,7 @@ fn initialize_vault(name: String, key: String) -> Vault {
 }
 
 fn open_vault(file_name: String, key: String) -> Vault {
-    let path = format!("{file_name}.psdb");
+    let path = format!("vaults/{file_name}.psdb");
     let encrypted_bytes = read_file_to_bytes(&path).expect("FILE NOT READEABLE");
     let password = SecretString::new(key.clone().into());
     let decrypted_json = decrypt_string(password, &encrypted_bytes).expect("INVALID KEY/");
@@ -86,16 +93,36 @@ fn open_vault(file_name: String, key: String) -> Vault {
     vault
 }
 
-fn encrypt_string(pw: SecretString, msg: &[u8]) -> Result<(), enc_file::EncFileError> {
+fn vault_from_json(input: &str) -> Result<Vault, serde_json::Error> {
+    serde_json::from_str(input)
+}
+
+fn encrypt_vault(name: String, password: SecretString, vault_json: String) -> std::io::Result<()> {
+    let encrypted_vault = encrypt_string(password, vault_json.as_bytes()).unwrap();
+    let path = format!("vaults/{name}.psdb");
+    let mut file = File::create("vaults/enrcypted.psdb")?;
+    file.write_all(&encrypted_vault)?;
+    Ok(())
+}
+
+fn encrypt_string(pw: SecretString, msg: &[u8]) -> Result<Vec<u8>, enc_file::EncFileError> {
     let opts = EncryptOptions {
         alg: AeadAlg::XChaCha20Poly1305,
         ..Default::default()
     };
 
-    let ct = encrypt_bytes(msg, pw.clone(), &opts)?;
-    let mut file = File::create("enrcypted.psdb")?;
-    file.write_all(&ct)?;
-    Ok(())
+    encrypt_bytes(msg, pw.clone(), &opts)
+}
+
+fn decrypt_vault(encrypted_bytes: Vec<u8>, key: SecretString) -> Result<String, enc_file::EncFileError> {
+    decrypt_string(key, &encrypted_bytes)
+    /*match decrypted_string {
+        Ok(x) => x,
+        Err(e) => match e {
+            enc_file::EncFileError::Crypto => "Password incorrect".into(),
+            _ => "Failed".into(),
+        },
+    }*/
 }
 
 fn decrypt_string(pw: SecretString, msg: &[u8]) -> Result<String, enc_file::EncFileError> {
@@ -111,38 +138,8 @@ fn read_file_to_bytes(path: &str) -> std::io::Result<Vec<u8>> {
     Ok(contents)
 }
 
-fn read_file_to_string(path: &str) -> std::io::Result<String> {
-    let mut file = File::open(path)?;
-    let mut contents = String::new();
-    file.read_to_string(&mut contents)?;
-    Ok(contents)
-}
-
 fn write_to_file(path: &str, msg: &[u8]) -> std::io::Result<()> {
     let mut file = File::create(path)?;
     file.write_all(msg)?;
     Ok(())
-}
-
-fn vault_from_json(input: &str) -> Result<Vault, serde_json::Error> {
-    serde_json::from_str(input)
-}
-
-
-
-
-
-fn encrypt_database(db: String, pw: SecretString) {
-    let _ = encrypt_string(pw, db.as_bytes());
-}
-
-fn decrypt_vault(encrypted_bytes: Vec<u8>, key: SecretString) -> Result<String, enc_file::EncFileError> {
-    decrypt_string(key, &encrypted_bytes)
-    /*match decrypted_string {
-        Ok(x) => x,
-        Err(e) => match e {
-            enc_file::EncFileError::Crypto => "Password incorrect".into(),
-            _ => "Failed".into(),
-        },
-    }*/
 }
