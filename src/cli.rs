@@ -61,15 +61,6 @@ pub enum CommandCLI {
     
 }
 
-#[derive(Serialize, Deserialize, Clone)]
-struct PasswordEntry {
-    name: String,
-    username: Option<String>,
-    password: Option<String>,
-    url: Option<String>,
-    notes: Option<String>,
-} 
-
 /*fn main() {
     let cli = CLI::parse();
 
