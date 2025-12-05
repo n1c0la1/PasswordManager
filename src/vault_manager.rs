@@ -55,7 +55,7 @@ impl Vault {
     }
 
     ///use to safe recently made changes, but vault will be used afterwards
-    pub fn safe_vault(&self) {
+    pub fn safe(&self) {
         let key = self.key.clone().unwrap();
         let password = SecretString::new(key.into());
         let _ = encrypt_vault(self.name.clone(), password, self.to_json());
@@ -81,14 +81,24 @@ impl Vault {
         Ok(())
     }
 
-    pub fn get_entry(&mut self, name: String) -> Option<&mut Entry> {
+    pub fn get_entry_by_name(&mut self, name: String) -> Option<&mut Entry> {
         self.entries
             .iter_mut()
             .find(|value| value.entryname == name)
     }
 
-    pub fn remove_entry(&mut self, name: String) {
+    pub fn get_entry_by_entry(&mut self, entry: Entry) -> Option<&mut Entry> {
+        self.entries
+            .iter_mut()
+            .find(|value| **value == entry)
+    }
+
+    pub fn remove_entry_by_name(&mut self, name: String) {
         self.entries.retain(|value| value.entryname != name);
+    }
+
+    pub fn remove_entry_by_entry(&mut self, entry: Entry) {
+        self.entries.retain(|value| *value != entry);
     }
 
     pub fn list_entries(&self) {
@@ -122,7 +132,7 @@ impl Entry {
         }
     }
 
-    pub fn set_name(&mut self, vault: Vault, name: String) -> Result<(), &'static str> {
+    pub fn set_name(&mut self, vault: &Vault, name: String) -> Result<(), &'static str> {
         if vault.entryname_exists(&name) {
             return Err("NAME ALREADY EXISTS");
         }
@@ -164,6 +174,9 @@ impl Entry {
 }
 
 pub fn initialize_vault(name: String, key: String) -> Result<Vault, &'static str> {
+    if key.len() > 200 {
+       return Err("PASSWORD TOO LONG"); 
+    }
     let path = format!("vaults/{name}.psdb");
     if Path::new(&path).exists() {
         return Err("FILENAME ALREADY EXISTS");
