@@ -54,12 +54,14 @@ impl Vault {
         Ok(())
     }
 
+    ///use to safe recently made changes, but vault will be used afterwards
     pub fn safe_vault(&self) {
         let key = self.key.clone().unwrap();
         let password = SecretString::new(key.into());
         let _ = encrypt_vault(self.name.clone(), password, self.to_json());
     }
 
+    ///use when vault wont be used afterwards, e.g. when exiting programm
     pub fn close(mut self) {
         let key = self.key.clone().unwrap();
         self.remove_key();
@@ -175,7 +177,8 @@ pub fn open_vault(file_name: String, key: String) -> Result<Vault, anyhow::Error
     let path = format!("vaults/{file_name}.psdb");
     let encrypted_bytes = read_file_to_bytes(&path)?;
     let password = SecretString::new(key.clone().into());
-    let decrypted_json = decrypt_string(password, &encrypted_bytes)?;
+    //handle error: enc_file::EncFileError::Crypto to validate password
+    let decrypted_json = decrypt_to_string(password, &encrypted_bytes)?;
     let mut vault = vault_from_json(&decrypted_json)?;
     vault.set_key(key);
     Ok(vault)
@@ -206,17 +209,10 @@ fn encrypt_string(pw: SecretString, msg: &[u8]) -> Result<Vec<u8>, enc_file::Enc
     encrypt_bytes(msg, pw.clone(), &opts)
 }
 
-fn decrypt_string(pw: SecretString, msg: &[u8]) -> Result<String, anyhow::Error> {
+fn decrypt_to_string(pw: SecretString, msg: &[u8]) -> Result<String, anyhow::Error> {
     let pt = decrypt_bytes(msg, pw)?;
     let result_string = str::from_utf8(&pt)?;
     Ok(result_string.into())
-    /*match {
-        Ok(x) => x,
-        Err(e) => match e {
-            enc_file::EncFileError::Crypto => "Password incorrect".into(),
-            _ => "Failed".into(),
-        },
-    }*/
 }
 
 fn read_file_to_bytes(path: &str) -> std::io::Result<Vec<u8>> {
