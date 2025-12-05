@@ -35,6 +35,13 @@ impl Vault {
         self.key = None;
     }
 
+    fn entryname_exists(&self, name: &str) -> bool {
+        if let Some(_) = self.entries.iter().find(|value| value.entryname == name) {
+            return true;
+        }
+        false
+    }
+
     pub fn change_master_key(
         &mut self,
         key_old: String,
@@ -64,15 +71,18 @@ impl Vault {
         self.name = name;
     }
 
-    pub fn add_entry(&mut self, entry: Entry) {
+    pub fn add_entry(&mut self, entry: Entry) -> Result<(), &'static str> {
+        if self.entryname_exists(&entry.entryname) {
+            return Err("NAME ALREADY EXISTS");
+        }
         self.entries.push(entry);
+        Ok(())
     }
 
-    pub fn get_entry(&mut self, name: String) -> Option<Entry> {
+    pub fn get_entry(&mut self, name: String) -> Option<&mut Entry> {
         self.entries
-            .iter()
+            .iter_mut()
             .find(|value| value.entryname == name)
-            .cloned()
     }
 
     pub fn remove_entry(&mut self, name: String) {
@@ -110,8 +120,12 @@ impl Entry {
         }
     }
 
-    pub fn set_name(&mut self, name: String) {
+    pub fn set_name(&mut self, vault: Vault, name: String) -> Result<(), &'static str> {
+        if vault.entryname_exists(&name) {
+            return Err("NAME ALREADY EXISTS");
+        }
         self.entryname = name;
+        Ok(())
     }
 
     pub fn set_username(&mut self, user: String) {
