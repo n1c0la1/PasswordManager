@@ -6,6 +6,26 @@ use std::fs::File;
 use std::io::{Read, Write};
 use std::path::Path;
 use std::str;
+use std::fmt;
+
+#[derive(Debug)]
+pub enum VaultError {
+    InvalidKey,
+    NameExists,
+    FileExists,
+    PasswordTooLong,
+}
+
+impl fmt::Display for VaultError {
+    fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
+        match self {
+            VaultError::InvalidKey => write!(f, "INVALID KEY"),
+            VaultError::NameExists => write!(f, "NAME ALREADY EXISTS"),
+            VaultError::FileExists => write!(f, "FILENAME ALREADY EXISTS"),
+            VaultError::PasswordTooLong => write!(f, "PASSWORD TOO LONG"),
+        }
+    }
+}
 
 #[derive(Debug, Serialize, Deserialize)]
 pub struct Vault {
@@ -46,9 +66,9 @@ impl Vault {
         &mut self,
         key_old: String,
         key_new: String,
-    ) -> Result<(), &'static str> {
+    ) -> Result<(), VaultError> {
         if Some(key_old) != self.key {
-            return Err("INVALID KEY");
+            return Err(VaultError::InvalidKey);
         }
         self.key = Some(key_new);
         Ok(())
@@ -73,9 +93,9 @@ impl Vault {
         self.name = name;
     }
 
-    pub fn add_entry(&mut self, entry: Entry) -> Result<(), &'static str> {
+    pub fn add_entry(&mut self, entry: Entry) -> Result<(), VaultError> {
         if self.entryname_exists(&entry.entryname) {
-            return Err("NAME ALREADY EXISTS");
+            return Err(VaultError::NameExists);
         }
         self.entries.push(entry);
         Ok(())
@@ -132,9 +152,9 @@ impl Entry {
         }
     }
 
-    pub fn set_name(&mut self, vault: &Vault, name: String) -> Result<(), &'static str> {
+    pub fn set_name(&mut self, vault: &Vault, name: String) -> Result<(), VaultError> {
         if vault.entryname_exists(&name) {
-            return Err("NAME ALREADY EXISTS");
+            return Err(VaultError::NameExists);
         }
         self.entryname = name;
         Ok(())
@@ -173,13 +193,13 @@ impl Entry {
     }
 }
 
-pub fn initialize_vault(name: String, key: String) -> Result<Vault, &'static str> {
+pub fn initialize_vault(name: String, key: String) -> Result<Vault, VaultError> {
     if key.len() > 200 {
-       return Err("PASSWORD TOO LONG"); 
+       return Err(VaultError::PasswordTooLong); 
     }
     let path = format!("vaults/{name}.psdb");
     if Path::new(&path).exists() {
-        return Err("FILENAME ALREADY EXISTS");
+        return Err(VaultError::FileExists);
     }
     let mut vault: Vault = Vault::new(name);
     vault.set_key(key);
