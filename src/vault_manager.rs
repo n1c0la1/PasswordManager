@@ -1,4 +1,4 @@
-use anyhow;
+use anyhow::{self, Ok};
 use enc_file::{AeadAlg, EncryptOptions, decrypt_bytes, encrypt_bytes};
 use secrecy::SecretString;
 use serde::{Deserialize, Serialize};
@@ -7,27 +7,9 @@ use std::io::{self, Read, Write};
 use std::path::Path;
 use std::str;
 use std::fmt;
+use errors::VaultError;
 
-#[derive(Debug)]
-pub enum VaultError {
-    InvalidKey,
-    NameExists,
-    FileExists,
-    PasswordTooLong,
-}
-
-impl fmt::Display for VaultError {
-    fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
-        match self {
-            VaultError::InvalidKey => write!(f, "INVALID KEY"),
-            VaultError::NameExists => write!(f, "NAME ALREADY EXISTS"),
-            VaultError::FileExists => write!(f, "FILENAME ALREADY EXISTS"),
-            VaultError::PasswordTooLong => write!(f, "PASSWORD TOO LONG"),
-        }
-    }
-}
-
-#[derive(Debug, Clone, Serialize, Deserialize)]
+#[derive(Debug, Serialize, Deserialize)]
 pub struct Vault {
     pub name: String,
     key: Option<String>,
@@ -43,12 +25,9 @@ impl Vault {
         }
     }
 
-    pub fn get_name(&self) -> &str {
-        &self.name
-    }
-
-    fn to_json(&self) -> String {
-        serde_json::to_string_pretty(self).expect("Conversion failed")
+    fn to_json(&self) -> Result<String, VaultError> {
+        // serde_json::to_string_pretty(self).expect("Conversion failed")
+        serde_json::to_string_pretty(self).map_err(|_| VaultError::ConversionFailedJSON)
     }
 
     fn set_key(&mut self, key: String) {
@@ -78,19 +57,27 @@ impl Vault {
         Ok(())
     }
 
-    ///use to save recently made changes, but vault will be used afterwards
-    pub fn save(&self) {
-        let key = self.key.clone().unwrap();
-        let password = SecretString::new(key.into());
-        let _ = encrypt_vault(self.name.clone(), password, self.to_json());
+    ///use to safe recently made changes, but vault will be used afterwards
+    pub fn safe(&self) -> Result<(), VaultError> {
+        if let Some(key) = &self.key {
+            let password = SecretString::new(key.into());
+            let _ = encrypt_vault(self.name.clone(), password, self.to_json());
+            Ok(())
+        } else {
+            Err(VaultError::CouldNotSave)
+        }
     }
 
     ///use when vault wont be used afterwards, e.g. when exiting programm
-    pub fn close(mut self) {
-        let key = self.key.clone().unwrap();
-        self.remove_key();
-        let password = SecretString::new(key.into());
-        let _ = encrypt_vault(self.name.clone(), password, self.to_json());
+    pub fn close(mut self) -> Result<(), VaultError> {
+        if let Some(key) = &self.key {
+            let password = SecretString::new(key.into());
+            let _ = encrypt_vault(self.name.clone(), password, self.to_json());
+            self.remove_key();
+            Ok(())
+        } else {
+            Err(VaultError::CouldNotClose)
+        }
     }
 
     pub fn set_Name(&mut self, name: String) {
@@ -105,24 +92,42 @@ impl Vault {
         Ok(())
     }
 
-    pub fn get_entry_by_name(&mut self, name: String) -> Option<&mut Entry> {
-        self.entries
-            .iter_mut()
-            .find(|value| value.entryname == name)
+    pub fn get_entry_by_name(&mut self, name: String) -> Result<&mut Entry, VaultError> {
+        if let Some(found_entry) = self.entries.iter_mut().find(|value| value.entryname == name) {
+            Ok(found_entry)
+        }
+        else {
+            Err(VaultError::CouldNotGetEntry)
+        }
     }
 
-    pub fn get_entry_by_entry(&mut self, entry: Entry) -> Option<&mut Entry> {
-        self.entries
-            .iter_mut()
-            .find(|value| **value == entry)
+    pub fn get_entry_by_entry(&mut self, entry: Entry) -> Result<&mut Entry, VaultError> {
+        if let Some(found_entry) = self.entries.iter_mut().find(|value| **value == entry) {
+            Ok(found_entry)
+        }
+        else {
+            Err(VaultError::CouldNotGetEntry)
+        }
     }
 
-    pub fn remove_entry_by_name(&mut self, name: String) {
-        self.entries.retain(|value| value.entryname != name);
+    pub fn remove_entry_by_name(&mut self, name: String) -> Result<(), VaultError> {
+        if let Some(pos) = self.entries.iter().position(|value| value.entryname == name) {
+            self.entries.remove(pos);
+            Ok(())
+        }
+        else {
+            Err(VaultError::CouldNotRemoveEntry)
+        }
     }
 
-    pub fn remove_entry_by_entry(&mut self, entry: Entry) {
-        self.entries.retain(|value| *value != entry);
+    pub fn remove_entry_by_entry(&mut self, entry: Entry) -> Result<(), VaultError> {
+        if let Some(pos) = self.entries.iter().position(|value| *value == entry) {
+            self.entries.remove(pos);
+            Ok(())
+        }
+        else {
+            Err(VaultError::CouldNotRemoveEntry)
+        }
     }
 
     pub fn list_entries(&self) {
