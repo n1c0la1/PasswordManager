@@ -94,9 +94,12 @@ fn main() {
                         println!("Vault '{}' created successfully! \n", vault_name);
                         current_vault = Some(vault);
                     }
-
                     Err(e) => {println!("Error: {}", e);}
                 }
+
+                //unwrapping here is unproblematic, because the User just initialized a vault
+                //if this vault was successfully made, it is the current_vault -> not None
+                current_vault.as_ref().unwrap().safe();
             },
 
             CommandCLI::Add { name, username, url, notes , password} => todo!(),
@@ -121,6 +124,7 @@ fn main() {
 
                 if input.trim().eq_ignore_ascii_case("y") {
                     println!("Quitting RustPass...");
+                    current_vault.unwrap().close();
                     break 'interactive_shell;
                 } else {
                     println!("Cancelled.");
