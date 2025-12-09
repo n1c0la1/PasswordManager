@@ -18,6 +18,7 @@ pub struct CLI {
 pub enum CommandCLI {
     /// Initializes a new PasswordManager.
     Init {
+        #[arg(short='n', long)]
         name: Option<String>,
     },
 
