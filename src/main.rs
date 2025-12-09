@@ -6,6 +6,7 @@ use serde_json::Value; //imports value type (represents json data)
 use std::fs; //imports rusts file system module
 use cli::*;
 use std::path::PathBuf;
+use std::io::{self, Write};
 
 
 fn main() {
@@ -18,16 +19,66 @@ fn main() {
     password_manager::intro_animation();
     println!("Hello, world!");
 
-    let input = CLI::parse();
+    loop {
+        println!("What action do you want to do? ");
+        io::stdout().flush().unwrap();
 
-    match input.command {
-        CommandCLI::Init {} => todo!(),
-        CommandCLI::Add { name, username, url, notes , password} => todo!(),
-        CommandCLI::Get {  } => todo!(),
-        CommandCLI::List {  } => todo!(),
-        CommandCLI::Remove {  } => todo!(),
-        CommandCLI::Generate {  } => todo!(),
-        CommandCLI::ChangeMaster {  } => todo!(),
-        CommandCLI::Modify {  } => todo!(),
+        let mut input = String::new();
+        io::stdin().read_line(&mut input).unwrap();
+        let input = input.trim();
+
+        if input.is_empty() {
+            continue;
+        }
+
+        // Die Eingabe splitten wie CLI-Args
+        let args: Vec<String> = input
+            .split_whitespace()
+            .map(|s| s.to_string())
+            .collect();
+
+        // Clap erwartet args inklusive Programmnamen als args[0]
+        let mut args_with_prog = vec!["pw".to_string()];
+        args_with_prog.extend(args);
+
+        // Mit Clap parsen
+        let cli = match CLI::try_parse_from(args_with_prog) {
+            Ok(cli) => cli,
+            Err(e) => {
+                println!("{}", e);
+                continue;
+            }
+        };
+        match cli.command {
+            CommandCLI::Init { name } => todo!(),
+            CommandCLI::Add { name, username, url, notes , password} => todo!(),
+            CommandCLI::Get { name, show } => todo!(),
+            CommandCLI::List { vault, show  } => todo!(),
+            CommandCLI::Remove { name } => todo!(),
+            CommandCLI::Generate { length, no_symbols } => todo!(),
+            CommandCLI::ChangeMaster {  } => todo!(),
+            CommandCLI::Modify { name } => todo!(),
+            CommandCLI::Quit { force } => { 
+                if force {
+                    println!("Quitting RustPass...");
+                    break;
+                } 
+
+                print!("Are you sure you want to quit? (y/n): ");
+                io::stdout().flush().unwrap();
+
+
+                let mut input = String::new();
+                io::stdin().read_line(&mut input).unwrap();
+
+                if input.trim().eq_ignore_ascii_case("y") {
+                    println!("Quitting RustPass...");
+                    break;
+                } else {
+                    println!("Cancelled.");
+                    io::stdout().flush().unwrap();
+                }
+            },
+        }
     }
 }

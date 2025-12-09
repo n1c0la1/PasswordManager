@@ -9,9 +9,6 @@ use serde::{Deserialize, Serialize};
 #[derive(Parser)]
 #[command(name = "pw")]
 pub struct CLI {
-    #[arg(short, long)]
-    pub database: PathBuf,
-
     #[command(subcommand)]
     pub command: CommandCLI,
 }
@@ -19,7 +16,9 @@ pub struct CLI {
 #[derive(Subcommand)]
 pub enum CommandCLI {
     /// Initializes a new PasswordManager.
-    Init{},
+    Init {
+        name: String,
+    },
 
     /// Adds a new password to database.
     Add {
@@ -40,27 +39,56 @@ pub enum CommandCLI {
 
     /// Get an Entry of the Database.
     // maybe implement parameter: with or without the password visible
-    Get {},
+    Get {
+        //name of the Element to be shown
+        name: String,
+
+        // Specifies whether the password should be shown in the command line.
+        show: bool,
+
+        // Maybe an Option to directly copy the password to clipboard without showing it.
+    },
 
     /// List all Entrys.
     // maybe implement filters e.g. all passwords with that email, or on that URL.
-    List {},
+    List {
+        // Name of vault.
+        vault: String,
+
+        // Show passwords or not.
+        show: bool,
+    },
 
     /// Generate a password.
     // maybe implement interaction (abfrage) if with special cases, numbers etc.
-    Generate{}, 
+    Generate {
+        length: i32,
+
+        no_symbols: bool,
+    }, 
 
     /// Remove an entry from Database.
-    Remove{},
+    Remove {
+        name: String,
+    },
 
     /// Change the Masterpassword.
     // implement not visible, old password required. Verschlüsselt Vault sofort
-    ChangeMaster{},
+    ChangeMaster {},
 
     /// Modify a given password
     //
-    Modify{},
+    Modify {
+        name: String,
+    },
     
+    /// Quits the input loop
+    Quit {
+        //forces quit, normally "Do you really want to quit RustPass?"
+        #[arg(short='f', long)]
+        force: bool,
+    },
+
 }
 
 /*fn main() {
