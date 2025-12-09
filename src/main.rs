@@ -5,6 +5,7 @@ use clap::{Parser, Command, Subcommand, command};
 use serde_json::Value; //imports value type (represents json data)
 use std::fs; //imports rusts file system module
 use cli::*;
+use vault_manager::*;
 use std::path::PathBuf;
 use std::io::{self, Write};
 
@@ -16,10 +17,12 @@ fn main() {
 
     println!("{json_data}");
 
+    let mut current_vault: Option<Vault> = None;
+
     password_manager::intro_animation();
     println!("Hello, world!");
 
-    loop {
+    'interactive_shell: loop {
         println!("What action do you want to do? ");
         io::stdout().flush().unwrap();
 
@@ -50,7 +53,52 @@ fn main() {
             }
         };
         match cli.command {
-            CommandCLI::Init { name } => todo!(),
+            CommandCLI::Init { name } => {
+                println!("Initializing new vault: \n");
+
+                let vault_name = if let Some(n) = name {
+                    n
+                } else {
+                    print!("What should be the name of your new vault? \n> ");
+                    io::stdout().flush().unwrap();
+                    let mut input = String::new();
+                    io::stdin().read_line(&mut input).unwrap();
+                    print!("{input}");
+                    input.trim().to_string()
+                };
+
+                let key = String::new();
+
+                //Define MasterPassword
+                'define_mw: loop {
+                    println!("\n---------------\nDefine the Master-Password for {}:", vault_name);
+                    io::stdout().flush().unwrap();
+
+                    let password = rpassword::prompt_password("Password: ").unwrap();
+                    println!("{password}");
+
+                    let password_confirm = rpassword::prompt_password("Please confirm the password: ").unwrap();
+                    println!("{password_confirm}");
+
+                    if password != password_confirm {
+                        println!("The passwords do not match, please try again.");
+                        continue 'define_mw;
+                    }
+
+
+                    break 'define_mw;
+                }
+
+                match initialize_vault(vault_name.clone(), key) {
+                    Ok(vault) => {
+                        println!("Vault '{}' created successfully! \n", vault_name);
+                        current_vault = Some(vault);
+                    }
+
+                    Err(e) => {println!("Error: {}", e);}
+                }
+            },
+
             CommandCLI::Add { name, username, url, notes , password} => todo!(),
             CommandCLI::Get { name, show } => todo!(),
             CommandCLI::List { vault, show  } => todo!(),
@@ -73,7 +121,7 @@ fn main() {
 
                 if input.trim().eq_ignore_ascii_case("y") {
                     println!("Quitting RustPass...");
-                    break;
+                    break 'interactive_shell;
                 } else {
                     println!("Cancelled.");
                     io::stdout().flush().unwrap();

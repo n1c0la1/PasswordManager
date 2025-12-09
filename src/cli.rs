@@ -17,7 +17,7 @@ pub struct CLI {
 pub enum CommandCLI {
     /// Initializes a new PasswordManager.
     Init {
-        name: String,
+        name: Option<String>,
     },
 
     /// Adds a new password to database.
