@@ -8,19 +8,21 @@ use cli::*;
 use vault_manager::*;
 use std::path::PathBuf;
 use std::io::{self, Write};
+use std::time::Duration;
+use indicatif::{ProgressBar, ProgressStyle};
 
 
 fn main() {
-    let string_from_json =
-        fs::read_to_string("src/passwords_file.json").expect("could not read file");
-    let json_data: Value = serde_json::from_str(&string_from_json).expect("invalid json");
-
-    println!("{json_data}");
-
+    password_manager::intro_animation();
     let mut current_vault: Option<Vault> = None;
 
-    password_manager::intro_animation();
-    println!("Hello, world!");
+    let spinner = ProgressBar::new_spinner();
+        spinner.set_style(
+            ProgressStyle::default_spinner()
+                .tick_strings(&["|", "/", "-", "\\"])
+                .template("{spinner} {msg}")
+                .unwrap(),
+        );
 
     'interactive_shell: loop {
         println!("What action do you want to do? ");
@@ -54,7 +56,7 @@ fn main() {
         };
         match cli.command {
             CommandCLI::Init { name } => {
-                println!("Initializing new vault: \n");
+                println!("\nInitializing new vault: ");
 
                 let vault_name = if let Some(n) = name {
                     n
@@ -91,15 +93,21 @@ fn main() {
 
                 match initialize_vault(vault_name.clone(), key) {
                     Ok(vault) => {
-                        println!("Vault '{}' created successfully! \n", vault_name);
                         current_vault = Some(vault);
+
+                        spinner.enable_steady_tick(Duration::from_millis(80));
+                        spinner.set_message(" Creating vault...");
+
+                        //unwrapping here is unproblematic, because the User just initialized a vault
+                        //if this vault was successfully made, it is the current_vault -> not None
+                        current_vault.as_ref().unwrap().safe();
+
+                        spinner.finish_and_clear();
+
+                        println!("Vault '{}' created successfully! \n", vault_name);
                     }
                     Err(e) => {println!("Error: {}", e);}
                 }
-
-                //unwrapping here is unproblematic, because the User just initialized a vault
-                //if this vault was successfully made, it is the current_vault -> not None
-                current_vault.as_ref().unwrap().safe();
             },
 
             CommandCLI::Add { name, username, url, notes , password} => todo!(),
@@ -127,7 +135,7 @@ fn main() {
                     current_vault.unwrap().close();
                     break 'interactive_shell;
                 } else {
-                    println!("Cancelled.");
+                    println!("Cancelled. \n");
                     io::stdout().flush().unwrap();
                 }
             },

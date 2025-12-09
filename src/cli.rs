@@ -1,7 +1,8 @@
 use crate::vault_manager;
 
 use clap::{Parser, Subcommand, command};
-use std::path::PathBuf;
+use indicatif::{self, ProgressBar, ProgressStyle};
+use std::{path::PathBuf, time::Duration};
 use rpassword;
 use serde::{Deserialize, Serialize};
 
@@ -91,17 +92,3 @@ pub enum CommandCLI {
 
 }
 
-/*fn main() {
-    let cli = CLI::parse();
-
-    match cli.command {
-        Command::Init {} => todo!(),
-        Command::Add { name, username, url, notes , password} => todo!(),
-        Command::Get {  } => todo!(),
-        Command::List {  } => todo!(),
-        Command::Remove {  } => todo!(),
-        Command::Generate {  } => todo!(),
-        Command::ChangeMaster {  } => todo!(),
-        Command::Modify {  } => todo!(),
-    }
-}*/
