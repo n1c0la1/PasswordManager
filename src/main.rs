@@ -150,11 +150,14 @@ fn main() {
                 }
             },
             CommandCLI::Get { name, show } => todo!(),
-            CommandCLI::List { vault, show  } => todo!(),
-            CommandCLI::Remove { name } => todo!(),
+            CommandCLI::ShowEntries { vault, show  } => todo!(),
+            CommandCLI::Delete { name } => todo!(),
             CommandCLI::Generate { length, no_symbols } => todo!(),
             CommandCLI::ChangeMaster {  } => todo!(),
             CommandCLI::Modify { name } => todo!(),
+            CommandCLI::Open { name } => todo!(),
+            CommandCLI::Switch { name } => todo!(),
+            CommandCLI::Vaults {  } => todo!(),
             CommandCLI::Quit { force } => { 
                 if force {
                     println!("Quitting RustPass...");

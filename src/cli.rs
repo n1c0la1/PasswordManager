@@ -53,7 +53,7 @@ pub enum CommandCLI {
 
     /// List all Entrys.
     // maybe implement filters e.g. all passwords with that email, or on that URL.
-    List {
+    ShowEntries {
         // Name of vault.
         vault: String,
 
@@ -70,7 +70,7 @@ pub enum CommandCLI {
     }, 
 
     /// Remove an entry from Database.
-    Remove {
+    Delete {
         name: String,
     },
 
@@ -78,9 +78,19 @@ pub enum CommandCLI {
     // implement not visible, old password required. Verschlüsselt Vault sofort
     ChangeMaster {},
 
+    Vaults {},
+
     /// Modify a given password
     //
     Modify {
+        name: String,
+    },
+
+    Open {
+        name: String,
+    },
+
+    Switch {
         name: String,
     },
     
