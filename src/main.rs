@@ -100,7 +100,7 @@ fn main() {
 
                         //unwrapping here is unproblematic, because the User just initialized a vault
                         //if this vault was successfully made, it is the current_vault -> not None
-                        current_vault.as_ref().unwrap().safe();
+                        current_vault.as_ref().unwrap().save();
 
                         spinner.finish_and_clear();
 
@@ -110,7 +110,45 @@ fn main() {
                 }
             },
 
-            CommandCLI::Add { name, username, url, notes , password} => todo!(),
+            CommandCLI::Add { name, username, url, notes , password} => {
+                if !check_vaults_exist() {
+                    eprintln!("There are currently no vaults, consider using 'init' to create one!");
+                    continue 'interactive_shell;
+                }
+
+                // Auto-open vault if not open
+                if !ensure_vault_open(&mut current_vault) {
+                    continue;
+                }
+                
+                if let Some(ref mut vault) = current_vault {
+                    let pw = if let Some(p) = password {
+                        Some(p)
+                    } else {
+                        print!("Enter password for the entry (or press Enter to skip): ");
+                        io::stdout().flush().unwrap();
+                        let input_pw = rpassword::read_password().unwrap();
+                        if input_pw.is_empty() {
+                            None
+                        } else {
+                            Some(input_pw)
+                        }
+                    };
+                    
+                    // TODO when no email provided, ask the user.
+
+                    let entry = Entry::new(name.clone(), username, pw, url, notes);
+                    
+                    match vault.add_entry(entry) {
+                        Ok(_) => {
+                            println!("Entry '{}' added successfully!", name);
+                            vault.save();
+                            println!("Vault saved.");
+                        }
+                        Err(e) => println!("Error: {}", e),
+                    }
+                }
+            },
             CommandCLI::Get { name, show } => todo!(),
             CommandCLI::List { vault, show  } => todo!(),
             CommandCLI::Remove { name } => todo!(),

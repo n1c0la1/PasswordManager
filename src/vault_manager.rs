@@ -2,8 +2,8 @@ use anyhow;
 use enc_file::{AeadAlg, EncryptOptions, decrypt_bytes, encrypt_bytes};
 use secrecy::SecretString;
 use serde::{Deserialize, Serialize};
-use std::fs::File;
-use std::io::{Read, Write};
+use std::fs::{self, File};
+use std::io::{self, Read, Write};
 use std::path::Path;
 use std::str;
 use std::fmt;
@@ -27,7 +27,7 @@ impl fmt::Display for VaultError {
     }
 }
 
-#[derive(Debug, Serialize, Deserialize)]
+#[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct Vault {
     name: String,
     key: Option<String>,
@@ -74,8 +74,8 @@ impl Vault {
         Ok(())
     }
 
-    ///use to safe recently made changes, but vault will be used afterwards
-    pub fn safe(&self) {
+    ///use to save recently made changes, but vault will be used afterwards
+    pub fn save(&self) {
         let key = self.key.clone().unwrap();
         let password = SecretString::new(key.into());
         let _ = encrypt_vault(self.name.clone(), password, self.to_json());
@@ -259,4 +259,54 @@ fn write_to_file(path: &str, msg: &[u8]) -> std::io::Result<()> {
     let mut file = File::create(path)?;
     file.write_all(msg)?;
     Ok(())
+}
+
+// Hilfsfunktion um Vault zu öffnen falls noch nicht offen
+pub fn ensure_vault_open (vault: &mut Option<Vault>) -> bool {
+    if vault.is_some() {
+        return true;
+    }
+    
+    println!("No vault is currently open.");
+    print!("Enter vault name to open: ");
+    io::stdout().flush().unwrap();
+    
+    let mut vault_name = String::new();
+    io::stdin().read_line(&mut vault_name).unwrap();
+    let vault_name = vault_name.trim().to_string();
+    
+    if vault_name.is_empty() {
+        println!("Vault name cannot be empty!");
+        return false;
+    }
+    
+    print!("Enter master password: ");
+    io::stdout().flush().unwrap();
+    let password = rpassword::read_password().unwrap();
+    
+    match open_vault(vault_name.clone(), password) {
+        Ok(v) => {
+            println!("✓ Vault '{}' opened successfully!", vault_name);
+            *vault = Some(v);
+            true
+        }
+        Err(e) => {
+            println!("Error opening vault: {}", e);
+            println!("Hint: Use 'init <name>' to create a new vault.");
+            false
+        }
+    }
+}
+
+pub fn check_vaults_exist () -> bool {
+    fs::read_dir("vaults")
+        .map(|mut entries| entries.any(|e| {
+            e.map(|entry| {
+                entry.path().extension()
+                    .and_then(|ext| ext.to_str())
+                    .map(|ext| ext == "psdb")
+                    .unwrap_or(false)
+            }).unwrap_or(false)
+        }))
+        .unwrap_or(false)
 }
