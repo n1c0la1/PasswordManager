@@ -1,8 +1,9 @@
-use crate::vault_manager;
+use crate::vault_manager::*;
 
 use clap::{Parser, Subcommand, command};
 use indicatif::{self, ProgressBar, ProgressStyle};
 use std::{path::PathBuf, time::Duration};
+use std::io::{self, Write};
 use rpassword;
 use serde::{Deserialize, Serialize};
 
@@ -103,3 +104,57 @@ pub enum CommandCLI {
 
 }
 
+pub fn handle_command_init(mut current_vault: Option<Vault>, name: Option<String>, spinner: ProgressBar) {
+    println!("\nInitializing new vault: ");
+    
+    let vault_name = if let Some(n) = name {
+                    n
+                } else {
+                    print!("What should be the name of your new vault? \n> ");
+                    io::stdout().flush().unwrap();
+                    let mut input = String::new();
+                    io::stdin().read_line(&mut input).unwrap();
+                    print!("{input}");
+                    input.trim().to_string()
+                };
+    
+    let key = String::new();
+    
+    //Define MasterPassword
+    'define_mw: loop {
+        println!("\n---------------\nDefine the Master-Password for {}:", vault_name);
+        io::stdout().flush().unwrap();
+    
+        let password = rpassword::prompt_password("Password: ").unwrap();
+        println!("{password}");
+    
+        let password_confirm = rpassword::prompt_password("Please confirm the password: ").unwrap();
+        println!("{password_confirm}");
+    
+        if password != password_confirm {
+            println!("The passwords do not match, please try again.");
+            continue 'define_mw;
+        }
+    
+    
+        break 'define_mw;
+    }
+    
+    match initialize_vault(vault_name.clone(), key) {
+        Ok(vault) => {
+            current_vault = Some(vault);
+    
+            spinner.enable_steady_tick(Duration::from_millis(80));
+            spinner.set_message(" Creating vault...");
+    
+            //unwrapping here is unproblematic, because the User just initialized a vault
+            //if this vault was successfully made, it is the current_vault -> not None
+            current_vault.as_ref().unwrap().save();
+    
+            spinner.finish_and_clear();
+    
+            println!("\nVault '{}' created successfully! \n", vault_name);
+        }
+        Err(e) => {println!("Error: {}", e);}
+    }
+}
