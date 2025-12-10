@@ -151,7 +151,7 @@ pub fn handle_command_init(option_name: Option<String>) -> Result<Vault, VaultEr
     }
 
     let vault = initialize_vault(vault_name.clone(), key)?;
-    
+
     let spinner = spinner();
     spinner.enable_steady_tick(Duration::from_millis(80));
     spinner.set_message(" Creating vault...");
@@ -165,4 +165,41 @@ pub fn handle_command_init(option_name: Option<String>) -> Result<Vault, VaultEr
         Err(e) => println!("Error: {}", e)
     }*/
     Ok(vault)
+}
+
+pub fn handle_command_add(option_vault: &mut Option<Vault>, name: String, username: Option<String>, url: Option<String>, notes: Option<String>, password: Option<String>) {
+    if let Some(vault) = option_vault {
+        // hätte ich weggelassen, da dass password davor oder danach hinzugefügt werden kann
+        let pw = if let Some(p) = password {
+            Some(p)
+        } else {
+            print!("Enter password for the entry (or press Enter to skip): ");
+            io::stdout().flush().unwrap();
+            let input_pw = rpassword::read_password().unwrap();
+            if input_pw.is_empty() {
+                None
+            } else {
+                Some(input_pw)
+            }
+        };
+
+        // TODO when no email provided, ask the user.
+
+        let entry = Entry::new(name.clone(), username, pw, url, notes);
+
+        match vault.add_entry(entry) {
+            Ok(_) => {
+                let spinner = spinner();
+                spinner.enable_steady_tick(Duration::from_millis(80));
+                spinner.set_message("Adding PasswordEntry...");
+
+                vault.save();
+                println!("Entry '{}' added successfully!", name);
+                println!("Vault saved.\n");
+
+                spinner.finish_and_clear();
+            }
+            Err(e) => println!("Error: {}", e),
+        }
+    }
 }
