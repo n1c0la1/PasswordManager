@@ -29,7 +29,7 @@ pub enum CommandCLI {
         #[arg(short, long)]
         username: Option<String>,
 
-        #[arg(short, long)]
+        #[arg(long)]
         url: Option<String>,
 
         #[arg(short, long)]

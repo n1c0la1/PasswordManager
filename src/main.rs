@@ -25,7 +25,20 @@ fn main() {
         );
 
     'interactive_shell: loop {
+        println!("Current vault: {}", 
+            match current_vault.as_ref() {
+                Some(v) => v.get_name(),
+                None    => "None"
+            }
+        );
         println!("What action do you want to do? ");
+        
+        if !check_vaults_exist() {
+            eprintln!("\nHint: There are currently no vaults at all, consider using 'init' to create one!");
+        } else if current_vault.is_none() {
+            eprintln!("There are currently no vaults open, consider using 'open <vault-name>'!")
+        }
+        
         io::stdout().flush().unwrap();
 
         let mut input = String::new();
@@ -104,7 +117,7 @@ fn main() {
 
                         spinner.finish_and_clear();
 
-                        println!("Vault '{}' created successfully! \n", vault_name);
+                        println!("\nVault '{}' created successfully! \n", vault_name);
                     }
                     Err(e) => {println!("Error: {}", e);}
                 }
@@ -141,9 +154,15 @@ fn main() {
                     
                     match vault.add_entry(entry) {
                         Ok(_) => {
-                            println!("Entry '{}' added successfully!", name);
+
+                            spinner.enable_steady_tick(Duration::from_millis(80));
+                            spinner.set_message("Adding PasswordEntry...");
+
                             vault.save();
-                            println!("Vault saved.");
+                            println!("Entry '{}' added successfully!", name);
+                            println!("Vault saved.\n");
+
+                            spinner.finish_and_clear();
                         }
                         Err(e) => println!("Error: {}", e),
                     }
