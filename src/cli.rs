@@ -168,6 +168,16 @@ pub fn handle_command_init(option_name: Option<String>) -> Result<Vault, VaultEr
 }
 
 pub fn handle_command_add(option_vault: &mut Option<Vault>, name: String, username: Option<String>, url: Option<String>, notes: Option<String>, password: Option<String>) {
+    /*if !check_vaults_exist() {
+                    eprintln!("There are currently no vaults, consider using 'init' to create one!");
+                    continue 'interactive_shell;
+                }
+
+                // Auto-open vault if not open
+                if !ensure_vault_open(&mut current_vault) {
+                    continue;
+                }*/
+    
     if let Some(vault) = option_vault {
         // hätte ich weggelassen, da dass password davor oder danach hinzugefügt werden kann
         let pw = if let Some(p) = password {
@@ -213,4 +223,28 @@ pub fn handle_command_modify() {}
 pub fn handle_command_open() {}
 pub fn handle_command_switch() {}
 pub fn handle_command_vaults() {}
-pub fn handle_command_quit() {}
+pub fn handle_command_quit(option_vault: Option<Vault>, force: bool) {
+    //loop must be replaced by while-loop
+    /*if force {
+        println!("Quitting RustPass...");
+        break;
+    } 
+
+    print!("Are you sure you want to quit? (y/n): ");
+    io::stdout().flush().unwrap();
+
+
+    let mut input = String::new();
+    io::stdin().read_line(&mut input).unwrap();
+
+    if input.trim().eq_ignore_ascii_case("y") {
+        println!("Quitting RustPass...");
+        if let Some(vault) = option_vault {
+            vault.close();
+        }
+        break 'interactive_shell;
+    } else {
+        println!("Cancelled. \n");
+        io::stdout().flush().unwrap();
+    }*/
+}
