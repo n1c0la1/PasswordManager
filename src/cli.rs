@@ -203,3 +203,14 @@ pub fn handle_command_add(option_vault: &mut Option<Vault>, name: String, userna
         }
     }
 }
+
+pub fn handle_command_get() {}
+pub fn handle_command_show_entries() {}
+pub fn handle_command_delete() {}
+pub fn handle_command_generate() {}
+pub fn handle_command_change_master() {}
+pub fn handle_command_modify() {}
+pub fn handle_command_open() {}
+pub fn handle_command_switch() {}
+pub fn handle_command_vaults() {}
+pub fn handle_command_quit() {}
