@@ -29,7 +29,7 @@ impl fmt::Display for VaultError {
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct Vault {
-    name: String,
+    pub name: String,
     key: Option<String>,
     entries: Vec<Entry>,
 }
@@ -41,6 +41,10 @@ impl Vault {
             key: None,
             entries: vec![],
         }
+    }
+
+    pub fn get_name(&self) -> &str {
+        &self.name
     }
 
     fn to_json(&self) -> String {

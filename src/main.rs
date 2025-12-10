@@ -25,6 +25,13 @@ fn main() {
         );
 
     'interactive_shell: loop {
+        if !check_vaults_exist() {
+            eprintln!("There are currently no vaults, consider using 'init' to create one!");
+        } else if ensure_vault_open(&mut current_vault) {
+            eprintln!("There are currently no vaults open, consider using 'open <vault-name>'!")
+        }
+        
+        println!("Current vault: {}", current_vault.as_ref().unwrap().get_name());
         println!("What action do you want to do? ");
         io::stdout().flush().unwrap();
 
