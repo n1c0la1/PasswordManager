@@ -211,6 +211,7 @@ pub fn open_vault(file_name: String, key: String) -> Result<Vault, anyhow::Error
     let encrypted_bytes = read_file_to_bytes(&path)?;
     let password = SecretString::new(key.clone().into());
     //handle error: enc_file::EncFileError::Crypto to validate password
+    //match error Crypto -> return Err(InvalidKey)
     let decrypted_json = decrypt_to_string(password, &encrypted_bytes)?;
     let mut vault = vault_from_json(&decrypted_json)?;
     vault.set_key(key);
