@@ -174,9 +174,9 @@ fn main() {
             CommandCLI::Generate { length, no_symbols } => todo!(),
             CommandCLI::ChangeMaster {  } => todo!(),
             CommandCLI::Modify { name } => todo!(),
-            CommandCLI::Open { name } => todo!(),
+            CommandCLI::Open { name } => {todo!()},
             CommandCLI::Switch { name } => todo!(),
-            CommandCLI::Vaults {  } => todo!(),
+            CommandCLI::Vaults {  } => {handle_command_vaults(&current_vault);},
             CommandCLI::Quit { force } => { 
                 if force {
                     println!("Quitting RustPass...");

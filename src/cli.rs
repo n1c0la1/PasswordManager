@@ -4,6 +4,7 @@ use clap::{Parser, Subcommand, command};
 use indicatif::{self, ProgressBar, ProgressStyle};
 use rpassword;
 use serde::{Deserialize, Serialize};
+use std::fs;
 use std::io::{self, Write};
 use std::{path::PathBuf, time::Duration};
 
@@ -222,7 +223,51 @@ pub fn handle_command_change_master() {}
 pub fn handle_command_modify() {}
 pub fn handle_command_open() {}
 pub fn handle_command_switch() {}
-pub fn handle_command_vaults() {}
+pub fn handle_command_vaults(current_vault: &Option<Vault>) {
+    println!("\n=== Available Vaults ===");
+                
+    match fs::read_dir("vaults") {
+        Ok(entries) => {
+            let mut vault_files: Vec<String> = entries
+                .filter_map(|e| e.ok())
+                .filter(|e| {
+                    e.path().extension()
+                        .and_then(|ext| ext.to_str())
+                        .map(|ext| ext == "psdb")
+                        .unwrap_or(false)
+                })
+                .filter_map(|e| {
+                    e.path()
+                        .file_stem()
+                        .and_then(|s| s.to_str())
+                        .map(|s| s.to_string())
+                })
+                .collect();
+            
+            if vault_files.is_empty() {
+                println!("  (no vaults found)");
+                println!("\nCreate a new vault with: init <vault_name>");
+            } else {
+                vault_files.sort();
+                
+                let current_vault_name = current_vault.as_ref()
+                    .map(|v| v.get_name());
+                
+                for vault_name in vault_files {
+                    if Some(&vault_name.as_str()) == current_vault_name.as_ref() {
+                        println!("  → {} (currently open)", vault_name);
+                    } else {
+                        println!("    {}", vault_name);
+                    }
+                }
+            }
+            println!();
+        }
+        Err(e) => {
+            println!("Error reading vaults directory: {}", e);
+        }
+    }
+}
 pub fn handle_command_quit(option_vault: Option<Vault>, force: bool) {
     //loop must be replaced by while-loop
     /*if force {
