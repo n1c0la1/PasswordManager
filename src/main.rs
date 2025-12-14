@@ -10,6 +10,7 @@ use std::path::{Path, PathBuf};
 use std::io::{self, Read, Write};
 use std::time::Duration;
 use indicatif::{ProgressBar, ProgressStyle};
+use std::thread;
 
 
 fn main() {
@@ -109,8 +110,12 @@ fn main() {
 
             CommandCLI::Quit { force } => { 
                 match handle_command_quit(current_vault.clone(), force) {
-                    LoopCommand::Break    => {break    'interactive_shell;},
-                    LoopCommand::Continue => {continue 'interactive_shell;}
+                    LoopCommand::Break    => {
+                        thread::sleep(Duration::from_millis(500));
+                        break    'interactive_shell;},
+                    LoopCommand::Continue => {
+                        thread::sleep(Duration::from_millis(500));
+                        continue 'interactive_shell;}
                 }
             },
         }
