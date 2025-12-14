@@ -9,6 +9,7 @@ use std::fs;
 use std::io::{self, Read, Write};
 use std::path::Path;
 use std::{path::PathBuf, time::Duration};
+use std::thread::{self};
 
 #[derive(Parser)]
 #[command(name = "pw")]
@@ -192,7 +193,7 @@ pub fn handle_command_add(option_vault: &mut Option<Vault>, name: Option<String>
                 io::stdout().flush().unwrap();
     
                 let mut input = String::new();
-                io::stdin().read_to_string(&mut input).expect("Error reading your input.");
+                io::stdin().read_line(&mut input).expect("Error reading your input.");
     
                 let trimmed: String = input.trim().to_string();
                 if trimmed.is_empty() {
@@ -205,7 +206,7 @@ pub fn handle_command_add(option_vault: &mut Option<Vault>, name: Option<String>
             input_name
         };
 
-        println!("(Press Enter to skip optional fields)\n");
+        println!("\n(Press Enter to skip optional fields)");
         
         // Username
         let final_username = if let Some(u) = username {
@@ -216,10 +217,11 @@ pub fn handle_command_add(option_vault: &mut Option<Vault>, name: Option<String>
             io::stdout().flush().unwrap();
 
             let mut input_username = String::new();
-            io::stdin().read_to_string(&mut input_username).expect("Error reading your input.");
+            io::stdin().read_line(&mut input_username).expect("Error reading your input.");
             if input_username.is_empty() {
                 None
             } else {
+                println!();
                 Some(input_username)
             }
         };
@@ -233,10 +235,11 @@ pub fn handle_command_add(option_vault: &mut Option<Vault>, name: Option<String>
             io::stdout().flush().unwrap();
 
             let mut input_url = String::new();
-            io::stdin().read_to_string(&mut input_url).expect("Error reading your input.");
+            io::stdin().read_line(&mut input_url).expect("Error reading your input.");
             if input_url.is_empty() {
                 None
             } else {
+                println!();
                 Some(input_url)
             }
         };
@@ -250,10 +253,11 @@ pub fn handle_command_add(option_vault: &mut Option<Vault>, name: Option<String>
             io::stdout().flush().unwrap();
 
             let mut input_url = String::new();
-            io::stdin().read_to_string(&mut input_url).expect("Error reading your input.");
+            io::stdin().read_line(&mut input_url).expect("Error reading your input.");
             if input_url.is_empty() {
                 None
             } else {
+                println!();
                 Some(input_url)
             }
         };
@@ -262,13 +266,29 @@ pub fn handle_command_add(option_vault: &mut Option<Vault>, name: Option<String>
         let final_pw = if let Some(p) = password {
             Some(p)
         } else {
-            print!("Enter password for the entry (or press Enter to skip): ");
-            io::stdout().flush().unwrap();
-            let input_pw = rpassword::read_password().unwrap();
-            if input_pw.is_empty() {
+            let mut loop_pw = String::new();
+            'input_pw: loop {
+                print!("Enter password for the entry (or press Enter to skip): ");
+                io::stdout().flush().unwrap();
+                let input_password = rpassword::read_password().unwrap();
+                
+                print!("Please confirm the password: ");
+                io::stdout().flush().unwrap();
+                let confirm = rpassword::read_password().unwrap();
+                
+                if input_password != confirm {
+                    println!("The passwords do not match! Try again:");
+                    continue 'input_pw;
+                }
+
+                loop_pw = input_password;
+                break 'input_pw;
+            }
+            if loop_pw.is_empty() {
                 None
             } else {
-                Some(input_pw)
+                println!();
+                Some(loop_pw)
             }
         };
 
@@ -288,6 +308,9 @@ pub fn handle_command_add(option_vault: &mut Option<Vault>, name: Option<String>
             }
             Err(e) => println!("Error: {}", e),
         }
+    } else {
+        println!("!! No vault is open to add an entry to !!");
+        println!("Consider using open <vault-name> or init!");
     }
 }
 
@@ -361,7 +384,7 @@ pub fn handle_command_quit(option_vault: Option<Vault>, force: bool) -> LoopComm
 
 
     let mut input = String::new();
-    io::stdin().read_line(&mut input).unwrap();
+    io::stdin().read_line(&mut input).expect("Error reading your input.");
 
     if input.trim().eq_ignore_ascii_case("y") {
         println!("Quitting RustPass...");
