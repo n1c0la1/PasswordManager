@@ -17,6 +17,11 @@ pub struct CLI {
     pub command: CommandCLI,
 }
 
+pub enum LoopCommand {
+    Continue,
+    Break,
+}
+
 #[derive(Subcommand)]
 pub enum CommandCLI {
     /// Initializes a new PasswordManager.
@@ -139,10 +144,8 @@ pub fn handle_command_init(option_name: Option<String>) -> Result<Vault, VaultEr
         return Err(VaultError::NameExists);
     }   
 
-    let key = String::new();
-
     //Define MasterPassword
-    'define_mw: loop {
+    let key = 'define_mw: loop {
         println!(
             "\n---------------\nDefine the Master-Password for {}:",
             vault_name
@@ -150,18 +153,16 @@ pub fn handle_command_init(option_name: Option<String>) -> Result<Vault, VaultEr
         io::stdout().flush().unwrap();
 
         let password = rpassword::prompt_password("Password: ").unwrap();
-        println!("{password}");
 
         let password_confirm = rpassword::prompt_password("Please confirm the password: ").unwrap();
-        println!("{password_confirm}");
 
         if password != password_confirm {
             println!("The passwords do not match, please try again.");
             continue 'define_mw;
         }
 
-        break 'define_mw;
-    }
+        break 'define_mw password;
+    };
 
     let vault = initialize_vault(vault_name.clone(), key)?;
 
@@ -282,11 +283,10 @@ pub fn handle_command_clear() {
     intro_animation();
 }
 
-pub fn handle_command_quit(option_vault: Option<Vault>, force: bool) {
-    //loop must be replaced by while-loop
-    /*if force {
+pub fn handle_command_quit(option_vault: Option<Vault>, force: bool) -> LoopCommand {
+    if force {
         println!("Quitting RustPass...");
-        break;
+        return LoopCommand::Break;
     } 
 
     print!("Are you sure you want to quit? (y/n): ");
@@ -301,9 +301,10 @@ pub fn handle_command_quit(option_vault: Option<Vault>, force: bool) {
         if let Some(vault) = option_vault {
             vault.close();
         }
-        break 'interactive_shell;
+        LoopCommand::Break
     } else {
         println!("Cancelled. \n");
         io::stdout().flush().unwrap();
-    }*/
+        LoopCommand::Continue
+    }
 }

@@ -72,15 +72,14 @@ fn main() {
         match cli.command {
             CommandCLI::Init { name } => {
                 match handle_command_init(name) {
-                    Ok(vault) => {current_vault = Some(vault);},
+                    Ok(vault)            => {current_vault = Some(vault);},
                     Err(VaultError::NameExists) => {
                         println!();
                         println!("Error: {}", VaultError::NameExists);
                         println!("Use a different name or open the existing vault.");
                         println!();},
-                    Err(e) => {println!("Error: {e}")},
+                    Err(e)          => {println!("Error: {e}")},
                 }
-
                 continue 'interactive_shell;
             },
 
@@ -140,27 +139,9 @@ fn main() {
             CommandCLI::Vaults {  } => {handle_command_vaults(&current_vault);},
             CommandCLI::Clear {  } => {handle_command_clear();},
             CommandCLI::Quit { force } => { 
-                if force {
-                    println!("Quitting RustPass...");
-                    break 'interactive_shell;
-                } 
-
-                print!("Are you sure you want to quit? (y/n): ");
-                io::stdout().flush().unwrap();
-
-
-                let mut input = String::new();
-                io::stdin().read_line(&mut input).unwrap();
-
-                if input.trim().eq_ignore_ascii_case("y") {
-                    println!("Quitting RustPass...");
-                    if current_vault.is_some() {
-                        current_vault.unwrap().close();
-                    }
-                    break 'interactive_shell;
-                } else {
-                    println!("Cancelled. \n");
-                    io::stdout().flush().unwrap();
+                match handle_command_quit(current_vault.clone(), force) {
+                    LoopCommand::Break    => {break    'interactive_shell;},
+                    LoopCommand::Continue => {continue 'interactive_shell;}
                 }
             },
         }
