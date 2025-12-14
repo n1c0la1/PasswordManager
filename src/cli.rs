@@ -6,7 +6,7 @@ use password_manager::{clear_terminal, intro_animation};
 use rpassword;
 use serde::{Deserialize, Serialize};
 use std::fs;
-use std::io::{self, Write};
+use std::io::{self, Read, Write};
 use std::path::Path;
 use std::{path::PathBuf, time::Duration};
 
@@ -32,7 +32,7 @@ pub enum CommandCLI {
 
     /// Adds a new password to database.
     Add {
-        name: String,
+        name: Option<String>,
 
         #[arg(short, long)]
         username: Option<String>,
@@ -177,20 +177,89 @@ pub fn handle_command_init(option_name: Option<String>) -> Result<Vault, VaultEr
     Ok(vault)
 }
 
-pub fn handle_command_add(option_vault: &mut Option<Vault>, name: String, username: Option<String>, url: Option<String>, notes: Option<String>, password: Option<String>) {
-    /*if !check_vaults_exist() {
-                    eprintln!("There are currently no vaults, consider using 'init' to create one!");
-                    continue 'interactive_shell;
-                }
-
-                // Auto-open vault if not open
-                if !ensure_vault_open(&mut current_vault) {
-                    continue;
-                }*/
-    
+pub fn handle_command_add(option_vault: &mut Option<Vault>, name: Option<String>, username: Option<String>, url: Option<String>, notes: Option<String>, password: Option<String>) {
     if let Some(vault) = option_vault {
-        // hätte ich weggelassen, da dass password davor oder danach hinzugefügt werden kann
-        let pw = if let Some(p) = password {
+        println!("\n=== Adding new entry ===");
+        
+        // Entry Name (REQUIRED)
+        let final_name = if let Some(n) = name {
+            n
+        } else {
+            let mut input_name = String::new();
+            'input: loop {
+                println!("Entry name (required): ");
+                print!("> ");
+                io::stdout().flush().unwrap();
+    
+                let mut input = String::new();
+                io::stdin().read_to_string(&mut input).expect("Error reading your input.");
+    
+                let trimmed: String = input.trim().to_string();
+                if trimmed.is_empty() {
+                    println!("Error: Entry name cannot be empty!");
+                    continue 'input;
+                }
+                input_name = trimmed;
+                break 'input;
+            }
+            input_name
+        };
+
+        println!("(Press Enter to skip optional fields)\n");
+        
+        // Username
+        let final_username = if let Some(u) = username {
+            Some(u)
+        } else {
+            println!("Username: ");
+            print!("> ");
+            io::stdout().flush().unwrap();
+
+            let mut input_username = String::new();
+            io::stdin().read_to_string(&mut input_username).expect("Error reading your input.");
+            if input_username.is_empty() {
+                None
+            } else {
+                Some(input_username)
+            }
+        };
+
+        // URL
+        let final_url = if let Some(url) = url {
+            Some(url)
+        } else {
+            println!("URL: ");
+            print!("> ");
+            io::stdout().flush().unwrap();
+
+            let mut input_url = String::new();
+            io::stdin().read_to_string(&mut input_url).expect("Error reading your input.");
+            if input_url.is_empty() {
+                None
+            } else {
+                Some(input_url)
+            }
+        };
+
+        // Notes
+        let final_notes = if let Some(n) = notes {
+            Some(n)
+        } else {
+            println!("Type additional notes, if needed (enter submits it): ");
+            print!("> ");
+            io::stdout().flush().unwrap();
+
+            let mut input_url = String::new();
+            io::stdin().read_to_string(&mut input_url).expect("Error reading your input.");
+            if input_url.is_empty() {
+                None
+            } else {
+                Some(input_url)
+            }
+        };
+
+        // Password
+        let final_pw = if let Some(p) = password {
             Some(p)
         } else {
             print!("Enter password for the entry (or press Enter to skip): ");
@@ -203,9 +272,7 @@ pub fn handle_command_add(option_vault: &mut Option<Vault>, name: String, userna
             }
         };
 
-        // TODO when no email provided, ask the user.
-
-        let entry = Entry::new(name.clone(), username, pw, url, notes);
+        let entry = Entry::new(final_name.clone(), final_username, final_pw, final_url, final_notes);
 
         match vault.add_entry(entry) {
             Ok(_) => {
@@ -214,7 +281,7 @@ pub fn handle_command_add(option_vault: &mut Option<Vault>, name: String, userna
                 spinner.set_message("Adding PasswordEntry...");
 
                 vault.save();
-                println!("Entry '{}' added successfully!", name);
+                println!("Entry '{}' added successfully!", final_name);
                 println!("Vault saved.\n");
 
                 spinner.finish_and_clear();
