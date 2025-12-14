@@ -57,11 +57,11 @@ impl Vault {
         Ok(())
     }
 
-    ///use to safe recently made changes, but vault will be used afterwards
-    pub fn safe(&self) -> Result<(), VaultError> {
+    ///use to save recently made changes, but vault will be used afterwards
+    pub fn save(&self) -> Result<(), VaultError> {
         if let Some(key) = &self.key {
             let password = SecretString::new(key.into());
-            let _ = encrypt_vault(self.name.clone(), password, self.to_json());
+            let _ = encrypt_vault(self.name.clone(), password, self.to_json()?);
             Ok(())
         } else {
             Err(VaultError::CouldNotSave)
@@ -251,6 +251,7 @@ fn encrypt_string(pw: SecretString, msg: &[u8]) -> Result<Vec<u8>, VaultError> {
     };
 
     encrypt_bytes(msg, pw.clone(), &opts)
+        .map_err(|e| VaultError::EncFileError(e))
 }
 
 fn decrypt_to_string(pw: SecretString, msg: &[u8]) -> Result<String, VaultError> {
