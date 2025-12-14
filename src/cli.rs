@@ -2,6 +2,7 @@ use crate::vault_manager::*;
 
 use clap::{Parser, Subcommand, command};
 use indicatif::{self, ProgressBar, ProgressStyle};
+use password_manager::{clear_terminal, intro_animation};
 use rpassword;
 use serde::{Deserialize, Serialize};
 use std::fs;
@@ -87,13 +88,18 @@ pub enum CommandCLI {
         name: String,
     },
 
+    /// Opens given vault.
     Open {
         name: String,
     },
 
+    /// Switches to given vault, while closing the current one.
     Switch {
         name: String,
     },
+
+    /// Clears terminal window.
+    Clear {},
 
     /// Quits the input loop
     Quit {
@@ -270,6 +276,12 @@ pub fn handle_command_vaults(current_vault: &Option<Vault>) {
         }
     }
 }
+
+pub fn handle_command_clear() {
+    clear_terminal();
+    intro_animation();
+}
+
 pub fn handle_command_quit(option_vault: Option<Vault>, force: bool) {
     //loop must be replaced by while-loop
     /*if force {

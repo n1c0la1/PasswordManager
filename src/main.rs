@@ -25,6 +25,8 @@ fn main() {
         );
 
     'interactive_shell: loop {
+        //println!("===================");
+        println!("___________________");
         println!("Current vault: {}", 
             match current_vault.as_ref() {
                 Some(v) => v.get_name(),
@@ -136,10 +138,11 @@ fn main() {
             CommandCLI::Open { name } => {todo!()},
             CommandCLI::Switch { name } => todo!(),
             CommandCLI::Vaults {  } => {handle_command_vaults(&current_vault);},
+            CommandCLI::Clear {  } => {handle_command_clear();},
             CommandCLI::Quit { force } => { 
                 if force {
                     println!("Quitting RustPass...");
-                    break;
+                    break 'interactive_shell;
                 } 
 
                 print!("Are you sure you want to quit? (y/n): ");
