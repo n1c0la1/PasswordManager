@@ -6,7 +6,7 @@ use serde_json::Value; //imports value type (represents json data)
 use std::fs; //imports rusts file system module
 use cli::*;
 use vault_manager::*;
-use std::path::PathBuf;
+use std::path::{Path, PathBuf};
 use std::io::{self, Write};
 use std::time::Duration;
 use indicatif::{ProgressBar, ProgressStyle};
@@ -81,6 +81,14 @@ fn main() {
                     print!("{input}");
                     input.trim().to_string()
                 };
+
+                let path = format!("vaults/{vault_name}.psdb");
+                if Path::new(&path).exists() {
+                    eprintln!("{}", VaultError::NameExists);
+                    println!("A vault with the name '{}' already exists!", vault_name);
+                    println!("Use a different name or open the existing vault.");
+                    continue 'interactive_shell;
+                }
 
                 let key = String::new();
 
