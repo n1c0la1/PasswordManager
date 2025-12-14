@@ -69,66 +69,17 @@ fn main() {
         };
         match cli.command {
             CommandCLI::Init { name } => {
-                println!("\nInitializing new vault: ");
-
-                let vault_name = if let Some(n) = name {
-                    n
-                } else {
-                    print!("What should be the name of your new vault? \n> ");
-                    io::stdout().flush().unwrap();
-                    let mut input = String::new();
-                    io::stdin().read_line(&mut input).unwrap();
-                    print!("{input}");
-                    input.trim().to_string()
-                };
-
-                let path = format!("vaults/{vault_name}.psdb");
-                if Path::new(&path).exists() {
-                    eprintln!("{}", VaultError::NameExists);
-                    println!("A vault with the name '{}' already exists!", vault_name);
-                    println!("Use a different name or open the existing vault.");
-                    continue 'interactive_shell;
+                match handle_command_init(name) {
+                    Ok(vault) => {current_vault = Some(vault);},
+                    Err(VaultError::NameExists) => {
+                        println!();
+                        println!("Error: {}", VaultError::NameExists);
+                        println!("Use a different name or open the existing vault.");
+                        println!();},
+                    Err(e) => {println!("Error: {e}")},
                 }
 
-                let key = String::new();
-
-                //Define MasterPassword
-                'define_mw: loop {
-                    println!("\n---------------\nDefine the Master-Password for {}:", vault_name);
-                    io::stdout().flush().unwrap();
-
-                    let password = rpassword::prompt_password("Password: ").unwrap();
-                    println!("{password}");
-
-                    let password_confirm = rpassword::prompt_password("Please confirm the password: ").unwrap();
-                    println!("{password_confirm}");
-
-                    if password != password_confirm {
-                        println!("The passwords do not match, please try again.");
-                        continue 'define_mw;
-                    }
-
-
-                    break 'define_mw;
-                }
-
-                match initialize_vault(vault_name.clone(), key) {
-                    Ok(vault) => {
-                        current_vault = Some(vault);
-
-                        spinner.enable_steady_tick(Duration::from_millis(80));
-                        spinner.set_message(" Creating vault...");
-
-                        //unwrapping here is unproblematic, because the User just initialized a vault
-                        //if this vault was successfully made, it is the current_vault -> not None
-                        current_vault.as_ref().unwrap().save();
-
-                        spinner.finish_and_clear();
-
-                        println!("\nVault '{}' created successfully! \n", vault_name);
-                    }
-                    Err(e) => {println!("Error: {}", e);}
-                }
+                continue 'interactive_shell;
             },
 
             CommandCLI::Add { name, username, url, notes , password} => {
@@ -200,7 +151,9 @@ fn main() {
 
                 if input.trim().eq_ignore_ascii_case("y") {
                     println!("Quitting RustPass...");
-                    current_vault.unwrap().close();
+                    if current_vault.is_some() {
+                        current_vault.unwrap().close();
+                    }
                     break 'interactive_shell;
                 } else {
                     println!("Cancelled. \n");
