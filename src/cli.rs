@@ -132,7 +132,8 @@ pub fn handle_command_init(option_name: Option<String>) -> Result<Vault, VaultEr
     let vault_name = if let Some(name) = option_name {
         name
     } else {
-        print!("What should be the name of your new vault? \n> ");
+        println!("What should be the name of your new vault?");
+        print!("> ");
         io::stdout().flush().unwrap();
         let mut input = String::new();
         io::stdin().read_line(&mut input).unwrap();
