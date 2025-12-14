@@ -1,4 +1,4 @@
-use anyhow::{self, Ok};
+// use anyhow::{self, Ok}; not neccessary after custom errors but not deleting just in case
 use enc_file::{AeadAlg, EncryptOptions, decrypt_bytes, encrypt_bytes};
 use secrecy::SecretString;
 use serde::{Deserialize, Serialize};
@@ -7,7 +7,7 @@ use std::io::{self, Read, Write};
 use std::path::Path;
 use std::str;
 use std::fmt;
-use errors::VaultError;
+use crate::errors::VaultError;
 
 #[derive(Debug, Serialize, Deserialize)]
 pub struct Vault {
@@ -72,7 +72,7 @@ impl Vault {
     pub fn close(mut self) -> Result<(), VaultError> {
         if let Some(key) = &self.key {
             let password = SecretString::new(key.into());
-            let _ = encrypt_vault(self.name.clone(), password, self.to_json());
+            let _ = encrypt_vault(self.name.clone(), password, self.to_json()?);
             self.remove_key();
             Ok(())
         } else {
@@ -215,7 +215,7 @@ pub fn initialize_vault(name: String, key: String) -> Result<Vault, VaultError> 
     Ok(vault)
 }
 
-pub fn open_vault(file_name: String, key: String) -> Result<Vault, anyhow::Error> {
+pub fn open_vault(file_name: String, key: String) -> Result<Vault, VaultError> {
     let path = format!("vaults/{file_name}.psdb");
     let encrypted_bytes = read_file_to_bytes(&path)?;
     let password = SecretString::new(key.clone().into());
@@ -227,15 +227,16 @@ pub fn open_vault(file_name: String, key: String) -> Result<Vault, anyhow::Error
     Ok(vault)
 }
 
-fn vault_from_json(input: &str) -> Result<Vault, serde_json::Error> {
-    serde_json::from_str(input)
+fn vault_from_json(input: &str) -> Result<Vault, VaultError> {
+    let vault = serde_json::from_str(input)?;
+    Ok(vault)
 }
 
 fn encrypt_vault(
     name: String,
     password: SecretString,
     vault_json: String,
-) -> Result<(), anyhow::Error> {
+) -> Result<(), VaultError> {
     let encrypted_vault = encrypt_string(password, vault_json.as_bytes())?;
     let path = format!("vaults/{name}.psdb");
     let mut file = File::create(path)?;
@@ -243,7 +244,7 @@ fn encrypt_vault(
     Ok(())
 }
 
-fn encrypt_string(pw: SecretString, msg: &[u8]) -> Result<Vec<u8>, enc_file::EncFileError> {
+fn encrypt_string(pw: SecretString, msg: &[u8]) -> Result<Vec<u8>, VaultError> {
     let opts = EncryptOptions {
         alg: AeadAlg::XChaCha20Poly1305,
         ..Default::default()
@@ -252,20 +253,20 @@ fn encrypt_string(pw: SecretString, msg: &[u8]) -> Result<Vec<u8>, enc_file::Enc
     encrypt_bytes(msg, pw.clone(), &opts)
 }
 
-fn decrypt_to_string(pw: SecretString, msg: &[u8]) -> Result<String, anyhow::Error> {
+fn decrypt_to_string(pw: SecretString, msg: &[u8]) -> Result<String, VaultError> {
     let pt = decrypt_bytes(msg, pw)?;
-    let result_string = str::from_utf8(&pt)?;
+    let result_string = std::str::from_utf8(&pt)?;
     Ok(result_string.into())
 }
 
-fn read_file_to_bytes(path: &str) -> std::io::Result<Vec<u8>> {
+fn read_file_to_bytes(path: &str) -> Result<Vec<u8>, VaultError> {
     let mut file = File::open(path)?;
     let mut contents = Vec::new();
     file.read_to_end(&mut contents)?;
     Ok(contents)
 }
 
-fn write_to_file(path: &str, msg: &[u8]) -> std::io::Result<()> {
+fn write_to_file(path: &str, msg: &[u8]) -> Result<(), VaultError> {
     let mut file = File::create(path)?;
     file.write_all(msg)?;
     Ok(())
