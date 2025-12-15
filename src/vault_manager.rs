@@ -132,11 +132,11 @@ impl Vault {
 
 #[derive(Debug, Clone, Serialize, Deserialize, PartialEq)]
 pub struct Entry {
-    entryname: String,
-    username: Option<String>,
-    password: Option<String>,
-    url: Option<String>,
-    notes: Option<String>,
+    pub entryname: String,
+    pub username: Option<String>,
+    pub password: Option<String>,
+    pub url: Option<String>,
+    pub notes: Option<String>,
 }
 
 impl Entry {
