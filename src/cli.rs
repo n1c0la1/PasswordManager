@@ -55,6 +55,7 @@ pub enum CommandCLI {
         name: String,
 
         // Specifies whether the password should be shown in the command line.
+        #[arg(short = 's', long)]
         show: bool,
         // Maybe an Option to directly copy the password to clipboard without showing it.
     },
@@ -316,7 +317,45 @@ pub fn handle_command_add(option_vault: &mut Option<Vault>, name: Option<String>
     }
 }
 
-pub fn handle_command_get() {}
+pub fn handle_command_get(option_vault: &mut Option<Vault>, entry_name: String, show: bool) {
+    if let Some(vault) = option_vault {
+        if show {
+
+            if let Some(entry) = vault.get_entry_by_name(entry_name.clone()) {
+                println!("\n==== Entry: {} ====", entry_name);
+                println!("Username: {}", entry.username.as_deref().unwrap_or(""));
+                println!("URL: {}", entry.url.as_deref().unwrap_or(""));
+                println!("Notes: {}", entry.notes.as_deref().unwrap_or(""));
+                /* 
+                if show {
+                    println!("Password: {}", entry.password.as_deref().unwrap_or(""));
+                } else {
+                    println!("Password: ***** (use -s to reveal)");
+                }
+                */
+
+                println!("Password: {}", entry.password.as_deref().unwrap_or(""));
+                println!();
+            } else {
+                println!("Entry {} not found", entry_name);
+            }
+        } else {
+            if let Some(entry) = vault.get_entry_by_name(entry_name.clone()) {
+                println!("\n==== Entry: {} ====", entry_name);
+                println!("Username: {}", entry.username.as_deref().unwrap_or(""));
+                println!("URL: {}", entry.url.as_deref().unwrap_or(""));
+                println!("Notes: {}", entry.notes.as_deref().unwrap_or(""));
+
+                println!("Password: *****");
+                println!();
+            } else {
+                println!("Entry {} not found", entry_name);
+            }
+        }
+    } else {
+        println!("No vault is active! Use init or open <vault-name>!");
+    }
+}
 pub fn handle_command_show_entries() {}
 pub fn handle_command_delete() {}
 pub fn handle_command_generate() {}

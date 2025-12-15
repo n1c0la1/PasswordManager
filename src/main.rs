@@ -88,7 +88,9 @@ fn main() {
                 handle_command_add(&mut current_vault, name, username, url, notes, password);
             },
 
-            CommandCLI::Get { name, show } => todo!(),
+            CommandCLI::Get { name, show } => {
+                handle_command_get(&mut current_vault, name, show);
+            },
 
             CommandCLI::ShowEntries { vault, show  } => todo!(),
 
