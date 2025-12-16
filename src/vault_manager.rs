@@ -12,7 +12,7 @@ use crate::errors::VaultError;
 #[derive(Debug, Serialize, Deserialize, Clone)]
 pub struct Vault {
     pub name: String,
-    key: Option<String>,
+    pub key: Option<String>,
     entries: Vec<Entry>,
 }
 
@@ -277,43 +277,8 @@ fn write_to_file(path: &str, msg: &[u8]) -> Result<(), VaultError> {
     Ok(())
 }
 
-// Hilfsfunktion um Vault zu öffnen falls noch nicht offen
-pub fn ensure_vault_open (vault: &mut Option<Vault>) -> bool {
-    if vault.is_some() {
-        return true;
-    }
-    
-    println!("No vault is currently open.");
-    print!("Enter vault name to open: ");
-    io::stdout().flush().unwrap();
-    
-    let mut vault_name = String::new();
-    io::stdin().read_line(&mut vault_name).unwrap();
-    let vault_name = vault_name.trim().to_string();
-    
-    if vault_name.is_empty() {
-        println!("Vault name cannot be empty!");
-        return false;
-    }
-    
-    print!("Enter master password: ");
-    io::stdout().flush().unwrap();
-    let password = rpassword::read_password().unwrap();
-    
-    match open_vault(vault_name.clone(), password) {
-        Ok(v) => {
-            println!("✓ Vault '{}' opened successfully!", vault_name);
-            *vault = Some(v);
-            true
-        }
-        Err(e) => {
-            println!("Error opening vault: {}", e);
-            println!("Hint: Use 'init <name>' to create a new vault.");
-            false
-        }
-    }
-}
 
+/// Checks if any vaults exists in the vault folder.
 pub fn check_vaults_exist () -> bool {
     fs::read_dir("vaults")
         .map(|mut entries| entries.any(|e| {
@@ -325,4 +290,39 @@ pub fn check_vaults_exist () -> bool {
             }).unwrap_or(false)
         }))
         .unwrap_or(false)
+}
+
+/// Asks the User for the master password.
+/// Returns true when correct, otherwise false.
+pub fn master_pw_check(vault: &Option<Vault>) -> Result<bool, VaultError> {
+    let vault = match vault {
+        Some(v) => v,
+        None            => {
+            println!("No vault is currently open!");
+            return Err(VaultError::NoVaultOpen);
+        }
+    };
+
+    let vault_key = match &vault.key {
+        Some(key) => key,
+        None => {
+            return Err(VaultError::InvalidKey);
+        }
+    };
+
+    loop {
+        match rpassword::prompt_password("Please confirm the master password: ") {
+            Ok(input_pw) => {
+                if input_pw == *vault_key {
+                    return Ok(true);
+                } else {
+                    println!("Incorrect password! Try again or press Ctrl+C to cancel.");
+                }
+            }
+            Err(e) => {
+                println!("Error reading password: {}", e);
+                return Ok(false);
+            }
+        }
+    }
 }

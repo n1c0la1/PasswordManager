@@ -115,7 +115,6 @@ fn main() {
             CommandCLI::Quit { force } => { 
                 match handle_command_quit(current_vault.clone(), force) {
                     LoopCommand::Break    => {
-                        thread::sleep(Duration::from_millis(500));
                         break    'interactive_shell;},
                     LoopCommand::Continue => {
                         thread::sleep(Duration::from_millis(500));

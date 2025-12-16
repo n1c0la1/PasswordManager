@@ -138,7 +138,7 @@ pub fn handle_command_init(option_name: Option<String>) -> Result<Vault, VaultEr
         print!("> ");
         io::stdout().flush().unwrap();
         let mut input = String::new();
-        io::stdin().read_line(&mut input).unwrap();
+        io::stdin().read_line(&mut input)?;
         print!("{input}");
         input.trim().to_string()
     };
@@ -156,9 +156,9 @@ pub fn handle_command_init(option_name: Option<String>) -> Result<Vault, VaultEr
         );
         io::stdout().flush().unwrap();
 
-        let password = rpassword::prompt_password("Password: ").unwrap();
+        let password = rpassword::prompt_password("Password: ")?;
 
-        let password_confirm = rpassword::prompt_password("Please confirm the password: ").unwrap();
+        let password_confirm = rpassword::prompt_password("Please confirm the password: ")?;
 
         if password != password_confirm {
             println!("The passwords do not match, please try again.");
@@ -173,7 +173,7 @@ pub fn handle_command_init(option_name: Option<String>) -> Result<Vault, VaultEr
     let spinner = spinner();
     spinner.enable_steady_tick(Duration::from_millis(80));
     spinner.set_message(" Creating vault...");
-    vault.save();
+    vault.save()?;
     spinner.finish_and_clear();
 
     println!("\nVault '{}' created successfully! \n", vault_name);
@@ -181,7 +181,13 @@ pub fn handle_command_init(option_name: Option<String>) -> Result<Vault, VaultEr
     Ok(vault)
 }
 
-pub fn handle_command_add(option_vault: &mut Option<Vault>, name: Option<String>, username: Option<String>, url: Option<String>, notes: Option<String>, password: Option<String>) {
+pub fn handle_command_add(
+    option_vault: &mut Option<Vault>, 
+    name: Option<String>, 
+    username: Option<String>, 
+    url: Option<String>, 
+    notes: Option<String>, 
+    password: Option<String>) -> Result<(), VaultError>{
     if let Some(vault) = option_vault {
         println!("\n=== Adding new entry ===");
         
@@ -196,7 +202,7 @@ pub fn handle_command_add(option_vault: &mut Option<Vault>, name: Option<String>
                 io::stdout().flush().unwrap();
     
                 let mut input = String::new();
-                io::stdin().read_line(&mut input).expect("Error reading your input.");
+                io::stdin().read_line(&mut input)?;
     
                 let trimmed: String = input.trim().to_string();
                 if trimmed.is_empty() {
@@ -220,7 +226,7 @@ pub fn handle_command_add(option_vault: &mut Option<Vault>, name: Option<String>
             io::stdout().flush().unwrap();
 
             let mut input_username = String::new();
-            io::stdin().read_line(&mut input_username).expect("Error reading your input.");
+            io::stdin().read_line(&mut input_username)?;
             if input_username.is_empty() {
                 None
             } else {
@@ -238,7 +244,7 @@ pub fn handle_command_add(option_vault: &mut Option<Vault>, name: Option<String>
             io::stdout().flush().unwrap();
 
             let mut input_url = String::new();
-            io::stdin().read_line(&mut input_url).expect("Error reading your input.");
+            io::stdin().read_line(&mut input_url)?;
             if input_url.is_empty() {
                 None
             } else {
@@ -256,7 +262,7 @@ pub fn handle_command_add(option_vault: &mut Option<Vault>, name: Option<String>
             io::stdout().flush().unwrap();
 
             let mut input_url = String::new();
-            io::stdin().read_line(&mut input_url).expect("Error reading your input.");
+            io::stdin().read_line(&mut input_url)?;
             if input_url.is_empty() {
                 None
             } else {
@@ -273,11 +279,11 @@ pub fn handle_command_add(option_vault: &mut Option<Vault>, name: Option<String>
             'input_pw: loop {
                 print!("Enter password for the entry (or press Enter to skip): ");
                 io::stdout().flush().unwrap();
-                let input_password = rpassword::read_password().unwrap();
+                let input_password = rpassword::read_password()?;
                 
                 print!("Please confirm the password: ");
                 io::stdout().flush().unwrap();
-                let confirm = rpassword::read_password().unwrap();
+                let confirm = rpassword::read_password()?;
                 
                 if input_password != confirm {
                     println!("The passwords do not match! Try again:");
@@ -304,17 +310,23 @@ pub fn handle_command_add(option_vault: &mut Option<Vault>, name: Option<String>
                 spinner.enable_steady_tick(Duration::from_millis(80));
                 spinner.set_message("Adding PasswordEntry...");
 
-                vault.save();
+                vault.save()?;
                 println!("Entry '{}' added successfully!", final_name);
                 println!("Vault saved.\n");
 
                 spinner.finish_and_clear();
-            }
-            Err(e) => println!("Error: {}", e),
+
+                Ok(())
+            },
+            Err(e) => {
+                println!("Error: {}", e);
+                Err(e)
+            },
         }
     } else {
-        println!("!! No vault is open to add an entry to !!");
-        println!("Consider using open <vault-name> or init!");
+        println!("{}", VaultError::NoVaultOpen);
+        println!("Consider using init or open <vault-name>!");
+        Err(VaultError::NoVaultOpen)
     }
 }
 
