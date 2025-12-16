@@ -1,4 +1,5 @@
 use crate::vault_manager::*;
+use crate::errors::*;
 
 use clap::{Parser, Subcommand, command};
 use indicatif::{self, ProgressBar, ProgressStyle};
@@ -320,7 +321,7 @@ pub fn handle_command_add(option_vault: &mut Option<Vault>, name: Option<String>
 pub fn handle_command_get(option_vault: &mut Option<Vault>, entry_name: String, show: bool) {
     if let Some(vault) = option_vault {
         //TODO erneute Master Abfrage, wenn man das Passwort sehen will.
-        if let Some(entry) = vault.get_entry_by_name(entry_name.clone()) {
+        if let Ok(entry) = vault.get_entry_by_name(entry_name.clone()) {
                 println!("\n==== Entry: {} ====", entry_name);
                 println!("Username: {}", entry.username.as_deref().unwrap_or(""));
                 println!("URL: {}", entry.url.as_deref().unwrap_or(""));

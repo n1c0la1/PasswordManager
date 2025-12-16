@@ -2,6 +2,7 @@ mod cli;
 mod vault_manager;
 mod errors;
 
+use crate::errors::*;
 use clap::{Parser, Command, Subcommand, command};
 use serde_json::Value; //imports value type (represents json data)
 use std::fs::{self, read}; //imports rusts file system module

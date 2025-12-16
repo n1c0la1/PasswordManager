@@ -9,7 +9,7 @@ use std::str;
 use std::fmt;
 use crate::errors::VaultError;
 
-#[derive(Debug, Serialize, Deserialize)]
+#[derive(Debug, Serialize, Deserialize, Clone)]
 pub struct Vault {
     pub name: String,
     key: Option<String>,
@@ -60,7 +60,7 @@ impl Vault {
     ///use to save recently made changes, but vault will be used afterwards
     pub fn save(&self) -> Result<(), VaultError> {
         if let Some(key) = &self.key {
-            let password = SecretString::new(key.into());
+            let password = SecretString::new(key.as_str().into());
             let _ = encrypt_vault(self.name.clone(), password, self.to_json()?);
             Ok(())
         } else {
@@ -71,13 +71,17 @@ impl Vault {
     ///use when vault wont be used afterwards, e.g. when exiting programm
     pub fn close(mut self) -> Result<(), VaultError> {
         if let Some(key) = &self.key {
-            let password = SecretString::new(key.into());
+            let password = SecretString::new(key.as_str().into());
             let _ = encrypt_vault(self.name.clone(), password, self.to_json()?);
             self.remove_key();
             Ok(())
         } else {
             Err(VaultError::CouldNotClose)
         }
+    }
+
+    pub fn get_name(&self) -> &str {
+        &self.name
     }
 
     pub fn set_Name(&mut self, name: String) {
