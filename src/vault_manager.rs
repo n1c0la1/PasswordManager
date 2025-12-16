@@ -294,7 +294,7 @@ pub fn check_vaults_exist () -> bool {
 
 /// Asks the User for the master password.
 /// Returns true when correct, otherwise false.
-pub fn master_pw_check(vault: &Option<Vault>) -> Result<bool, VaultError> {
+pub fn master_pw_check(vault: &Option<Vault>) -> Result<(), VaultError> {
     let vault = match vault {
         Some(v) => v,
         None            => {
@@ -314,14 +314,14 @@ pub fn master_pw_check(vault: &Option<Vault>) -> Result<bool, VaultError> {
         match rpassword::prompt_password("Please confirm the master password: ") {
             Ok(input_pw) => {
                 if input_pw == *vault_key {
-                    return Ok(true);
+                    return Ok(());
                 } else {
                     println!("Incorrect password! Try again or press Ctrl+C to cancel.");
                 }
             }
             Err(e) => {
                 println!("Error reading password: {}", e);
-                return Ok(false);
+                return Err(VaultError::IoError(e));
             }
         }
     }

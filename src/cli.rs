@@ -136,7 +136,7 @@ pub fn handle_command_init(option_name: Option<String>) -> Result<Vault, VaultEr
     } else {
         println!("What should be the name of your new vault?");
         print!("> ");
-        io::stdout().flush().unwrap();
+        io::stdout().flush()?;
         let mut input = String::new();
         io::stdin().read_line(&mut input)?;
         print!("{input}");
@@ -151,10 +151,10 @@ pub fn handle_command_init(option_name: Option<String>) -> Result<Vault, VaultEr
     //Define MasterPassword
     let key = 'define_mw: loop {
         println!(
-            "\n---------------\nDefine the Master-Password for {}:",
+            "\nDefine the Master-Password for {}:",
             vault_name
         );
-        io::stdout().flush().unwrap();
+        io::stdout().flush()?;
 
         let password = rpassword::prompt_password("Password: ")?;
 
@@ -199,7 +199,7 @@ pub fn handle_command_add(
             'input: loop {
                 println!("Entry name (required): ");
                 print!("> ");
-                io::stdout().flush().unwrap();
+                io::stdout().flush()?;
     
                 let mut input = String::new();
                 io::stdin().read_line(&mut input)?;
@@ -223,7 +223,7 @@ pub fn handle_command_add(
         } else {
             println!("Username: ");
             print!("> ");
-            io::stdout().flush().unwrap();
+            io::stdout().flush()?;
 
             let mut input_username = String::new();
             io::stdin().read_line(&mut input_username)?;
@@ -241,7 +241,7 @@ pub fn handle_command_add(
         } else {
             println!("URL: ");
             print!("> ");
-            io::stdout().flush().unwrap();
+            io::stdout().flush()?;
 
             let mut input_url = String::new();
             io::stdin().read_line(&mut input_url)?;
@@ -259,7 +259,7 @@ pub fn handle_command_add(
         } else {
             println!("Type additional notes, if needed (enter submits it): ");
             print!("> ");
-            io::stdout().flush().unwrap();
+            io::stdout().flush()?;
 
             let mut input_url = String::new();
             io::stdin().read_line(&mut input_url)?;
@@ -278,11 +278,15 @@ pub fn handle_command_add(
             let mut loop_pw = String::new();
             'input_pw: loop {
                 print!("Enter password for the entry (or press Enter to skip): ");
-                io::stdout().flush().unwrap();
+                io::stdout().flush()?;
                 let input_password = rpassword::read_password()?;
                 
+                if input_password.is_empty() {
+                    break 'input_pw;
+                }
+
                 print!("Please confirm the password: ");
-                io::stdout().flush().unwrap();
+                io::stdout().flush()?;
                 let confirm = rpassword::read_password()?;
                 
                 if input_password != confirm {
@@ -331,24 +335,37 @@ pub fn handle_command_add(
 }
 
 pub fn handle_command_get(option_vault: &mut Option<Vault>, entry_name: String, show: bool) {
-    if let Some(vault) = option_vault {
-        //TODO erneute Master Abfrage, wenn man das Passwort sehen will.
-        if let Ok(entry) = vault.get_entry_by_name(entry_name.clone()) {
-                println!("\n==== Entry: {} ====", entry_name);
-                println!("Username: {}", entry.username.as_deref().unwrap_or(""));
-                println!("URL: {}", entry.url.as_deref().unwrap_or(""));
-                println!("Notes: {}", entry.notes.as_deref().unwrap_or(""));
-                if show {
-                    println!("Password: {}", entry.password.as_deref().unwrap_or(""));
-                } else {
-                    println!("Password: *****");
-                }
-                println!();
-            } else {
-                println!("Entry {} not found", entry_name);
-            }
-    } else {
+    if option_vault.is_none() {
         println!("No vault is active! Use init or open <vault-name>!");
+        return;
+    }
+    
+    // Master-Passwort prüfen, bevor wir mutable borrow holen
+    if show {
+        match master_pw_check(option_vault) {
+            Ok(()) => {},
+            Err(e) => {
+                println!("{}", e);
+                return;
+            }
+        }
+    }
+    
+    if let Some(vault) = option_vault {
+        if let Ok(entry) = vault.get_entry_by_name(entry_name.clone()) {
+            println!("\n==== Entry: {} ====", entry_name);
+            println!("Username: {}", entry.username.as_deref().unwrap_or("--EMPTY--"));
+            println!("URL: {}", entry.url.as_deref().unwrap_or("--EMPTY--"));
+            println!("Notes: {}", entry.notes.as_deref().unwrap_or("--EMPTY--"));
+            if show {
+                println!("Password: {}", entry.password.as_deref().unwrap_or("--EMPTY--"));
+            } else {
+                println!("Password: *****");
+            }
+            println!();
+        } else {
+            println!("Entry {} not found", entry_name);
+        }
     }
 }
 
@@ -410,14 +427,14 @@ pub fn handle_command_clear() {
     intro_animation();
 }
 
-pub fn handle_command_quit(option_vault: Option<Vault>, force: bool) -> LoopCommand {
+pub fn handle_command_quit(option_vault: Option<Vault>, force: bool) -> Result<LoopCommand, VaultError> {
     if force {
         println!("Quitting RustPass...");
-        return LoopCommand::Break;
+        return Ok(LoopCommand::Break);
     } 
 
     print!("Are you sure you want to quit? (y/n): ");
-    io::stdout().flush().unwrap();
+    io::stdout().flush()?;
 
 
     let mut input = String::new();
@@ -428,10 +445,10 @@ pub fn handle_command_quit(option_vault: Option<Vault>, force: bool) -> LoopComm
         if let Some(vault) = option_vault {
             vault.close();
         }
-        LoopCommand::Break
+        Ok(LoopCommand::Break)
     } else {
         println!("Cancelled. \n");
-        io::stdout().flush().unwrap();
-        LoopCommand::Continue
+        io::stdout().flush()?;
+        Ok(LoopCommand::Continue)
     }
 }
