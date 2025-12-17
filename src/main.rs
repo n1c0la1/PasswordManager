@@ -19,14 +19,6 @@ fn main() {
     password_manager::intro_animation();
     let mut current_vault: Option<Vault> = None;
 
-    let spinner = ProgressBar::new_spinner();
-        spinner.set_style(
-            ProgressStyle::default_spinner()
-                .tick_strings(&["|", "/", "-", "\\"])
-                .template("{spinner} {msg}")
-                .unwrap(),
-        );
-
     'interactive_shell: loop {
         //println!("===================");
         println!("___________________");
@@ -66,16 +58,29 @@ fn main() {
 
         // Mit Clap parsen
         let cli = match CLI::try_parse_from(args_with_prog) {
-            Ok(cli) => cli,
+            Ok(cli)  => cli,
             Err(e) => {
-                println!("{}", e);
+                println!("Error: {}", e);
                 continue;
             }
         };
+
         match cli.command {
             CommandCLI::Init { name } => {
                 match handle_command_init(name) {
-                    Ok(vault)            => {current_vault = Some(vault);},
+                    Ok(vault)            => {
+                        if let Some(opened_vault) = current_vault.take() {
+                            match opened_vault.close() {
+                                Ok(())             => {/*  Do nothing */},
+                                Err(e) => {
+                                    println!("Error: {}", e);
+                                    continue 'interactive_shell;
+                                }
+                            }
+                        }
+
+                        current_vault = Some(vault);
+                    },
                     Err(VaultError::NameExists) => {
                         println!();
                         println!("Error: {}", VaultError::NameExists);
@@ -87,14 +92,31 @@ fn main() {
             },
 
             CommandCLI::Add { name, username, url, notes , password} => {
-                handle_command_add(&mut current_vault, name, username, url, notes, password);
+                match handle_command_add(&mut current_vault, name, username, url, notes, password) {
+                    Ok(())             => {/* Do Nothing */},
+                    Err(e) => {
+                        println!("Error: {}", e);
+                    }
+                }
             },
 
             CommandCLI::Get { name, show } => {
-                handle_command_get(&mut current_vault, name, show);
+                match handle_command_get(&mut current_vault, name, show) {
+                    Ok(())             => {/* Do Nothing */},
+                    Err(e) => {
+                        println!("Error: {}", e);
+                    }
+                }
             },
 
-            CommandCLI::ShowEntries { vault, show  } => todo!(),
+            CommandCLI::Getall { vault, show  } => {
+                match handle_command_getall(&mut current_vault, show) {
+                    Ok(()) => {/* Do nothing */},
+                    Err(e) => {
+                        println!("Error: {}", e);
+                    }
+                }
+            },
 
             CommandCLI::Delete { name } => todo!(),
 
@@ -120,7 +142,7 @@ fn main() {
                         thread::sleep(Duration::from_millis(500));
                         continue 'interactive_shell;}
                     Err(e) => {
-                        println!("{}", e);
+                        println!("Error: {}", e);
                         continue 'interactive_shell;
                     }
                 }

@@ -13,7 +13,7 @@ use crate::errors::VaultError;
 pub struct Vault {
     pub name: String,
     pub key: Option<String>,
-    entries: Vec<Entry>,
+    pub entries: Vec<Entry>,
 }
 
 impl Vault {

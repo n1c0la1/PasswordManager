@@ -28,7 +28,6 @@ pub enum LoopCommand {
 pub enum CommandCLI {
     /// Initializes a new PasswordManager.
     Init {
-        #[arg(short = 'n', long)]
         name: Option<String>,
     },
 
@@ -61,13 +60,14 @@ pub enum CommandCLI {
         // Maybe an Option to directly copy the password to clipboard without showing it.
     },
 
-    /// List all Entrys.
+    /// Gets all Entries.
     // maybe implement filters e.g. all passwords with that email, or on that URL.
-    ShowEntries {
+    Getall {
         // Name of vault.
         vault: String,
 
         // Show passwords or not.
+        #[arg(short = 's', long)]
         show: bool,
     },
 
@@ -117,7 +117,7 @@ pub enum CommandCLI {
     },
 }
 
-fn spinner() -> ProgressBar {
+pub fn spinner() -> ProgressBar {
     let spinner: ProgressBar = ProgressBar::new_spinner();
     spinner.set_style(
         ProgressStyle::default_spinner()
@@ -136,7 +136,7 @@ pub fn handle_command_init(option_name: Option<String>) -> Result<Vault, VaultEr
     } else {
         println!("What should be the name of your new vault?");
         print!("> ");
-        io::stdout().flush()?;
+        io::stdout().flush().unwrap();
         let mut input = String::new();
         io::stdin().read_line(&mut input)?;
         print!("{input}");
@@ -149,16 +149,22 @@ pub fn handle_command_init(option_name: Option<String>) -> Result<Vault, VaultEr
     }   
 
     //Define MasterPassword
+    println!(
+        "\nDefine the Master-Password for {}:",
+        vault_name
+    );
+
     let key = 'define_mw: loop {
-        println!(
-            "\nDefine the Master-Password for {}:",
-            vault_name
-        );
-        io::stdout().flush()?;
+        io::stdout().flush().unwrap();
 
-        let password = rpassword::prompt_password("Password: ")?;
+        let password = rpassword::prompt_password("Master-Password: ")?;
 
-        let password_confirm = rpassword::prompt_password("Please confirm the password: ")?;
+        if password.is_empty() {
+            println!("The Master-Password may not be empty! Try again");
+            continue 'define_mw;
+        }
+
+        let password_confirm = rpassword::prompt_password("Please confirm the Master-Password: ")?;
 
         if password != password_confirm {
             println!("The passwords do not match, please try again.");
@@ -199,7 +205,7 @@ pub fn handle_command_add(
             'input: loop {
                 println!("Entry name (required): ");
                 print!("> ");
-                io::stdout().flush()?;
+                io::stdout().flush().unwrap();
     
                 let mut input = String::new();
                 io::stdin().read_line(&mut input)?;
@@ -223,7 +229,7 @@ pub fn handle_command_add(
         } else {
             println!("Username: ");
             print!("> ");
-            io::stdout().flush()?;
+            io::stdout().flush().unwrap();
 
             let mut input_username = String::new();
             io::stdin().read_line(&mut input_username)?;
@@ -241,7 +247,7 @@ pub fn handle_command_add(
         } else {
             println!("URL: ");
             print!("> ");
-            io::stdout().flush()?;
+            io::stdout().flush().unwrap();
 
             let mut input_url = String::new();
             io::stdin().read_line(&mut input_url)?;
@@ -259,7 +265,7 @@ pub fn handle_command_add(
         } else {
             println!("Type additional notes, if needed (enter submits it): ");
             print!("> ");
-            io::stdout().flush()?;
+            io::stdout().flush().unwrap();
 
             let mut input_url = String::new();
             io::stdin().read_line(&mut input_url)?;
@@ -278,7 +284,7 @@ pub fn handle_command_add(
             let mut loop_pw = String::new();
             'input_pw: loop {
                 print!("Enter password for the entry (or press Enter to skip): ");
-                io::stdout().flush()?;
+                io::stdout().flush().unwrap();
                 let input_password = rpassword::read_password()?;
                 
                 if input_password.is_empty() {
@@ -286,7 +292,7 @@ pub fn handle_command_add(
                 }
 
                 print!("Please confirm the password: ");
-                io::stdout().flush()?;
+                io::stdout().flush().unwrap();
                 let confirm = rpassword::read_password()?;
                 
                 if input_password != confirm {
@@ -328,25 +334,25 @@ pub fn handle_command_add(
             },
         }
     } else {
-        println!("{}", VaultError::NoVaultOpen);
+        println!("Error: {}", VaultError::NoVaultOpen);
         println!("Consider using init or open <vault-name>!");
         Err(VaultError::NoVaultOpen)
     }
 }
 
-pub fn handle_command_get(option_vault: &mut Option<Vault>, entry_name: String, show: bool) {
+pub fn handle_command_get(option_vault: &mut Option<Vault>, entry_name: String, show: bool) -> Result<(), VaultError> {
     if option_vault.is_none() {
         println!("No vault is active! Use init or open <vault-name>!");
-        return;
+        return Err(VaultError::NoVaultOpen);
     }
     
-    // Master-Passwort prüfen, bevor wir mutable borrow holen
+    // check Master-Password when show is passed.
     if show {
         match master_pw_check(option_vault) {
-            Ok(()) => {},
+            Ok(()) => {/* Do nothing */},
             Err(e) => {
-                println!("{}", e);
-                return;
+                println!("Error: {}", e);
+                return Err(e);
             }
         }
     }
@@ -357,19 +363,69 @@ pub fn handle_command_get(option_vault: &mut Option<Vault>, entry_name: String, 
             println!("Username: {}", entry.username.as_deref().unwrap_or("--EMPTY--"));
             println!("URL: {}", entry.url.as_deref().unwrap_or("--EMPTY--"));
             println!("Notes: {}", entry.notes.as_deref().unwrap_or("--EMPTY--"));
+
             if show {
                 println!("Password: {}", entry.password.as_deref().unwrap_or("--EMPTY--"));
             } else {
                 println!("Password: *****");
             }
             println!();
+            
+            Ok(())
         } else {
             println!("Entry {} not found", entry_name);
+            Err(VaultError::CouldNotGetEntry)
         }
+    } else {
+        Err(VaultError::NoVaultOpen)
     }
 }
 
-pub fn handle_command_show_entries() {}
+pub fn handle_command_getall(option_vault: &mut Option<Vault>, show: bool) -> Result<(), VaultError> {
+    if option_vault.is_none() {
+        println!("No vault is active!");
+        println!("Hint: Use init or open <vault-name>!");
+    }
+
+    // check Master-Password when show is passed.
+    if show {
+        match master_pw_check(&option_vault) {
+            Ok(())             => {/* Do nothing */},
+            Err(e) => {
+                println!("Error: {}", e);
+                return Err(e);
+            }
+        }
+    }
+
+    if let Some(vault) = option_vault {
+        let entries = &vault.entries;
+        if entries.is_empty() {
+            println!("The current vault does not have any entries yet!");
+            println!("Hint: Use add to create his first one!");
+            return Err(VaultError::CouldNotGetEntry);
+        } else {
+            for entry in entries {
+                println!("\n==== Entry: {} ====", entry.entryname);
+                println!("Username: {}", entry.username.as_deref().unwrap_or("--EMPTY--"));
+                println!("URL: {}", entry.url.as_deref().unwrap_or("--EMPTY--"));
+                println!("Notes: {}", entry.notes.as_deref().unwrap_or("--EMPTY--"));
+
+                if show {
+                    println!("Password: {}", entry.password.as_deref().unwrap_or("--EMPTY--"));
+                } else {
+                    println!("Password: *****");
+                }
+                println!();
+            }
+        }
+
+        Ok(())
+    } else {
+        Err(VaultError::NoVaultOpen)
+    }
+}
+
 pub fn handle_command_delete() {}
 pub fn handle_command_generate() {}
 pub fn handle_command_change_master() {}
@@ -434,7 +490,7 @@ pub fn handle_command_quit(option_vault: Option<Vault>, force: bool) -> Result<L
     } 
 
     print!("Are you sure you want to quit? (y/n): ");
-    io::stdout().flush()?;
+    io::stdout().flush().unwrap();
 
 
     let mut input = String::new();
@@ -443,12 +499,12 @@ pub fn handle_command_quit(option_vault: Option<Vault>, force: bool) -> Result<L
     if input.trim().eq_ignore_ascii_case("y") {
         println!("Quitting RustPass...");
         if let Some(vault) = option_vault {
-            vault.close();
+            vault.close()?;
         }
         Ok(LoopCommand::Break)
     } else {
         println!("Cancelled. \n");
-        io::stdout().flush()?;
+        io::stdout().flush().unwrap();
         Ok(LoopCommand::Continue)
     }
 }
