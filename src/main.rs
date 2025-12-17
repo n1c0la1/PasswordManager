@@ -135,8 +135,16 @@ fn main() {
             CommandCLI::Clear {  } => {handle_command_clear();},
 
             CommandCLI::Quit { force } => { 
-                match handle_command_quit(current_vault.clone(), force) {
+                match handle_command_quit(force) {
                     Ok(LoopCommand::Break)    => {
+                        if let Some(opened_vault) = current_vault {
+                            match opened_vault.close() {
+                                Ok(()) => {/* Do nothing */},
+                                Err(e) => {
+                                    println!("Error: {}", e);
+                                }
+                            }
+                        }
                         break    'interactive_shell;},
                     Ok(LoopCommand::Continue) => {
                         thread::sleep(Duration::from_millis(500));

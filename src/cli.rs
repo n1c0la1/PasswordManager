@@ -109,7 +109,7 @@ pub enum CommandCLI {
     /// Clears terminal window.
     Clear {},
 
-    /// Quits the input loop
+    /// Quits the input loop.
     Quit {
         //forces quit, normally "Do you really want to quit RustPass?"
         #[arg(short = 'f', long)]
@@ -160,7 +160,10 @@ pub fn handle_command_init(option_name: Option<String>) -> Result<Vault, VaultEr
         let password = rpassword::prompt_password("Master-Password: ")?;
 
         if password.is_empty() {
-            println!("The Master-Password may not be empty! Try again");
+            println!("The Master-Password may not be empty! Try again.");
+            continue 'define_mw;
+        } else if password.len() < 3 {
+            println!("The Password is too short! (minimum length is 3) Try again.");
             continue 'define_mw;
         }
 
@@ -432,6 +435,7 @@ pub fn handle_command_change_master() {}
 pub fn handle_command_modify() {}
 pub fn handle_command_open() {}
 pub fn handle_command_switch() {}
+
 pub fn handle_command_vaults(current_vault: &Option<Vault>) {
     println!("\n=== Available Vaults ===");
                 
@@ -483,7 +487,7 @@ pub fn handle_command_clear() {
     intro_animation();
 }
 
-pub fn handle_command_quit(option_vault: Option<Vault>, force: bool) -> Result<LoopCommand, VaultError> {
+pub fn handle_command_quit(force: bool) -> Result<LoopCommand, VaultError> {
     if force {
         println!("Quitting RustPass...");
         return Ok(LoopCommand::Break);
@@ -494,13 +498,11 @@ pub fn handle_command_quit(option_vault: Option<Vault>, force: bool) -> Result<L
 
 
     let mut input = String::new();
-    io::stdin().read_line(&mut input).expect("Error reading your input.");
+    io::stdin().read_line(&mut input)?;
 
     if input.trim().eq_ignore_ascii_case("y") {
         println!("Quitting RustPass...");
-        if let Some(vault) = option_vault {
-            vault.close()?;
-        }
+        // Closing the vault is happening in main.rs to avoid cloning.
         Ok(LoopCommand::Break)
     } else {
         println!("Cancelled. \n");
