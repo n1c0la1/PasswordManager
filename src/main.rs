@@ -33,7 +33,7 @@ fn main() {
         if !check_vaults_exist() {
             eprintln!("\nHint: There are currently no vaults at all, consider using 'init' to create one!");
         } else if current_vault.is_none() {
-            eprintln!("There are currently no vaults open, consider using 'open <vault-name>'!")
+            eprintln!("\nThere are currently no vaults open, consider using 'open <vault-name>'!");
         }
         
         io::stdout().flush().unwrap();
@@ -109,7 +109,7 @@ fn main() {
                 }
             },
 
-            CommandCLI::Getall { vault, show  } => {
+            CommandCLI::Getall { show  } => {
                 match handle_command_getall(&mut current_vault, show) {
                     Ok(()) => {/* Do nothing */},
                     Err(e) => {
@@ -126,7 +126,19 @@ fn main() {
 
             CommandCLI::Modify { name } => todo!(),
 
-            CommandCLI::Open { name } => {todo!()},
+            CommandCLI::Open { name } => {
+                match handle_command_open(&mut current_vault, name) {
+                    Ok(opened_vault) => {
+                        current_vault = Some(opened_vault)
+                    },
+                    Err(VaultError::InvalidKey) => {
+                        println!("Error: Invalid password!")
+                    }
+                    Err(e) => {
+                        println!("Error opening vault: {}", e);
+                    }
+                }
+            },
 
             CommandCLI::Switch { name } => todo!(),
 

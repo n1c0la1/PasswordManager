@@ -60,12 +60,9 @@ pub enum CommandCLI {
         // Maybe an Option to directly copy the password to clipboard without showing it.
     },
 
-    /// Gets all Entries.
+    /// Gets all Entries from the current vault.
     // maybe implement filters e.g. all passwords with that email, or on that URL.
     Getall {
-        // Name of vault.
-        vault: String,
-
         // Show passwords or not.
         #[arg(short = 's', long)]
         show: bool,
@@ -161,9 +158,11 @@ pub fn handle_command_init(option_name: Option<String>) -> Result<Vault, VaultEr
 
         if password.is_empty() {
             println!("The Master-Password may not be empty! Try again.");
+            println!();
             continue 'define_mw;
         } else if password.len() < 3 {
             println!("The Password is too short! (minimum length is 3) Try again.");
+            println!();
             continue 'define_mw;
         }
 
@@ -171,6 +170,7 @@ pub fn handle_command_init(option_name: Option<String>) -> Result<Vault, VaultEr
 
         if password != password_confirm {
             println!("The passwords do not match, please try again.");
+            println!();
             continue 'define_mw;
         }
 
@@ -181,6 +181,7 @@ pub fn handle_command_init(option_name: Option<String>) -> Result<Vault, VaultEr
 
     let spinner = spinner();
     spinner.enable_steady_tick(Duration::from_millis(80));
+    println!();
     spinner.set_message(" Creating vault...");
     vault.save()?;
     spinner.finish_and_clear();
@@ -324,6 +325,7 @@ pub fn handle_command_add(
                 spinner.set_message("Adding PasswordEntry...");
 
                 vault.save()?;
+                println!();
                 println!("Entry '{}' added successfully!", final_name);
                 println!("Vault saved.\n");
 
@@ -364,8 +366,8 @@ pub fn handle_command_get(option_vault: &mut Option<Vault>, entry_name: String, 
         if let Ok(entry) = vault.get_entry_by_name(entry_name.clone()) {
             println!("\n==== Entry: {} ====", entry_name);
             println!("Username: {}", entry.username.as_deref().unwrap_or("--EMPTY--"));
-            println!("URL: {}", entry.url.as_deref().unwrap_or("--EMPTY--"));
-            println!("Notes: {}", entry.notes.as_deref().unwrap_or("--EMPTY--"));
+            println!("URL:      {}", entry.url.as_deref().unwrap_or("--EMPTY--"));
+            println!("Notes:    {}", entry.notes.as_deref().unwrap_or("--EMPTY--"));
 
             if show {
                 println!("Password: {}", entry.password.as_deref().unwrap_or("--EMPTY--"));
@@ -411,8 +413,8 @@ pub fn handle_command_getall(option_vault: &mut Option<Vault>, show: bool) -> Re
             for entry in entries {
                 println!("\n==== Entry: {} ====", entry.entryname);
                 println!("Username: {}", entry.username.as_deref().unwrap_or("--EMPTY--"));
-                println!("URL: {}", entry.url.as_deref().unwrap_or("--EMPTY--"));
-                println!("Notes: {}", entry.notes.as_deref().unwrap_or("--EMPTY--"));
+                println!("URL:      {}", entry.url.as_deref().unwrap_or("--EMPTY--"));
+                println!("Notes:    {}", entry.notes.as_deref().unwrap_or("--EMPTY--"));
 
                 if show {
                     println!("Password: {}", entry.password.as_deref().unwrap_or("--EMPTY--"));
@@ -433,7 +435,52 @@ pub fn handle_command_delete() {}
 pub fn handle_command_generate() {}
 pub fn handle_command_change_master() {}
 pub fn handle_command_modify() {}
-pub fn handle_command_open() {}
+pub fn handle_command_open(option_vault: &mut Option<Vault>, vault_to_open: String) -> Result<Vault, VaultError> {
+
+    // Closing old vault
+    if let Some(vault) = option_vault.take() {
+        if vault_to_open.eq(vault.get_name()) {
+            println!();
+            println!("This vault is already open!");
+            // Nothing to handle here, just restart
+            return Ok(vault);
+        } else {
+            let old_name = vault.name.clone();
+            
+            let spinner = spinner();
+            spinner.set_message(format!("Closing vault {} ...", old_name));
+            spinner.enable_steady_tick(Duration::from_millis(80));
+
+            vault.close()?;
+
+            spinner.finish_and_clear();
+            println!("Vault {} successfully closed.", old_name);
+        }
+    }
+
+    println!();
+    // Opening new one
+    print!("Enter master-password for {}: ", vault_to_open);
+    io::stdout().flush().unwrap();
+    let input_pw = rpassword::read_password()?;
+
+    let spinner = spinner();
+    spinner.set_message("Opening vault ...");
+    spinner.enable_steady_tick(Duration::from_millis(80));
+
+    match open_vault(&vault_to_open, input_pw) {
+        Ok(opened_vault) => {
+            spinner.finish_and_clear();
+            println!();
+            println!("Vault {} successfully opened!", vault_to_open);
+            Ok(opened_vault)
+        },
+        Err(e) => {
+            Err(e)
+        }
+    }
+}
+
 pub fn handle_command_switch() {}
 
 pub fn handle_command_vaults(current_vault: &Option<Vault>) {
