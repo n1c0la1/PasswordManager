@@ -334,20 +334,16 @@ pub fn handle_command_add(
                 Ok(())
             },
             Err(e) => {
-                println!("Error: {}", e);
                 Err(e)
             },
         }
     } else {
-        println!("Error: {}", VaultError::NoVaultOpen);
-        println!("Consider using init or open <vault-name>!");
         Err(VaultError::NoVaultOpen)
     }
 }
 
 pub fn handle_command_get(option_vault: &mut Option<Vault>, entry_name: String, show: bool) -> Result<(), VaultError> {
     if option_vault.is_none() {
-        println!("No vault is active! Use init or open <vault-name>!");
         return Err(VaultError::NoVaultOpen);
     }
     
@@ -356,7 +352,6 @@ pub fn handle_command_get(option_vault: &mut Option<Vault>, entry_name: String, 
         match master_pw_check(option_vault) {
             Ok(()) => {/* Do nothing */},
             Err(e) => {
-                println!("Error: {}", e);
                 return Err(e);
             }
         }
@@ -397,7 +392,6 @@ pub fn handle_command_getall(option_vault: &mut Option<Vault>, show: bool) -> Re
         match master_pw_check(&option_vault) {
             Ok(())             => {/* Do nothing */},
             Err(e) => {
-                println!("Error: {}", e);
                 return Err(e);
             }
         }
@@ -406,8 +400,6 @@ pub fn handle_command_getall(option_vault: &mut Option<Vault>, show: bool) -> Re
     if let Some(vault) = option_vault {
         let entries = &vault.entries;
         if entries.is_empty() {
-            println!("The current vault does not have any entries yet!");
-            println!("Hint: Use add to create his first one!");
             return Err(VaultError::CouldNotGetEntry);
         } else {
             for entry in entries {
@@ -431,7 +423,23 @@ pub fn handle_command_getall(option_vault: &mut Option<Vault>, show: bool) -> Re
     }
 }
 
-pub fn handle_command_delete() {}
+pub fn handle_command_delete(option_vault: &mut Option<Vault>, entry_to_delete: String) -> Result<(), VaultError> {
+    if let Some(vault) = option_vault {
+        match vault.get_entry_by_name(entry_to_delete.clone()) {
+            Ok(entry) => {
+                print!("Are you sure, you want to delete '{}'?", entry.entryname);
+            },
+            Err(VaultError::CouldNotGetEntry) => {
+                return Err(VaultError::CouldNotGetEntry);
+            }
+            Err(e) => {
+                return Err(e);
+            }
+        }
+    }
+    
+    Ok(())
+}
 pub fn handle_command_generate() {}
 pub fn handle_command_change_master() {}
 pub fn handle_command_modify() {}
@@ -442,7 +450,7 @@ pub fn handle_command_open(option_vault: &mut Option<Vault>, vault_to_open: Stri
         if vault_to_open.eq(vault.get_name()) {
             println!();
             println!("This vault is already open!");
-            // Nothing to handle here, just restart
+            // Nothing to handle here, just restart with Ok
             return Ok(vault);
         } else {
             let old_name = vault.name.clone();

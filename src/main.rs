@@ -74,7 +74,6 @@ fn main() {
                                 Ok(())             => {/*  Do nothing */},
                                 Err(e) => {
                                     println!("Error: {}", e);
-                                    continue 'interactive_shell;
                                 }
                             }
                         }
@@ -85,8 +84,11 @@ fn main() {
                         println!();
                         println!("Error: {}", VaultError::NameExists);
                         println!("Use a different name or open the existing vault.");
-                        println!();},
-                    Err(e)          => {println!("Error: {e}")},
+                        println!();
+                    },
+                    Err(e)          => {
+                        println!("Error: {e}");
+                    },
                 }
                 continue 'interactive_shell;
             },
@@ -94,31 +96,69 @@ fn main() {
             CommandCLI::Add { name, username, url, notes , password} => {
                 match handle_command_add(&mut current_vault, name, username, url, notes, password) {
                     Ok(())             => {/* Do Nothing */},
+                    Err(VaultError::NoVaultOpen) => {
+                        println!("Error: {}", VaultError::NoVaultOpen);
+                        println!("Consider using init or open <vault-name>!");
+                    }
                     Err(e) => {
                         println!("Error: {}", e);
                     }
                 }
+                continue 'interactive_shell;
             },
 
             CommandCLI::Get { name, show } => {
                 match handle_command_get(&mut current_vault, name, show) {
                     Ok(())             => {/* Do Nothing */},
+                    Err(VaultError::NoVaultOpen) => {
+                        println!("No vault is active! Use init or open <vault-name>!");
+                    }
+                    Err(VaultError::CouldNotGetEntry) => {
+                        // because of printing the name of non-existent vault => in cli.rs
+                        /* Do Nothing */
+                    }
                     Err(e) => {
                         println!("Error: {}", e);
                     }
                 }
+                continue 'interactive_shell;
             },
 
             CommandCLI::Getall { show  } => {
                 match handle_command_getall(&mut current_vault, show) {
                     Ok(()) => {/* Do nothing */},
+                    Err(VaultError::NoVaultOpen) => {
+                        println!("No vault is active! Use init or open <vault-name>!");
+                    }
+                    Err(VaultError::InvalidKey) => {
+                        println!("The given password is incorrect!");
+                    }
+                    Err(VaultError::CouldNotGetEntry) => {
+                        println!("The current vault does not have any entries yet!");
+                        println!("Hint: Use add to create his first one!");
+                    }
                     Err(e) => {
                         println!("Error: {}", e);
                     }
                 }
+                continue 'interactive_shell;
             },
 
-            CommandCLI::Delete { name } => todo!(),
+            CommandCLI::Delete { name } => {
+                match handle_command_delete(&mut current_vault, name) {
+                    Ok(()) => {/* Do Nothing */}
+                    Err(VaultError::NoVaultOpen) => {
+                        println!("No vault is active! Use init or open <vault-name>!");
+                    }
+                    Err(VaultError::CouldNotGetEntry) => {
+                        // because of printing name => in cli.rs
+                    }
+                    Err(e) => {
+                        println!("Error: {}", e);
+                    }
+                }
+                continue 'interactive_shell;
+            },
 
             CommandCLI::Generate { length, no_symbols } => todo!(),
 
@@ -170,3 +210,4 @@ fn main() {
         }
     }
 }
+                    
