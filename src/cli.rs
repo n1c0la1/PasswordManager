@@ -1,18 +1,16 @@
 use crate::vault_manager::*;
 use crate::errors::*;
+use password_manager::*;
 
 use anyhow::anyhow;
 use clap::{Parser, Subcommand, command};
 use indicatif::{self, ProgressBar, ProgressStyle};
-use password_manager::{clear_terminal, intro_animation};
 use rpassword;
-use serde::{Deserialize, Serialize};
 use std::fs;
 use std::io::stdout;
 use std::io::{self, Read, Write};
 use std::path::Path;
 use std::{path::PathBuf, time::Duration};
-use std::thread::{self};
 
 #[derive(Parser)]
 #[command(name = "pw")]
@@ -112,7 +110,7 @@ pub enum CommandCLI {
     /// Quits the input loop.
     Quit {
         //forces quit, normally "Do you really want to quit RustPass?"
-        #[arg(short = 'f', long)]
+        #[arg(short = 'f', long = "force")]
         force: bool,
     },
 }
@@ -512,8 +510,60 @@ pub fn handle_command_generate(length: i32, no_symbols: bool) -> Result<String, 
     Ok(password)
 }   
 
-pub fn handle_command_change_master() {}
+pub fn handle_command_change_master(option_vault: &mut Option<Vault>) -> Result<(), VaultError>{
+    if let Some(vault) = option_vault {
+        print!("Enter current master password: ");
+        io::stdout().flush().unwrap();
+        let old_password = rpassword::read_password().unwrap();
+        
+        let mut new_password = String::new();
+
+        'input_new_master: loop {
+            print!("Enter new master password: ");
+            io::stdout().flush().unwrap();
+            let input = rpassword::read_password().unwrap();
+            
+            if input.is_empty() {
+                println!("New password cannot be empty!");
+                continue 'input_new_master;
+            }
+            
+            print!("Confirm new master password: ");
+            io::stdout().flush().unwrap();
+            let confirm_password = rpassword::read_password().unwrap();
+            
+            if input != confirm_password {
+                println!("Passwords do not match!");
+                continue 'input_new_master;
+            }
+
+            new_password = input;
+            break 'input_new_master;
+        }
+
+        match vault.change_master_key(old_password, new_password) {
+            Ok(_) => {
+                let spinner = spinner();
+                spinner.enable_steady_tick(Duration::from_millis(80));
+                spinner.set_message("Re-encrypting vault...");
+                
+                vault.save()?;
+                
+                spinner.finish_and_clear();
+                println!("Master password changed successfully!");
+                println!("Vault re-encrypted with new password.\n");
+
+                return Ok(());
+            }
+            Err(e) => println!("Error: {}\n", e),
+        }
+    }
+
+    Err(VaultError::NoVaultOpen)
+}
+
 pub fn handle_command_modify() {}
+
 pub fn handle_command_open(option_vault: &mut Option<Vault>, vault_to_open: String) -> Result<Vault, VaultError> {
 
     // Closing old vault
