@@ -7,6 +7,7 @@ use password_manager::{clear_terminal, intro_animation};
 use rpassword;
 use serde::{Deserialize, Serialize};
 use std::fs;
+use std::io::stdout;
 use std::io::{self, Read, Write};
 use std::path::Path;
 use std::{path::PathBuf, time::Duration};
@@ -428,6 +429,26 @@ pub fn handle_command_delete(option_vault: &mut Option<Vault>, entry_to_delete: 
         match vault.get_entry_by_name(entry_to_delete.clone()) {
             Ok(entry) => {
                 print!("Are you sure, you want to delete '{}'?", entry.entryname);
+                stdout().flush().unwrap();
+                
+                let mut confirm = String::new();
+                io::stdin().read_line(&mut confirm)?;
+                
+                if confirm.trim().eq_ignore_ascii_case("y") {
+                    vault.remove_entry_by_name(entry_to_delete.clone())?;
+                    
+                    let spinner = spinner();
+                    spinner.enable_steady_tick(Duration::from_millis(80));
+                    spinner.set_message("Removing entry ...");
+                    
+                    vault.save()?;
+                    
+                    spinner.finish_and_clear();
+                    println!("Entry '{}' successfully removed!", entry_to_delete);
+                    println!("  Vault saved.\n");
+                } else {
+                    println!("Cancelled.\n");
+                }
             },
             Err(VaultError::CouldNotGetEntry) => {
                 return Err(VaultError::CouldNotGetEntry);
@@ -437,7 +458,7 @@ pub fn handle_command_delete(option_vault: &mut Option<Vault>, entry_to_delete: 
             }
         }
     }
-    
+
     Ok(())
 }
 pub fn handle_command_generate() {}
