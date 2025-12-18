@@ -1,6 +1,22 @@
 use std::{any, fmt};
 use std::error::Error;
 
+//use crate::crypto::CryptoError;
+
+#[derive(Debug)]
+pub enum CryptoError {
+    CouldNotEncrypt,
+    CouldNotDecrypt,
+}
+
+impl fmt::Display for CryptoError {
+    fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
+        match self {
+            CryptoError::CouldNotEncrypt => write!(f, "COULD NOT ENCRYPT"),
+            CryptoError::CouldNotDecrypt => write!(f, "COULD NOT DECRYPT"),
+        }}}
+
+
 #[derive(Debug)]
 pub enum VaultError {
     InvalidKey,
@@ -19,6 +35,7 @@ pub enum VaultError {
     EncFileError(enc_file::EncFileError),
     AnyhowError(anyhow::Error),
     Utf8Error(std::str::Utf8Error),
+    CryptoError(CryptoError),
 }
 
 impl fmt::Display for VaultError {
@@ -40,6 +57,7 @@ impl fmt::Display for VaultError {
             VaultError::EncFileError(e) => write!(f, "ENC FILE ERROR: {}", e),
             VaultError::AnyhowError(e) => write!(f, "ANYHOW ERROR: {}", e),
             VaultError::Utf8Error(e) => write!(f, "UTF8 ERROR: {}", e),
+            VaultError::CryptoError(e) => write!(f, "CRYPTO ERROR: {}", e),
         }
     }
 }
@@ -73,5 +91,11 @@ impl From<anyhow::Error> for VaultError {
 impl From<std::str::Utf8Error> for VaultError {
     fn from(error: std::str::Utf8Error) -> Self {
         VaultError::Utf8Error(error)
+    }
+}
+
+impl From<CryptoError> for VaultError {
+    fn from(error:CryptoError) -> Self {
+        VaultError::CryptoError(error)
     }
 }
