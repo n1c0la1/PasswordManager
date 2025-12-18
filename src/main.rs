@@ -160,7 +160,17 @@ fn main() {
                 continue 'interactive_shell;
             },
 
-            CommandCLI::Generate { length, no_symbols } => todo!(),
+            CommandCLI::Generate { length, no_symbols } => {
+                match handle_command_generate(length, no_symbols) {
+                    Ok(generated_pw) => {
+                        println!("{}", generated_pw)
+                    }
+                    Err(e) => {
+                        println!("Error: {}", e)
+                    }
+                }
+                continue 'interactive_shell;
+            },
 
             CommandCLI::ChangeMaster {  } => todo!(),
 

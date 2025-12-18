@@ -1,6 +1,7 @@
 use crate::vault_manager::*;
 use crate::errors::*;
 
+use anyhow::anyhow;
 use clap::{Parser, Subcommand, command};
 use indicatif::{self, ProgressBar, ProgressStyle};
 use password_manager::{clear_terminal, intro_animation};
@@ -74,6 +75,7 @@ pub enum CommandCLI {
     Generate {
         length: i32,
 
+        #[arg(short = 'f', long = "no-symbols")]
         no_symbols: bool,
     },
 
@@ -187,7 +189,7 @@ pub fn handle_command_init(option_name: Option<String>) -> Result<Vault, VaultEr
     vault.save()?;
     spinner.finish_and_clear();
 
-    println!("\nVault '{}' created successfully! \n", vault_name);
+    println!("Vault '{}' created successfully! \n", vault_name);
 
     Ok(vault)
 }
@@ -390,7 +392,7 @@ pub fn handle_command_getall(option_vault: &mut Option<Vault>, show: bool) -> Re
 
     // check Master-Password when show is passed.
     if show {
-        match master_pw_check(&option_vault) {
+        match master_pw_check(&*option_vault) {
             Ok(())             => {/* Do nothing */},
             Err(e) => {
                 return Err(e);
@@ -428,19 +430,19 @@ pub fn handle_command_delete(option_vault: &mut Option<Vault>, entry_to_delete: 
     if let Some(vault) = option_vault {
         match vault.get_entry_by_name(entry_to_delete.clone()) {
             Ok(entry) => {
-                print!("Are you sure, you want to delete '{}'?", entry.entryname);
+                print!("Are you sure, you want to delete '{}'? (y/n): ", entry.entryname);
                 stdout().flush().unwrap();
-                
+
                 let mut confirm = String::new();
                 io::stdin().read_line(&mut confirm)?;
                 
                 if confirm.trim().eq_ignore_ascii_case("y") {
-                    vault.remove_entry_by_name(entry_to_delete.clone())?;
-                    
+                    // Master PW query maybe? TODO
                     let spinner = spinner();
                     spinner.enable_steady_tick(Duration::from_millis(80));
                     spinner.set_message("Removing entry ...");
                     
+                    vault.remove_entry_by_name(entry_to_delete.clone())?;
                     vault.save()?;
                     
                     spinner.finish_and_clear();
@@ -459,9 +461,57 @@ pub fn handle_command_delete(option_vault: &mut Option<Vault>, entry_to_delete: 
         }
     }
 
-    Ok(())
+    Err(VaultError::NoVaultOpen)
 }
-pub fn handle_command_generate() {}
+
+pub fn handle_command_generate(length: i32, no_symbols: bool) -> Result<String, VaultError> {
+    use rand::Rng;
+
+    // Validierung der Länge
+    if length <= 0 {
+        return Err(VaultError::AnyhowError(anyhow!("Password length must be gerater than 0!")));
+    }
+
+    // Zeichensatz basierend auf no_symbols Flag
+    let charset = if no_symbols {
+        "ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789"
+    } else {
+        "ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789!@#$%^&*()_+-=[]{}|;:,.<>?"
+    };
+
+    let chars: Vec<char> = charset.chars().collect();
+    // Generiere Passwort durch zufällige Auswahl aus charset
+    let password: String = (0..length)
+        .map(|_| {
+            let idx = rand::rng().random_range(0..charset.len());
+            chars[idx]
+        })
+        .collect();
+
+    println!("\n┌─────────────────────────────────────────┐");
+    println!("│ Generated Password                      │");
+    println!("├─────────────────────────────────────────┤");
+    println!("│ {:<40} ", 
+        password);
+    println!("├─────────────────────────────────────────┤");
+    println!("│ Length: {} characters{}                 ", 
+        length, " ".repeat(27 - length.to_string().len()));
+    println!("│ Symbols: {}{}                           ", 
+        if no_symbols { "No" } else { "Yes" }, if no_symbols { " " } else { "" }.repeat(33));
+    println!("└─────────────────────────────────────────┘\n");
+
+    /* Password copy to clipboard? TODO mit neuer flag -c copy & Abfrage
+    use arboard::Clipboard;
+    let mut clipboard = Clipboard::new().expect("Clipboard nicht verfügbar");
+    clipboard
+        .set_text(password.clone())
+        .expect("Konnte nicht in Zwischenablage kopieren");
+
+    println!("Passwort wurde in die Zwischenablage kopiert!");
+        */
+    Ok(password)
+}   
+
 pub fn handle_command_change_master() {}
 pub fn handle_command_modify() {}
 pub fn handle_command_open(option_vault: &mut Option<Vault>, vault_to_open: String) -> Result<Vault, VaultError> {
