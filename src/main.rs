@@ -33,7 +33,7 @@ fn main() {
         if !check_vaults_exist() {
             eprintln!("\nHint: There are currently no vaults at all, consider using 'init' to create one!");
         } else if current_vault.is_none() {
-            eprintln!("\nThere are currently no vaults open, consider using 'open <vault-name>'!");
+            eprintln!("\nHint: There are currently no vaults open, consider using 'open <vault-name>'!");
         }
         
         io::stdout().flush().unwrap();
