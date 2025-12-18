@@ -32,4 +32,9 @@ jobs:
     steps:
     - uses: actions/checkout@v4
     - name: Format
-      run: cargo fmt -- --check
+      run: cargo fmt
+    - name: Commit formatted code
+      run: git commit -am "Formatted code with git action"
+
+    permissions:
+      contents: write
