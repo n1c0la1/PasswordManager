@@ -1,11 +1,10 @@
 mod cli;
 
-use clap::{Parser, Command, Subcommand, command};
+use clap::{Command, Parser, Subcommand, command};
+use cli::*;
 use serde_json::Value; //imports value type (represents json data)
 use std::fs; //imports rusts file system module
-use cli::*;
 use std::path::PathBuf;
-
 
 fn main() {
     let string_from_json =
@@ -22,14 +21,20 @@ fn main() {
         let input = CLI::parse();
         match input.command {
             CommandCLI::Init {} => todo!(),
-            CommandCLI::Add { name, username, url, notes , password} => todo!(),
-            CommandCLI::Get {  } => todo!(),
-            CommandCLI::List {  } => todo!(),
-            CommandCLI::Remove {  } => todo!(),
-            CommandCLI::Generate {  } => todo!(),
-            CommandCLI::ChangeMaster {  } => todo!(),
-            CommandCLI::Modify {  } => todo!(),
-            CommandCLI::Quit {  } => break,
+            CommandCLI::Add {
+                name,
+                username,
+                url,
+                notes,
+                password,
+            } => todo!(),
+            CommandCLI::Get {} => todo!(),
+            CommandCLI::List {} => todo!(),
+            CommandCLI::Remove {} => todo!(),
+            CommandCLI::Generate {} => todo!(),
+            CommandCLI::ChangeMaster {} => todo!(),
+            CommandCLI::Modify {} => todo!(),
+            CommandCLI::Quit {} => break,
         }
     }
 }
