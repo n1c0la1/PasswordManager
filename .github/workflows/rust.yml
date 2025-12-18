@@ -36,8 +36,6 @@ jobs:
         components: rustfmt
     - name: Format
       run: cargo fmt
-    - name: Commit formatted code
-      run: git commit -am "Formatted code with git action"
 
     permissions:
       contents: write
