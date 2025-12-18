@@ -10,21 +10,27 @@ fn main() {
     println!("{json_data}");
 
     test(
-        Some("hello".to_string()), 
-        Some("hello".to_string()), 
+        Some("hello".to_string()),
+        Some("hello".to_string()),
         None,
         None,
         Some("world".to_string()),
-        Some("world".to_string())
+        Some("world".to_string()),
     );
 }
 
-fn test(a: Option<String>, b: Option<String>, c: Option<String>, d: Option<String>, e: Option<String>, f: Option<String>) {
-    
-let g: Option<String> = "test".to_string().into();
-assert_eq!(a, b);
-assert_eq!(c, d);
-assert_eq!(e, f);
+fn test(
+    a: Option<String>,
+    b: Option<String>,
+    c: Option<String>,
+    d: Option<String>,
+    e: Option<String>,
+    f: Option<String>,
+) {
+    let g: Option<String> = "test".to_string().into();
+    assert_eq!(a, b);
+    assert_eq!(c, d);
+    assert_eq!(e, f);
     // assert_eq!(a, b);
     // assert_eq!(c, d);
     // assert_eq!(e, f);
