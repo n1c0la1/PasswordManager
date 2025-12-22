@@ -1,11 +1,9 @@
 pub fn intro_animation() {
-    let frames =
-        r#"
+    let frames = r#"
 === RustPass ================================
 Secure • Fast • Rust-Powered Password Manager
 =============================================
-        "#
-    ;
+        "#;
     clear_terminal();
 
     println!("{frames}");

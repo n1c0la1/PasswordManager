@@ -1,8 +1,7 @@
 use clap::{Parser, Subcommand, command};
-use std::path::PathBuf;
 use rpassword;
 use serde::{Deserialize, Serialize};
-
+use std::path::PathBuf;
 
 #[derive(Parser)]
 #[command(name = "pw")]
@@ -17,7 +16,7 @@ pub struct CLI {
 #[derive(Subcommand)]
 pub enum CommandCLI {
     /// Initializes a new PasswordManager.
-    Init{},
+    Init {},
 
     /// Adds a new password to database.
     Add {
@@ -46,22 +45,21 @@ pub enum CommandCLI {
 
     /// Generate a password.
     // maybe implement interaction (abfrage) if with special cases, numbers etc.
-    Generate{}, 
+    Generate {},
 
     /// Remove an entry from Database.
-    Remove{},
+    Remove {},
 
     /// Change the Masterpassword.
     // implement not visible, old password required. Verschlüsselt Vault sofort
-    ChangeMaster{},
+    ChangeMaster {},
 
     /// Modify a given password
     //
-    Modify{},
-    
-    /// Quits the input loop
-    Quit{},
+    Modify {},
 
+    /// Quits the input loop
+    Quit {},
 }
 
 #[derive(Serialize, Deserialize, Clone)]
@@ -71,7 +69,7 @@ struct PasswordEntry {
     password: Option<String>,
     url: Option<String>,
     notes: Option<String>,
-} 
+}
 
 /*fn main() {
     let cli = CLI::parse();
