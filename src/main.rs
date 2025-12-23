@@ -3,6 +3,7 @@ mod vault_manager;
 mod errors;
 
 use crate::errors::*;
+use anyhow::anyhow;
 use clap::{Parser, Command, Subcommand, command};
 use serde_json::Value; //imports value type (represents json data)
 use std::fs::{self, read}; //imports rusts file system module
@@ -117,6 +118,9 @@ fn main() {
                         // because of printing the name of non-existent vault => in cli.rs
                         /* Do Nothing */
                     }
+                    Err(VaultError::AnyhowError(ref e)) if e.to_string() == "Exit" => {
+                        println!("Exiting...");
+                    }
                     Err(e) => {
                         println!("Error: {}", e);
                     }
@@ -137,6 +141,9 @@ fn main() {
                         println!();
                         println!("The current vault does not have any entries yet!");
                         println!("Hint: Use add to create his first one!");
+                    }
+                    Err(VaultError::AnyhowError(ref e)) if e.to_string() == "Exit" => {
+                        println!("Exiting...");
                     }
                     Err(e) => {
                         println!("Error: {}", e);
@@ -164,7 +171,16 @@ fn main() {
             CommandCLI::Deletevault {  } => {
                 match handle_command_deletevault(&mut current_vault) {
                     Ok(()) => {
+                        current_vault = None;
                         continue 'interactive_shell
+                    }
+                    Err(VaultError::AnyhowError(ref e)) if e.to_string() == "Cancelled." => {
+                        println!("\nDeletion cancelled.");
+                        continue 'interactive_shell;
+                    }
+                    Err(VaultError::AnyhowError(ref e)) if e.to_string() == "exit" => {
+                        println!("Exiting...");
+                        continue 'interactive_shell;
                     }
                     Err(e) => {
                         println!("Error: {}", e);

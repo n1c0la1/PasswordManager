@@ -360,6 +360,9 @@ pub fn handle_command_get(option_vault: &mut Option<Vault>, entry_name: String, 
     if show {
         match master_pw_check(option_vault) {
             Ok(()) => {/* Do nothing */},
+            Err(VaultError::AnyhowError(ref g)) if g.to_string() == "Exit" => {
+                return Err(VaultError::AnyhowError(anyhow!("Exit")));
+            }
             Err(e) => {
                 return Err(e);
             }
@@ -400,6 +403,9 @@ pub fn handle_command_getall(option_vault: &mut Option<Vault>, show: bool) -> Re
     if show {
         match master_pw_check(&*option_vault) {
             Ok(())             => {/* Do nothing */},
+            Err(VaultError::AnyhowError(ref g)) if g.to_string() == "Exit" => {
+                return Err(VaultError::AnyhowError(anyhow!("Exit")));
+            }
             Err(e) => {
                 return Err(e);
             }
@@ -483,18 +489,19 @@ pub fn handle_command_deletevault(option_vault: &mut Option<Vault>) -> Result<()
         io::stdin().read_line(&mut input)?;
 
         if !input.trim().eq_ignore_ascii_case("y") {
-            println!("Deletion cancelled");
-            return Ok(());
+            return Err(VaultError::AnyhowError(anyhow!("Cancelled.")));
         }
 
+        println!();
+        print!("Enter master password for {}: ", vault_name);
         stdout().flush().unwrap();
-        print!("Enter master password for {}", vault_name);
         let master_input: SecretString = SecretString::new(rpassword::read_password()?.into());
 
         if !master_input.expose_secret().eq(vault.key.as_ref().unwrap().as_str()) {
             return Err(VaultError::AnyhowError(anyhow!("Invalid master password! Deletion cancelled.")));
         }
 
+        println!();
         println!("Password verified.");
         println!();
 
@@ -517,7 +524,7 @@ pub fn handle_command_deletevault(option_vault: &mut Option<Vault>) -> Result<()
             } else if trimmed == expected {
                 break 'input;
             } else if trimmed == "exit" {
-                return Ok(());
+                return Err(VaultError::AnyhowError(anyhow!("exit")));
             } else {
                 println!();
                 println!("Wrong input! Try again or type exit.");
@@ -531,6 +538,7 @@ pub fn handle_command_deletevault(option_vault: &mut Option<Vault>) -> Result<()
 
         fs::remove_file(path)?;
         spinner.finish_and_clear();
+        println!();
         println!("Vault '{}' deleted permanently.", vault_name);
 
         return Ok(());
@@ -642,6 +650,11 @@ pub fn handle_command_change_master(option_vault: &mut Option<Vault>) -> Result<
 pub fn handle_command_modify() {}
 
 pub fn handle_command_open(option_vault: &mut Option<Vault>, vault_to_open: String) -> Result<Vault, VaultError> {
+    let path = Path::new("vaults").join(format!("{vault_to_open}.psdb"));
+    if !path.exists() {
+        return Err(VaultError::VaultDoesNotExist);
+    }
+
 
     // Closing old vault
     if let Some(vault) = option_vault.take() {

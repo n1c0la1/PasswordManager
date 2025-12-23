@@ -3,10 +3,10 @@ use enc_file::{AeadAlg, EncryptOptions, decrypt_bytes, encrypt_bytes};
 use secrecy::SecretString;
 use serde::{Deserialize, Serialize};
 use std::fs::{self, File};
-use std::io::{self, Read, Write};
+use std::io::{Read, Write};
 use std::path::Path;
 use std::str;
-use std::fmt;
+use anyhow::anyhow;
 use crate::errors::VaultError;
 
 #[derive(Debug, Serialize, Deserialize, Clone)]
@@ -315,8 +315,10 @@ pub fn master_pw_check(vault: &Option<Vault>) -> Result<(), VaultError> {
             Ok(input_pw) => {
                 if input_pw == *vault_key {
                     return Ok(());
+                } else if input_pw.eq_ignore_ascii_case("exit") {
+                    return Err(VaultError::AnyhowError(anyhow!("Exit")));
                 } else {
-                    println!("Incorrect password! Try again or press Ctrl+C to cancel.");
+                    println!("Incorrect password! Try again or type exit.");
                 }
             }
             Err(e) => {
