@@ -55,7 +55,7 @@ impl fmt::Display for VaultError {
             VaultError::IoError(e) => write!(f, "IO ERROR: {}", e),
             VaultError::SerdeError(e) => write!(f, "SERDE ERROR: {}", e),
             VaultError::EncFileError(e) => write!(f, "ENC FILE ERROR: {}", e),
-            VaultError::AnyhowError(e) => write!(f, "ANYHOW ERROR: {}", e),
+            VaultError::AnyhowError(e) => write!(f, "{}", e),
             VaultError::Utf8Error(e) => write!(f, "UTF8 ERROR: {}", e),
             VaultError::CryptoError(e) => write!(f, "CRYPTO ERROR: {}", e),
         }
