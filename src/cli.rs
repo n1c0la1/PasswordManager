@@ -6,6 +6,10 @@ use anyhow::anyhow;
 use clap::{Parser, Subcommand, command};
 use indicatif::{self, ProgressBar, ProgressStyle};
 use rpassword;
+use secrecy::ExposeSecret;
+use secrecy::SecretString;
+use std::env::join_paths;
+use std::fmt::format;
 use std::fs;
 use std::io::stdout;
 use std::io::{self, Read, Write};
@@ -82,6 +86,10 @@ pub enum CommandCLI {
         name: String,
     },
 
+    /// Delete a vault completely.
+    // Does not take an argument, because it has to use to opened one.
+    Deletevault {},
+
     /// Change the Masterpassword.
     // implement not visible, old password required. Verschlüsselt Vault sofort
     ChangeMaster {},
@@ -141,8 +149,8 @@ pub fn handle_command_init(option_name: Option<String>) -> Result<Vault, VaultEr
         input.trim().to_string()
     };
 
-    let path = format!("vaults/{vault_name}.psdb");
-    if Path::new(&path).exists() {
+    let path = Path::new("vaults").join(format!("{vault_name}.psdb"));
+    if path.exists() {
         return Err(VaultError::NameExists);
     }   
 
@@ -462,6 +470,75 @@ pub fn handle_command_delete(option_vault: &mut Option<Vault>, entry_to_delete: 
     Err(VaultError::NoVaultOpen)
 }
 
+pub fn handle_command_deletevault(option_vault: &mut Option<Vault>) -> Result<(), VaultError> {
+    println!();
+
+    if let Some(vault) = option_vault {
+        let vault_name = vault.get_name();
+        println!("WARNING: You are about to PERMANENTLY delete vault '{}'!", vault_name);
+        print!("Do you wish to continue? (y/n): ");
+
+        stdout().flush().unwrap();
+        let mut input = String::new();
+        io::stdin().read_line(&mut input)?;
+
+        if !input.trim().eq_ignore_ascii_case("y") {
+            println!("Deletion cancelled");
+            return Ok(());
+        }
+
+        stdout().flush().unwrap();
+        print!("Enter master password for {}", vault_name);
+        let master_input: SecretString = SecretString::new(rpassword::read_password()?.into());
+
+        if !master_input.expose_secret().eq(vault.key.as_ref().unwrap().as_str()) {
+            return Err(VaultError::AnyhowError(anyhow!("Invalid master password! Deletion cancelled.")));
+        }
+
+        println!("Password verified.");
+        println!();
+
+        println!("FINAL WARNING: This action CANNOT be undone!");
+
+        'input: loop {
+            println!("Type 'DELETE {}' to confirm: ", vault_name);
+    
+            let mut input = String::new();
+            stdout().flush().unwrap();
+            io::stdin().read_line(&mut input)?;
+            let trimmed = input.trim();
+            
+            let expected = format!("DELETE {}", vault.get_name());
+            let expected_low_case = format!("delete {}", vault.get_name());
+            if trimmed == expected_low_case {
+                println!();
+                println!("You have to use capital letters! Try again or type exit.");
+                continue 'input;
+            } else if trimmed == expected {
+                break 'input;
+            } else if trimmed == "exit" {
+                return Ok(());
+            } else {
+                println!();
+                println!("Wrong input! Try again or type exit.");
+                continue 'input;
+            }
+        }
+
+        let spinner = spinner();
+        spinner.enable_steady_tick(Duration::from_millis(80));
+        let path = Path::new("vaults").join(format!("{vault_name}.psdb"));
+
+        fs::remove_file(path)?;
+        spinner.finish_and_clear();
+        println!("Vault '{}' deleted permanently.", vault_name);
+
+        return Ok(());
+    }
+
+    Err(VaultError::AnyhowError(anyhow!("Due to RustPass' logic, you have to open the vault you want to delete first!")))
+}
+
 pub fn handle_command_generate(length: i32, no_symbols: bool) -> Result<String, VaultError> {
     use rand::Rng;
 
@@ -609,8 +686,6 @@ pub fn handle_command_open(option_vault: &mut Option<Vault>, vault_to_open: Stri
         }
     }
 }
-
-pub fn handle_command_switch() {}
 
 pub fn handle_command_vaults(current_vault: &Option<Vault>) {
     println!("\n=== Available Vaults ===");

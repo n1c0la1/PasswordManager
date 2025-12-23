@@ -134,6 +134,7 @@ fn main() {
                         println!("The given password is incorrect!");
                     }
                     Err(VaultError::CouldNotGetEntry) => {
+                        println!();
                         println!("The current vault does not have any entries yet!");
                         println!("Hint: Use add to create his first one!");
                     }
@@ -159,6 +160,18 @@ fn main() {
                 }
                 continue 'interactive_shell;
             },
+
+            CommandCLI::Deletevault {  } => {
+                match handle_command_deletevault(&mut current_vault) {
+                    Ok(()) => {
+                        continue 'interactive_shell
+                    }
+                    Err(e) => {
+                        println!("Error: {}", e);
+                        continue 'interactive_shell;
+                    }
+                }
+            }
 
             CommandCLI::Generate { length, no_symbols } => {
                 match handle_command_generate(length, no_symbols) {
