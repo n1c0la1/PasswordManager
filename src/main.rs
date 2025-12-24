@@ -209,7 +209,13 @@ fn main() {
             },
 
             CommandCLI::Edit { name } => {
-                handle_command_edit(&mut current_vault, name);
+                match handle_command_edit(&mut current_vault, name) {
+                    Ok(()) => {/* Do nothing */}
+                    Err(e) => {
+                        println!("Error: {}", e)
+                    }
+                }
+                continue 'interactive_shell;
             },
 
             CommandCLI::Open { name } => {

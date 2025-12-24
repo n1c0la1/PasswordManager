@@ -475,6 +475,7 @@ pub fn handle_command_delete(option_vault: &mut Option<Vault>, entry_to_delete: 
                     vault.save()?;
                     
                     spinner.finish_and_clear();
+                    println!();
                     println!("Entry '{}' successfully removed!", entry_to_delete);
                     println!("  Vault saved.\n");
                 } else {
@@ -482,14 +483,14 @@ pub fn handle_command_delete(option_vault: &mut Option<Vault>, entry_to_delete: 
                 }
             },
             Err(VaultError::CouldNotGetEntry) => {
-                return Err(VaultError::CouldNotGetEntry);
+                return Err(VaultError::EntryNotFound);
             }
             Err(e) => {
                 return Err(e);
             }
         }
     }
-
+    println!();
     Err(VaultError::NoVaultOpen)
 }
 
