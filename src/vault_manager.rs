@@ -38,7 +38,7 @@ impl Vault {
         self.key = None;
     }
 
-    fn entryname_exists(&self, name: &str) -> bool {
+    pub fn entryname_exists(&self, name: &str) -> bool {
         if let Some(_) = self.entries.iter().find(|value| value.entryname == name) {
             return true;
         }
@@ -96,8 +96,8 @@ impl Vault {
         Ok(())
     }
 
-    pub fn get_entry_by_name(&mut self, name: String) -> Result<&mut Entry, VaultError> {
-        if let Some(found_entry) = self.entries.iter_mut().find(|value| value.entryname == name) {
+    pub fn get_entry_by_name(&mut self, name: &String) -> Result<&mut Entry, VaultError> {
+        if let Some(found_entry) = self.entries.iter_mut().find(|value| value.entryname == *name) {
             Ok(found_entry)
         }
         else {

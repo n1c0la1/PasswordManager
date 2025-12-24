@@ -208,7 +208,9 @@ fn main() {
                 continue 'interactive_shell;
             },
 
-            CommandCLI::Modify { name } => todo!(),
+            CommandCLI::Edit { name } => {
+                handle_command_edit(&mut current_vault, name);
+            },
 
             CommandCLI::Open { name } => {
                 match handle_command_open(&mut current_vault, name) {

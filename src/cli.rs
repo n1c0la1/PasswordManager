@@ -98,7 +98,7 @@ pub enum CommandCLI {
 
     /// Modify a given password
     //
-    Modify {
+    Edit {
         name: String,
     },
 
@@ -365,7 +365,7 @@ pub fn handle_command_get(option_vault: &mut Option<Vault>, entry_name: String, 
     }
     
     if let Some(vault) = option_vault {
-        if let Ok(entry) = vault.get_entry_by_name(entry_name.clone()) {
+        if let Ok(entry) = vault.get_entry_by_name(&entry_name) {
             println!("\n==== Entry: {} ====", entry_name);
             println!("Username: {}", entry.username.as_deref().unwrap_or("--EMPTY--"));
             println!("URL:      {}", entry.url.as_deref().unwrap_or("--EMPTY--"));
@@ -435,7 +435,7 @@ pub fn handle_command_getall(option_vault: &mut Option<Vault>, show: bool) -> Re
 
 pub fn handle_command_delete(option_vault: &mut Option<Vault>, entry_to_delete: String) -> Result<(), VaultError> {
     if let Some(vault) = option_vault {
-        match vault.get_entry_by_name(entry_to_delete.clone()) {
+        match vault.get_entry_by_name(&entry_to_delete) {
             Ok(entry) => {
                 print!("Are you sure, you want to delete '{}'? (y/n): ", entry.entryname);
                 stdout().flush().unwrap();
@@ -590,7 +590,7 @@ pub fn handle_command_generate(length: i32, no_symbols: bool) -> Result<String, 
     Ok(password)
 }   
 
-pub fn handle_command_change_master(option_vault: &mut Option<Vault>) -> Result<(), VaultError>{
+pub fn handle_command_change_master(option_vault: &mut Option<Vault>) -> Result<(), VaultError> {
     if let Some(vault) = option_vault {
         print!("Enter current master password: ");
         io::stdout().flush().unwrap();
@@ -642,7 +642,189 @@ pub fn handle_command_change_master(option_vault: &mut Option<Vault>) -> Result<
     Err(VaultError::NoVaultOpen)
 }
 
-pub fn handle_command_modify() {}
+pub fn handle_command_edit(option_vault: &mut Option<Vault>, entry_name: String) -> Result<(), VaultError> {
+
+    let vault = match option_vault {
+        Some(v) => v,
+        None => return Err(VaultError::NoVaultOpen),
+    };
+
+    if !vault.entryname_exists(&entry_name) {
+        return Err(VaultError::EntryNotFound);
+    }
+
+    // collecting current data, to avoid borrow checker
+    let current_entry = vault.entries.iter()
+        .find(|e| e.entryname == entry_name)
+        .ok_or(VaultError::EntryNotFound)?;
+    
+    let current_username = current_entry.username.clone();
+    let current_url = current_entry.url.clone();
+    let current_notes = current_entry.notes.clone();
+    let current_password = current_entry.password.clone();
+    let has_password = current_password.is_some();
+
+    // Collect all existing entrynames except the own one
+    let existing_names: Vec<String> = vault.entries.iter()
+        .filter_map(|e| {
+            if e.entryname != entry_name {
+                Some(e.entryname.clone())
+            } else {
+                None
+            }
+        })
+        .collect();
+
+    // Collecting user inputs
+    println!("\n==== Editing entry: '{}' ====", entry_name);
+    println!("Hint: (Press enter to keep current value)\n");
+
+    // Entryname
+    let new_entryname = loop {
+        print!("New entry name [current: {}]: ", entry_name);
+        stdout().flush().unwrap();
+        
+        let mut input_entryname = String::new();
+        io::stdin().read_line(&mut input_entryname)?;
+        let trimmed_input = input_entryname.trim().to_string();
+
+        if trimmed_input.is_empty() || trimmed_input == entry_name {
+            // Keep current name
+            break None;
+        } else if existing_names.contains(&trimmed_input) {
+            println!("Error: An entry with the name '{}' already exists! Try a different name.", trimmed_input);
+            continue;
+        } else {
+            break Some(trimmed_input);
+        }
+    };
+
+    // Username 
+    print!("New username [current: {}]: ", current_username.as_deref().unwrap_or("--EMPTY--"));
+    stdout().flush().unwrap();
+    let mut input_username = String::new();
+    io::stdin().read_line(&mut input_username)?;
+    let new_username = if input_username.trim().is_empty() {
+        None
+    } else {
+        Some(input_username.trim().to_string())
+    };
+
+    // URL 
+    print!("New URL [current: {}]: ", current_url.as_deref().unwrap_or("--EMPTY--"));
+    stdout().flush().unwrap();
+    let mut input_url = String::new();
+    io::stdin().read_line(&mut input_url)?;
+    let new_url = if input_url.trim().is_empty() {
+        None
+    } else {
+        Some(input_url.trim().to_string())
+    };
+
+    // Notes sammeln
+    print!("New notes [current: {}]: ", current_notes.as_deref().unwrap_or("--EMPTY--"));
+    stdout().flush().unwrap();
+    let mut input_notes = String::new();
+    io::stdin().read_line(&mut input_notes)?;
+    let new_notes = if input_notes.trim().is_empty() {
+        None
+    } else {
+        Some(input_notes.trim().to_string())
+    };
+
+    // Password 
+    let new_password = if has_password {
+        'input_new_pw: loop {
+        print!("New password (press Enter to keep current, type 'clear' to remove): ");
+        stdout().flush().unwrap();
+        let input_password = rpassword::read_password()?;
+        
+        if input_password.is_empty() {
+            // Keep current password
+            break 'input_new_pw None;
+        } else if input_password == "clear" {
+            break 'input_new_pw Some("".to_string());
+        } else {
+            // Confirm new password
+            print!("Confirm new password: ");
+            stdout().flush().unwrap();
+            let confirm = rpassword::read_password()?;
+            
+            if input_password != confirm {
+                println!("Passwords do not match! Try again.");
+                continue 'input_new_pw;
+            } else {
+                break 'input_new_pw Some(input_password);
+            }
+        }}   
+    } else {
+        // No password exists, ask if user wants to add one
+        print!("Add password? (y/n): ");
+        stdout().flush().unwrap();
+        let mut input = String::new();
+        io::stdin().read_line(&mut input)?;
+        
+        if input.trim().eq_ignore_ascii_case("y") {
+            let mut loop_pw = String::new();
+            'input_pw: loop {
+                print!("Enter password: ");
+                stdout().flush().unwrap();
+                let input_password = rpassword::read_password()?;
+                
+                if input_password.is_empty() {
+                    break 'input_pw;
+                }
+
+                print!("Confirm password: ");
+                stdout().flush().unwrap();
+                let confirm = rpassword::read_password()?;
+                
+                if input_password != confirm {
+                    println!("Passwords do not match! Try again:");
+                    println!();
+                    continue 'input_pw;
+                }
+
+                loop_pw = input_password;
+                break 'input_pw;
+            }
+            if loop_pw.is_empty() {
+                None
+            } else {
+                Some(loop_pw)
+            }
+        } else {
+            None
+        }
+    };
+
+    // Write changes to Entry
+    let vault = option_vault.as_mut().unwrap();
+    let entry = vault.get_entry_by_name(&entry_name)?;
+
+    if let Some(new_name) = new_entryname {entry.entryname = new_name;}
+    if let Some(username) = new_username { entry.set_username(username); }
+    if let Some(url) = new_url { entry.set_url(url); }
+    if let Some(notes) = new_notes { entry.set_notes(notes); }
+    if let Some(password) = new_password { entry.set_password(password); }
+
+    // Get final name for printing
+    let final_entry_name = entry.entryname.clone();
+
+    // Saving vault
+    let spinner = spinner();
+    spinner.enable_steady_tick(Duration::from_millis(80));
+    spinner.set_message("Saving changes...");
+    
+    vault.save()?;
+    
+    spinner.finish_and_clear();
+    println!();
+    println!("Entry '{}' updated successfully!", final_entry_name);
+    println!("Vault saved.\n");
+
+    Ok(())
+}
 
 pub fn handle_command_open(option_vault: &mut Option<Vault>, vault_to_open: String) -> Result<Vault, VaultError> {
     let path = Path::new("vaults").join(format!("{vault_to_open}.psdb"));
