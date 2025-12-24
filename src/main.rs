@@ -172,21 +172,18 @@ fn main() {
                 match handle_command_deletevault(&mut current_vault) {
                     Ok(()) => {
                         current_vault = None;
-                        continue 'interactive_shell
                     }
                     Err(VaultError::AnyhowError(ref e)) if e.to_string() == "Cancelled." => {
                         println!("\nDeletion cancelled.");
-                        continue 'interactive_shell;
                     }
                     Err(VaultError::AnyhowError(ref e)) if e.to_string() == "exit" => {
                         println!("Exiting...");
-                        continue 'interactive_shell;
                     }
                     Err(e) => {
                         println!("Error: {}", e);
-                        continue 'interactive_shell;
                     }
                 }
+                continue 'interactive_shell;
             }
 
             CommandCLI::Generate { length, no_symbols } => {
@@ -201,7 +198,15 @@ fn main() {
                 continue 'interactive_shell;
             },
 
-            CommandCLI::ChangeMaster {  } => todo!(),
+            CommandCLI::ChangeMaster {  } => {
+                match handle_command_change_master(&mut current_vault) {
+                    Ok(()) => {/* Do nothing */}
+                    Err(e) => {
+                        println!("Error: {}", e);
+                    }
+                }
+                continue 'interactive_shell;
+            },
 
             CommandCLI::Modify { name } => todo!(),
 
@@ -218,8 +223,6 @@ fn main() {
                     }
                 }
             },
-
-            CommandCLI::Switch { name } => todo!(),
 
             CommandCLI::Vaults {  } => {handle_command_vaults(&current_vault);},
 

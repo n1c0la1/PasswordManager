@@ -107,11 +107,6 @@ pub enum CommandCLI {
         name: String,
     },
 
-    /// Switches to given vault, while closing the current one.
-    Switch {
-        name: String,
-    },
-
     /// Clears terminal window.
     Clear {},
 
