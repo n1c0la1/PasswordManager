@@ -203,27 +203,46 @@ pub fn handle_command_add(
     notes: Option<String>, 
     password: Option<String>) -> Result<(), VaultError>{
     if let Some(vault) = option_vault {
-        println!("\n=== Adding new entry ===");
         
         // Entry Name (REQUIRED)
-        let final_name = if let Some(n) = name {
-            n
+        
+        // Collect all existing entrynames
+        let existing_names: Vec<String> = vault.entries.iter()
+        .map(|e| e.entryname.clone())
+        .collect()
+        ;
+    
+    let final_name = if let Some(n) = name {
+        if existing_names.contains(&n) {
+            return Err(VaultError::NameExists);
         } else {
-            let mut input_name = String::new();
-            'input: loop {
-                println!("Entry name (required): ");
+            n
+        }
+    } else {
+        let mut input_name = String::new();
+        'input: loop {
+            println!("\n=== Adding new entry ===");
+            println!("Entry name (required): ");
                 print!("> ");
                 io::stdout().flush().unwrap();
     
                 let mut input = String::new();
                 io::stdin().read_line(&mut input)?;
-    
-                let trimmed: String = input.trim().to_string();
-                if trimmed.is_empty() {
+
+                let trimmed_name: String = input.trim().to_string();
+                if trimmed_name.is_empty() {
                     println!("Error: Entry name cannot be empty!");
                     continue 'input;
+                } else if trimmed_name.eq("-EXIT-") {
+                    return Ok(());
                 }
-                input_name = trimmed;
+
+                if existing_names.contains(&trimmed_name) {
+                    println!("Error: the name '{}' already exists! Try again or type '-EXIT-'.", trimmed_name);
+                    continue 'input;
+                }
+
+                input_name = trimmed_name;
                 break 'input;
             }
             input_name
@@ -241,11 +260,12 @@ pub fn handle_command_add(
 
             let mut input_username = String::new();
             io::stdin().read_line(&mut input_username)?;
-            if input_username.is_empty() {
+            let trimmed_username = input_username.trim().to_string();
+            if trimmed_username.is_empty() {
                 None
             } else {
                 println!();
-                Some(input_username)
+                Some(trimmed_username)
             }
         };
 
@@ -259,11 +279,12 @@ pub fn handle_command_add(
 
             let mut input_url = String::new();
             io::stdin().read_line(&mut input_url)?;
-            if input_url.is_empty() {
+            let trimmed_url = input_url.trim().to_string();
+            if trimmed_url.is_empty() {
                 None
             } else {
                 println!();
-                Some(input_url)
+                Some(trimmed_url)
             }
         };
 
@@ -277,11 +298,12 @@ pub fn handle_command_add(
 
             let mut input_url = String::new();
             io::stdin().read_line(&mut input_url)?;
-            if input_url.is_empty() {
+            let trimmed_notes = input_url.trim().to_string();
+            if trimmed_notes.is_empty() {
                 None
             } else {
                 println!();
-                Some(input_url)
+                Some(trimmed_notes)
             }
         };
 
