@@ -3,16 +3,12 @@ mod vault_manager;
 mod errors;
 
 use crate::errors::*;
-use anyhow::anyhow;
-use clap::{Parser, Command, Subcommand, command};
-use serde_json::Value; //imports value type (represents json data)
-use std::fs::{self, read}; //imports rusts file system module
+use clap::{Parser};
+// use serde_json::Value; //imports value type (represents json data)
 use cli::*;
 use vault_manager::*;
-use std::path::{Path, PathBuf};
-use std::io::{self, Read, Write};
+use std::io::{self, Write};
 use std::time::Duration;
-use indicatif::{ProgressBar, ProgressStyle};
 use std::thread;
 
 

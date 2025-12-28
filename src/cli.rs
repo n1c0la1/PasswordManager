@@ -8,13 +8,11 @@ use indicatif::{self, ProgressBar, ProgressStyle};
 use rpassword;
 use secrecy::ExposeSecret;
 use secrecy::SecretString;
-use std::env::join_paths;
-use std::fmt::format;
 use std::fs;
 use std::io::stdout;
-use std::io::{self, Read, Write};
+use std::io::{self, Write};
 use std::path::Path;
-use std::{path::PathBuf, time::Duration};
+use std::{time::Duration};
 
 #[derive(Parser)]
 #[command(name = "pw")]
@@ -219,7 +217,7 @@ pub fn handle_command_add(
             n
         }
     } else {
-        let mut input_name = String::new();
+        let input_name;
         'input: loop {
             println!("\n=== Adding new entry ===");
             println!("Entry name (required): ");
@@ -619,7 +617,7 @@ pub fn handle_command_change_master(option_vault: &mut Option<Vault>) -> Result<
         io::stdout().flush().unwrap();
         let old_password = rpassword::read_password().unwrap();
         
-        let mut new_password = String::new();
+        let new_password;
 
         'input_new_master: loop {
             print!("Enter new master password: ");
