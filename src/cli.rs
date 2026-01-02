@@ -567,8 +567,8 @@ pub fn handle_command_generate(length: i32, no_symbols: bool) -> Result<String, 
     use rand::Rng;
 
     // Validierung der Länge
-    if length <= 0 {
-        return Err(VaultError::AnyhowError(anyhow!("Password length must be gerater than 0!")));
+    if length <= 0 || length > 200 {
+        return Err(VaultError::InvalidLength);
     }
 
     // Zeichensatz basierend auf no_symbols Flag
