@@ -38,6 +38,7 @@ pub enum VaultError {
     AnyhowError(anyhow::Error),
     Utf8Error(std::str::Utf8Error),
     CryptoError(CryptoError),
+    ClipboardError,
 }
 
 impl fmt::Display for VaultError {
@@ -62,6 +63,7 @@ impl fmt::Display for VaultError {
             VaultError::AnyhowError(e) => write!(f, "{}", e),
             VaultError::Utf8Error(e) => write!(f, "UTF8 ERROR: {}", e),
             VaultError::CryptoError(e) => write!(f, "CRYPTO ERROR: {}", e),
+            VaultError::ClipboardError => write!(f, "COULD NOT COPY TO CLIPBOARD"),
         }
     }
 }

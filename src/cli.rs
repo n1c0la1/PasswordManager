@@ -14,6 +14,8 @@ use std::io::{self, Write};
 use std::path::Path;
 use std::{time::Duration};
 
+use arboard::Clipboard;
+
 #[derive(Parser)]
 #[command(name = "pw")]
 pub struct CLI {
@@ -973,6 +975,12 @@ pub fn handle_command_quit(force: bool) -> Result<LoopCommand, VaultError> {
         io::stdout().flush().unwrap();
         Ok(LoopCommand::Continue)
     }
+}
+
+pub fn copy_to_clipboard(content: &str) -> Result<(), VaultError> {
+    let mut clipboard = Clipboard::new().map_err(|_| VaultError::ClipboardError)?;
+    clipboard.set_text(content.to_string()).map_err(|_| VaultError::ClipboardError)?;
+    Ok(())
 }
 
 
