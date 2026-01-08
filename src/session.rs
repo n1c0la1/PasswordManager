@@ -11,20 +11,21 @@ use crate::errors::VaultError;
 #[derive(Debug)]
 pub struct Session {
     pub vault_name: String,
-    opened_vault: Option<Vault>,
+    pub opened_vault: Option<Vault>,
     master_password: Option<SecretString>,
 }
+
 //a session is active when: opened_vault and master_password = Some(_)
 //a session is inactive when: opened_vault and master_password = None
 
 pub fn create_new_vault(vault_name: String, master: SecretString) -> Result<(), VaultError>{
-        let new_vault = initialize_vault(vault_name)?;
-        close_vault(&new_vault, master)?;
-        Ok(())
-    }
+    let new_vault = initialize_vault(vault_name)?;
+    close_vault(&new_vault, master)?;
+    Ok(())
+}
 
 impl Session {
-    pub fn new(vault_name: String) -> Session{
+    pub fn new(vault_name: String) -> Session {
         Session {
             vault_name: vault_name,
             opened_vault: None,
@@ -68,13 +69,18 @@ impl Session {
         Ok(())
     }
 
+    pub fn new_save(&mut self, vault: Option<Vault>) -> Result<(), SessionError> {
+        self.opened_vault = vault;
+
+        Ok(())
+    }
+
     pub fn save(&mut self) -> Result<(), SessionError>{
         let (vault, master) = self.session_state()?;
         close_vault(vault, master).map_err(|e| SessionError::VaultError(e))?;
         Ok(())
     }
 
-    
 
     //this function does 3 things:
     //1. It checks whether the session is active 

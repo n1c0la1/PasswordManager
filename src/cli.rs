@@ -351,7 +351,7 @@ pub fn handle_command_add(
                 spinner.enable_steady_tick(Duration::from_millis(80));
                 spinner.set_message("Adding PasswordEntry...");
 
-                vault.save()?;
+                
                 println!();
                 println!("Entry '{}' added successfully!", final_name);
                 println!("Vault saved.\n");
@@ -852,55 +852,16 @@ pub fn handle_command_edit(option_vault: &mut Option<Vault>, entry_name: String)
     Ok(())
 }
 
-pub fn handle_command_open(option_vault: &mut Option<Vault>, vault_to_open: String) -> Result<Vault, VaultError> {
-    let path = Path::new("vaults").join(format!("{vault_to_open}.psdb"));
-    if !path.exists() {
-        return Err(VaultError::VaultDoesNotExist);
-    }
+pub fn handle_command_open(vault_to_open: String) -> Result<Session, VaultError> {
+    let mut session = Session::new(vault_to_open.clone());
 
+    println!("Selected vault: {}", vault_to_open);
 
-    // Closing old vault
-    if let Some(vault) = option_vault.take() {
-        if vault_to_open.eq(vault.get_name()) {
-            println!();
-            println!("This vault is already open!");
-            // Nothing to handle here, just restart with Ok
-            return Ok(vault);
-        } else {
-            let old_name = vault.name.clone();
-            
-            let spinner = spinner();
-            spinner.set_message(format!("Closing vault {} ...", old_name));
-            spinner.enable_steady_tick(Duration::from_millis(80));
+    let master: SecretString = rpassword::prompt_password("Enter master password: ")?.into();
 
-            vault.close()?;
+    let _ = session.start_session(master);
 
-            spinner.finish_and_clear();
-            println!("Vault {} successfully closed.", old_name);
-        }
-    }
-
-    println!();
-    // Opening new one
-    print!("Enter master-password for {}: ", vault_to_open);
-    io::stdout().flush().unwrap();
-    let input_pw = rpassword::read_password()?;
-
-    let spinner = spinner();
-    spinner.set_message("Opening vault ...");
-    spinner.enable_steady_tick(Duration::from_millis(80));
-
-    match open_vault(&vault_to_open, input_pw) {
-        Ok(opened_vault) => {
-            spinner.finish_and_clear();
-            println!();
-            println!("Vault {} successfully opened!", vault_to_open);
-            Ok(opened_vault)
-        },
-        Err(e) => {
-            Err(e)
-        }
-    }
+    Ok(session)
 }
 
 pub fn handle_command_vaults(current_vault: &Option<Vault>) {

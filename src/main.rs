@@ -6,10 +6,12 @@ mod crypto;
 mod session;
 
 use crate::errors::*;
+use crate::session::Session;
+use crate::vault_entry_manager::*;
+use crate::vault_file_manager::*;
 use clap::{Parser};
-// use serde_json::Value; //imports value type (represents json data)
 use cli::*;
-use vault_manager::*;
+use password_manager::active_session;
 use std::io::{self, Write};
 use std::time::Duration;
 use std::thread;
@@ -17,13 +19,14 @@ use std::thread;
 
 fn main() {
     password_manager::intro_animation();
-    let mut current_vault: Option<Vault> = None;
+    let mut current_session: Option<Session> = None;
+    let mut current_vault: Option<Vault>     = None;
 
     'interactive_shell: loop {
         //println!("===================");
         println!("___________________");
         println!("Current vault: {}", 
-            match current_vault.as_ref() {
+            match current_vault {
                 Some(v) => v.get_name(),
                 None    => "None"
             }
@@ -67,8 +70,12 @@ fn main() {
 
         match cli.command {
             CommandCLI::Init { name } => {
+                if !active_session(current_session) {
+                    println!("There is no session active right now, consider using open <vault-name>!");
+                    continue 'interactive_shell;
+                }
                 match handle_command_init(name) {
-                    Ok(vault)            => {
+                    Ok(())            => {
                         if let Some(opened_vault) = current_vault.take() {
                             match opened_vault.close() {
                                 Ok(())             => {/*  Do nothing */},
@@ -218,9 +225,10 @@ fn main() {
             },
 
             CommandCLI::Open { name } => {
-                match handle_command_open(&mut current_vault, name) {
-                    Ok(opened_vault) => {
-                        current_vault = Some(opened_vault)
+                match handle_command_open(name) {
+                    Ok(session) => {
+                        current_session = Some(session);
+                        current_vault = session.opened_vault;
                     },
                     Err(VaultError::InvalidKey) => {
                         println!("Error: Invalid password!")
@@ -259,4 +267,3 @@ fn main() {
         }
     }
 }
-                    
