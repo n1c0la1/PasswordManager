@@ -984,7 +984,7 @@ pub fn copy_to_clipboard(content: &str) -> Result<(), VaultError> {
 }
 
 
-// tests manuel
+// tests
 
 #[cfg(test)]
 mod tests {
