@@ -1,6 +1,8 @@
-use crate::vault_manager::*;
 use crate::errors::*;
 use password_manager::*;
+use crate::vault_entry_manager::*;
+use crate::vault_file_manager::*;
+use crate::session::*;
 
 use anyhow::anyhow;
 use clap::{Parser, Subcommand, command};
@@ -129,7 +131,7 @@ pub fn spinner() -> ProgressBar {
     spinner
 }
 
-pub fn handle_command_init(option_name: Option<String>) -> Result<Vault, VaultError> {
+pub fn handle_command_init(option_name: Option<String>) -> Result<(), VaultError> {
     println!("\nInitializing new vault: ");
 
     let vault_name = if let Some(name) = option_name {
@@ -155,24 +157,24 @@ pub fn handle_command_init(option_name: Option<String>) -> Result<Vault, VaultEr
         vault_name
     );
 
-    let key = 'define_mw: loop {
+    let key: SecretString = 'define_mw: loop {
         io::stdout().flush().unwrap();
 
-        let password = rpassword::prompt_password("Master-Password: ")?;
+        let password: SecretString = rpassword::prompt_password("Master-Password: ")?.into();
 
-        if password.is_empty() {
+        if password.expose_secret().is_empty() {
             println!("The Master-Password may not be empty! Try again.");
             println!();
             continue 'define_mw;
-        } else if password.len() < 3 {
+        } else if password.expose_secret().len() < 3 {
             println!("The Password is too short! (minimum length is 3) Try again.");
             println!();
             continue 'define_mw;
         }
 
-        let password_confirm = rpassword::prompt_password("Please confirm the Master-Password: ")?;
+        let password_confirm: SecretString = rpassword::prompt_password("Please confirm the Master-Password: ")?.into();
 
-        if password != password_confirm {
+        if password.expose_secret() != password_confirm.expose_secret() {
             println!("The passwords do not match, please try again.");
             println!();
             continue 'define_mw;
@@ -181,18 +183,17 @@ pub fn handle_command_init(option_name: Option<String>) -> Result<Vault, VaultEr
         break 'define_mw password;
     };
 
-    let vault = initialize_vault(vault_name.clone(), key)?;
-
+    
     let spinner = spinner();
     spinner.enable_steady_tick(Duration::from_millis(80));
     println!();
     spinner.set_message(" Creating vault...");
-    vault.save()?;
+    let _ = create_new_vault(vault_name.clone(), key);
     spinner.finish_and_clear();
 
     println!("Vault '{}' created successfully! \n", vault_name);
 
-    Ok(vault)
+    Ok(())
 }
 
 pub fn handle_command_add(

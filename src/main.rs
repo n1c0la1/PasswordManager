@@ -1,6 +1,9 @@
 mod cli;
-mod vault_manager;
 mod errors;
+mod vault_entry_manager;
+mod vault_file_manager;
+mod crypto;
+mod session;
 
 use crate::errors::*;
 use clap::{Parser};
