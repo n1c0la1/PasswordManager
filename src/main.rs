@@ -1,10 +1,3 @@
-mod cli;
-mod errors;
-mod vault_entry_manager;
-mod vault_file_manager;
-mod crypto;
-mod session;
-
 use crate::errors::*;
 use crate::session::Session;
 use crate::vault_entry_manager::*;
@@ -70,7 +63,7 @@ fn main() {
 
         match cli.command {
             CommandCLI::Init { name } => {
-                if !active_session(current_session) {
+                if !active_session(&current_session) {
                     println!("There is no session active right now, consider using open <vault-name>!");
                     continue 'interactive_shell;
                 }
