@@ -43,6 +43,26 @@ impl Entry {
         }
     }
 
+    pub fn get_entry_name(&self) -> &String {
+        &self.entryname
+    }
+
+    pub fn get_user_name(&self) -> &Option<String> {
+        &self.username
+    }
+
+    pub fn get_password(&self) -> &Option<String> {
+        &self.password
+    }
+
+    pub fn get_url(&self) -> &Option<String> {
+        &self.url
+    }
+
+    pub fn get_notes(&self) -> &Option<String> {
+        &self.notes
+    }
+
     pub fn set_name(&mut self, vault: &Vault, name: String) -> Result<(), VaultError> {
         if vault.entryname_exists(&name) {
             return Err(VaultError::NameExists);
@@ -94,7 +114,7 @@ impl Vault {
         }
     }
 
-    pub fn get_name(&self) -> &str {
+    pub fn get_name(&self) -> &String {
         &self.name
     }
 
@@ -115,10 +135,10 @@ impl Vault {
         Ok(())
     }
 
-    pub fn get_entry_by_name(&mut self, name: String) -> Option<&mut Entry> {
+    pub fn get_entry_by_name(&mut self, name: &String) -> Option<&mut Entry> {
         self.entries
             .iter_mut()
-            .find(|value| value.entryname == name)
+            .find(|value| value.entryname == *name)
     }
 
     pub fn get_entry_by_entry(&mut self, entry: Entry) -> Option<&mut Entry> {
@@ -127,19 +147,19 @@ impl Vault {
             .find(|value| **value == entry)
     }
 
-    pub fn remove_entry_by_name(&mut self, name: String) {
-        self.entries.retain(|value| value.entryname != name);
+    pub fn remove_entry_by_name(&mut self, name: &String) {
+        self.entries.retain(|value| value.entryname != *name);
     }
 
     pub fn remove_entry_by_entry(&mut self, entry: Entry) {
         self.entries.retain(|value| *value != entry);
     }
 
-    pub fn list_entries(&self) {
-        println!("{:?}", self.entries);
+    pub fn get_entries(&self) -> &Vec<Entry> {
+        &self.entries
     }
 
-    fn entryname_exists(&self, name: &str) -> bool {
+    pub fn entryname_exists(&self, name: &str) -> bool {
         if let Some(_) = self.entries.iter().find(|value| value.entryname == name) {
             return true;
         }
