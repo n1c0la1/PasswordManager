@@ -1,8 +1,9 @@
 use crate::errors::*;
-use password_manager::*;
+//use password_manager::*;
 use crate::vault_entry_manager::*;
 use crate::vault_file_manager::*;
 use crate::session::*;
+use crate::test::*;
 
 use anyhow::anyhow;
 use clap::{Parser, Subcommand, command};
@@ -120,6 +121,23 @@ pub enum CommandCLI {
     },
 }
 
+pub fn clear_terminal() {
+        print!("{esc}[2J{esc}[1;1H", esc = 27 as char);
+}
+
+pub fn intro_animation() {
+        let frames =
+                r#"
+        === RustPass ================================
+        Secure • Fast • Rust-Powered Password Manager
+        =============================================
+                "#
+        ;
+        clear_terminal();
+
+        println!("{frames}");
+    }
+
 pub fn spinner() -> ProgressBar {
     let spinner: ProgressBar = ProgressBar::new_spinner();
     spinner.set_style(
@@ -208,8 +226,8 @@ pub fn handle_command_add(
         // Entry Name (REQUIRED)
         
         // Collect all existing entrynames
-        let existing_names: Vec<String> = vault.entries.iter()
-        .map(|e| e.entryname.clone())
+        let existing_names: Vec<String> = vault.get_entries().iter()
+        .map(|e| e.get_entry_name().clone())
         .collect()
         ;
     
@@ -388,14 +406,14 @@ pub fn handle_command_get(option_vault: &mut Option<Vault>, entry_name: String, 
     }
     
     if let Some(vault) = option_vault {
-        if let Ok(entry) = vault.get_entry_by_name(&entry_name) {
+        if let Some(entry) = vault.get_entry_by_name(&entry_name) {
             println!("\n==== Entry: {} ====", entry_name);
-            println!("Username: {}", entry.username.as_deref().unwrap_or("--EMPTY--"));
-            println!("URL:      {}", entry.url.as_deref().unwrap_or("--EMPTY--"));
-            println!("Notes:    {}", entry.notes.as_deref().unwrap_or("--EMPTY--"));
+            println!("Username: {}", entry.get_user_name().as_deref().unwrap_or("--EMPTY--"));
+            println!("URL:      {}", entry.get_url().as_deref().unwrap_or("--EMPTY--"));
+            println!("Notes:    {}", entry.get_notes().as_deref().unwrap_or("--EMPTY--"));
 
             if show {
-                println!("Password: {}", entry.password.as_deref().unwrap_or("--EMPTY--"));
+                println!("Password: {}", entry.get_password().as_deref().unwrap_or("--EMPTY--"));
             } else {
                 println!("Password: *****");
             }
@@ -430,71 +448,61 @@ pub fn handle_command_getall(option_vault: &mut Option<Vault>, show: bool) -> Re
         }
     }
 
-    if let Some(vault) = option_vault {
-        let entries = &vault.entries;
-        if entries.is_empty() {
-            return Err(VaultError::CouldNotGetEntry);
-        } else {
-            for entry in entries {
-                println!("\n==== Entry: {} ====", entry.entryname);
-                println!("Username: {}", entry.username.as_deref().unwrap_or("--EMPTY--"));
-                println!("URL:      {}", entry.url.as_deref().unwrap_or("--EMPTY--"));
-                println!("Notes:    {}", entry.notes.as_deref().unwrap_or("--EMPTY--"));
+    let vault = option_vault.ok_or(VaultError::NoVaultOpen)?;
+    let entries = vault.get_entries();
 
-                if show {
-                    println!("Password: {}", entry.password.as_deref().unwrap_or("--EMPTY--"));
-                } else {
-                    println!("Password: *****");
-                }
-                println!();
-            }
-        }
-
-        Ok(())
-    } else {
-        Err(VaultError::NoVaultOpen)
+    if entries.is_empty() {
+        return Err(VaultError::CouldNotGetEntry);
     }
+
+    for entry in entries {
+        println!("\n==== Entry: {} ====", entry.get_entry_name());
+        println!("Username: {}", entry.get_user_name().as_deref().unwrap_or("--EMPTY--"));
+        println!("URL:      {}", entry.get_url().as_deref().unwrap_or("--EMPTY--"));
+        println!("Notes:    {}", entry.get_notes().as_deref().unwrap_or("--EMPTY--"));
+
+        if show {
+            println!("Password: {}", entry.get_password().as_deref().unwrap_or("--EMPTY--"));
+        } else {
+            println!("Password: *****");
+        }
+        println!();
+    }
+    Ok(())
 }
 
 pub fn handle_command_delete(option_vault: &mut Option<Vault>, entry_to_delete: String) -> Result<(), VaultError> {
-    if let Some(vault) = option_vault {
-        match vault.get_entry_by_name(&entry_to_delete) {
-            Ok(entry) => {
-                print!("Are you sure, you want to delete '{}'? (y/n): ", entry.entryname);
-                stdout().flush().unwrap();
 
-                let mut confirm = String::new();
-                io::stdin().read_line(&mut confirm)?;
+    let vault = option_vault.ok_or_else(|| {
+        println!();
+        VaultError::NoVaultOpen})?;
+
+    let entry = vault.get_entry_by_name(&entry_to_delete).ok_or(VaultError::EntryNotFound)?;
+
+    print!("Are you sure, you want to delete '{}'? (y/n): ", entry.get_entry_name());
+    stdout().flush().unwrap();
+
+    let mut confirm = String::new();
+    io::stdin().read_line(&mut confirm)?;
                 
-                if confirm.trim().eq_ignore_ascii_case("y") {
-                    // Master PW query maybe? TODO
-                    let spinner = spinner();
-                    spinner.enable_steady_tick(Duration::from_millis(80));
-                    spinner.set_message("Removing entry ...");
+    if confirm.trim().eq_ignore_ascii_case("y") {
+        // Master PW query maybe? TODO
+        let spinner = spinner();
+        spinner.enable_steady_tick(Duration::from_millis(80));
+        spinner.set_message("Removing entry ...");
                     
-                    vault.remove_entry_by_name(entry_to_delete.clone())?;
-                    vault.save()?;
+        vault.remove_entry_by_name(&entry_to_delete.clone());
+        vault.save()?;
                     
-                    spinner.finish_and_clear();
-                    println!();
-                    println!("Entry '{}' successfully removed!", entry_to_delete);
-                    println!("  Vault saved.\n");
-                    return(Ok(()));
-                } else {
-                    println!("Cancelled.\n");
-                    return(Ok(()));
-                }
-            },
-            Err(VaultError::CouldNotGetEntry) => {
-                return Err(VaultError::EntryNotFound);
-            }
-            Err(e) => {
-                return Err(e);
-            }
-        }
-    }
-    println!();
-    Err(VaultError::NoVaultOpen)
+        spinner.finish_and_clear();
+        println!();
+        println!("Entry '{}' successfully removed!", entry_to_delete);
+        println!("  Vault saved.\n");
+        Ok(())
+    } else {
+        println!("Cancelled.\n");
+        Ok(())
+    }      
 }
 
 pub fn handle_command_deletevault(option_vault: &mut Option<Vault>) -> Result<(), VaultError> {
@@ -518,9 +526,12 @@ pub fn handle_command_deletevault(option_vault: &mut Option<Vault>) -> Result<()
         stdout().flush().unwrap();
         let master_input: SecretString = SecretString::new(rpassword::read_password()?.into());
 
+        /* 
+        MUSS NOCH AN SESSION ANGEPASST WERDEN!!!
+        ANYHOW VERMEIDEN
         if !master_input.expose_secret().eq(vault.key.as_ref().unwrap().as_str()) {
             return Err(VaultError::AnyhowError(anyhow!("Invalid master password! Deletion cancelled.")));
-        }
+        } */
 
         println!();
         println!("Password verified.");
@@ -647,7 +658,10 @@ pub fn handle_command_change_master(option_vault: &mut Option<Vault>) -> Result<
             break 'input_new_master;
         }
 
-        match vault.change_master_key(old_password, new_password) {
+        let secret_old_key: SecretString = old_password.into();
+        let secret_new_key: SecretString = new_password.into();
+
+        match change_master_pw(*vault.get_name(), secret_old_key, secret_new_key) {
             Ok(_) => {
                 let spinner = spinner();
                 spinner.enable_steady_tick(Duration::from_millis(80));
@@ -670,31 +684,28 @@ pub fn handle_command_change_master(option_vault: &mut Option<Vault>) -> Result<
 
 pub fn handle_command_edit(option_vault: &mut Option<Vault>, entry_name: String) -> Result<(), VaultError> {
 
-    let vault = match option_vault {
-        Some(v) => v,
-        None => return Err(VaultError::NoVaultOpen),
-    };
+    let vault = option_vault.as_mut().ok_or(VaultError::NoVaultOpen)?;
 
     if !vault.entryname_exists(&entry_name) {
         return Err(VaultError::EntryNotFound);
     }
 
     // collecting current data, to avoid borrow checker
-    let current_entry = vault.entries.iter()
-        .find(|e| e.entryname == entry_name)
+    let current_entry = vault.get_entries().iter()
+        .find(|e| *e.get_entry_name() == entry_name)
         .ok_or(VaultError::EntryNotFound)?;
     
-    let current_username = current_entry.username.clone();
-    let current_url = current_entry.url.clone();
-    let current_notes = current_entry.notes.clone();
-    let current_password = current_entry.password.clone();
+    let current_username = current_entry.get_user_name().clone();
+    let current_url = current_entry.get_url().clone();
+    let current_notes = current_entry.get_notes().clone();
+    let current_password = current_entry.get_password().clone();
     let has_password = current_password.is_some();
 
     // Collect all existing entrynames except the own one
-    let existing_names: Vec<String> = vault.entries.iter()
+    let existing_names: Vec<String> = vault.get_entries().iter()
         .filter_map(|e| {
-            if e.entryname != entry_name {
-                Some(e.entryname.clone())
+            if *e.get_entry_name() != entry_name {
+                Some(e.get_entry_name().clone())
             } else {
                 None
             }
@@ -825,17 +836,17 @@ pub fn handle_command_edit(option_vault: &mut Option<Vault>, entry_name: String)
     };
 
     // Write changes to Entry
-    let vault = option_vault.as_mut().unwrap();
-    let entry = vault.get_entry_by_name(&entry_name)?;
+    //let vault = option_vault.as_mut().unwrap();
+    let entry = vault.get_entry_by_name(&entry_name).ok_or(VaultError::EntryNotFound)?;
 
-    if let Some(new_name) = new_entryname {entry.entryname = new_name;}
+    if let Some(new_name) = new_entryname {entry.set_name(vault, new_name);}
     if let Some(username) = new_username { entry.set_username(username); }
     if let Some(url) = new_url { entry.set_url(url); }
     if let Some(notes) = new_notes { entry.set_notes(notes); }
     if let Some(password) = new_password { entry.set_password(password); }
 
     // Get final name for printing
-    let final_entry_name = entry.entryname.clone();
+    let final_entry_name = entry.get_entry_name().clone();
 
     // Saving vault
     let spinner = spinner();
@@ -895,7 +906,7 @@ pub fn handle_command_vaults(current_vault: &Option<Vault>) {
                     .map(|v| v.get_name());
                 
                 for vault_name in vault_files {
-                    if Some(&vault_name.as_str()) == current_vault_name.as_ref() {
+                    if Some(&vault_name) == current_vault_name {
                         println!("  → {} (currently open)", vault_name);
                     } else {
                         println!("    {}", vault_name);
@@ -1016,7 +1027,7 @@ mod tests {
     fn test_edit_nonexistent_entry() {
         let vault_name = "test_vault_edit_nonexistent";
         
-        let vault = initialize_vault(vault_name.to_string(), "testkey123".to_string()).unwrap();
+        let vault = initialize_vault(vault_name.to_string()).unwrap();
         vault.save().unwrap();
         
         let mut option_vault = Some(vault);
@@ -1036,7 +1047,7 @@ mod tests {
     fn test_edit_entry_exists() {
         let vault_name = "test_vault_edit_exists";
         
-        let mut vault = initialize_vault(vault_name.to_string(), "testkey123".to_string()).unwrap();
+        let mut vault = initialize_vault(vault_name.to_string()).unwrap();
         
         let entry = Entry::new(
             "test_entry".to_string(),
@@ -1062,7 +1073,7 @@ mod tests {
     fn test_edit_entry_verification() {
         let vault_name = "test_vault_edit_verification";
         
-        let mut vault = initialize_vault(vault_name.to_string(), "testkey123".to_string()).unwrap();
+        let mut vault = initialize_vault(vault_name.to_string()).unwrap();
         
         let entry = Entry::new(
             "test_entry".to_string(),
@@ -1077,7 +1088,7 @@ mod tests {
         
         // close vault and open again
         vault.close().unwrap();
-        let mut vault = open_vault(&vault_name.to_string(), "testkey123".to_string()).unwrap();
+        let mut vault = open_vault(vault_name.to_string(), "testkey123".to_string().into()).unwrap();
         
         // handle edit needs user input -> simulating what happens in handle
         let entry = vault.get_entry_by_name(&"test_entry".to_string()).unwrap();
@@ -1088,11 +1099,11 @@ mod tests {
         vault.close().unwrap();
         
         // check 
-        let mut vault = open_vault(&vault_name.to_string(), "testkey123".to_string()).unwrap();
+        let mut vault = open_vault(vault_name.to_string(), "testkey123".to_string().into()).unwrap();
         let entry = vault.get_entry_by_name(&"test_entry".to_string()).unwrap();
         
-        assert_eq!(entry.username, Some("modified_user".to_string()));
-        assert_eq!(entry.url, Some("https://modified.com".to_string()));
+        assert_eq!(*entry.get_user_name(), Some("modified_user".to_string()));
+        assert_eq!(*entry.get_url(), Some("https://modified.com".to_string()));
         
         cleanup_test_vault(vault_name);
     }
@@ -1112,7 +1123,7 @@ mod tests {
     #[test]
     fn test_getall_empty_vault() {
         let name = "test_vault_getall_empty";
-        let vault = initialize_vault(name.to_string(), "key123".to_string()).unwrap();
+        let vault = initialize_vault(name.to_string()).unwrap();
         let mut opt = Some(vault);
 
         let res = handle_command_getall(&mut opt, false);
@@ -1128,7 +1139,7 @@ mod tests {
     #[test]
     fn test_getall_success() {
         let name = "test_vault_getall_success";
-        let mut vault = initialize_vault(name.to_string(), "key123".to_string()).unwrap();
+        let mut vault = initialize_vault(name.to_string()).unwrap();
         let entry = Entry::new(
             "test_entry".to_string(),
             Some("testuser".to_string()),
@@ -1181,7 +1192,7 @@ mod tests {
     #[test]
     fn test_delete_entry_not_found() {
         let name = "test_vault_delete_not_found";
-        let vault = initialize_vault(name.to_string(), "key123".to_string()).unwrap();
+        let vault = initialize_vault(name.to_string()).unwrap();
         let mut opt = Some(vault);
 
         let res = handle_command_delete(&mut opt, "does_not_exist".to_string());
@@ -1197,7 +1208,7 @@ mod tests {
     #[test]
     fn test_delete_success() {
         let name = "test_vault_delete_success";
-        let mut vault = initialize_vault(name.to_string(), "key123".to_string()).unwrap();
+        let mut vault = initialize_vault(name.to_string()).unwrap();
         let entry = Entry::new(
             "test_entry".to_string(),
             Some("testuser".to_string()),
