@@ -18,6 +18,10 @@ pub struct Session {
 //a session is active when: opened_vault and master_password = Some(_)
 //a session is inactive when: opened_vault and master_password = None
 
+pub fn active_session(option_session: &Option<Session>) -> bool {
+    option_session.is_none()
+}
+
 pub fn create_new_vault(vault_name: String, master: SecretString) -> Result<(), VaultError>{
     let new_vault = initialize_vault(vault_name)?;
     close_vault(&new_vault, master)?;
@@ -42,7 +46,7 @@ impl Session {
         }
 
         let master_for_session = master.clone();
-        let vault = open_vault(&self.vault_name, master);
+        let vault = open_vault(self.vault_name.clone(), master);
 
         match vault {
             Ok(vault) => {
