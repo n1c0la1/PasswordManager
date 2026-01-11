@@ -110,6 +110,9 @@ pub enum CommandCLI {
         name: String,
     },
 
+    /// Closes the current vault and ends the session.
+    Close {},
+
     /// Clears terminal window.
     Clear {},
 
@@ -863,16 +866,105 @@ pub fn handle_command_edit(option_vault: &mut Option<Vault>, entry_name: String)
     Ok(())
 }
 
-pub fn handle_command_open(vault_to_open: String) -> Result<Session, VaultError> {
-    let mut session = Session::new(vault_to_open.clone());
+pub fn handle_command_open(
+    vault_to_open: String, 
+    current_session: &mut Option<Session>, 
+    current_vault: &mut Option<Vault>
+) 
+-> Result<Session, VaultError> {
+    // Check if vault file exists
+    let path = Path::new("vaults").join(format!("{vault_to_open}.psdb"));
+    if !path.exists() {
+        return Err(VaultError::VaultDoesNotExist);
+    }
 
+    // check, if it's the selected vault is already opened
+    if let Some(vault) = current_vault.as_ref() {
+        if vault_to_open.as_str() == vault.get_name() {
+            println!();
+            return Err(VaultError::AnyhowError(anyhow!("Vault '{}' already opened!", vault_to_open)));
+        }
+
+        let old_name = vault.get_name();
+
+        println!();
+
+        let spinner = spinner();
+        spinner.set_message(format!("Closing currently opened vault '{}' first", old_name));
+        spinner.enable_steady_tick(Duration::from_millis(80));
+
+        if let Some(session) = current_session.as_mut() {
+            match session.end_session() {
+                Ok(()) => {
+                    spinner.finish_and_clear();
+                    println!("Vault '{}' closed successfully.", old_name);
+                },
+                Err(_) => {
+                    spinner.finish_and_clear();
+                    return Err(VaultError::CouldNotClose);
+                }
+            }
+            *current_session = None;
+            *current_vault   = None;
+        }
+    }
+
+    println!();
     println!("Selected vault: {}", vault_to_open);
-
+    
+    io::stdout().flush().unwrap();
     let master: SecretString = rpassword::prompt_password("Enter master password: ")?.into();
+    
+    // Spinner
+    let spinner = spinner();
+    spinner.set_message("Opening vault ...");
+    spinner.enable_steady_tick(Duration::from_millis(80));
+    
+    // Session
+    let mut new_session = Session::new(vault_to_open.clone());
+    match new_session.start_session(master) {
+        Ok(())               => {
+            spinner.finish_and_clear();
 
-    let _ = session.start_session(master);
+            let opened_vault = new_session.opened_vault.clone().ok_or(VaultError::CouldNotOpen)?;
 
-    Ok(session)
+            println!();
+            println!("╔═══════════════════════════════════════════╗");
+            println!("║  Vault Opened Successfully                ║");
+            println!("╠═══════════════════════════════════════════╣");
+            println!("║  Vault: {}{}", 
+                vault_to_open,
+                " ".repeat(35 - vault_to_open.len().min(35))
+            );
+            println!("║  Entries: {}{}", 
+                opened_vault.entries.len(),
+                " ".repeat(33 - opened_vault.entries.len().to_string().len())
+            );
+            println!("║                                           ║");
+            println!("║  Auto-close after 5 min inactivity        ║");
+            println!("╚═══════════════════════════════════════════╝");
+            println!();
+
+            return Ok(new_session);
+        }
+        Err(SessionError::VaultError(VaultError::InvalidKey)) => {
+            spinner.finish_and_clear();
+            println!();
+            return Err(VaultError::InvalidKey);
+        }
+        Err(SessionError::SessionActive) => {
+            spinner.finish_and_clear();
+            println!();
+            println!("A session is already active!");
+
+            // because main.rs prints the returned error and only VaultErrors can be returned
+            // a session error has to be printed out here and the main function prints an empty string
+            return Err(VaultError::AnyhowError(anyhow!("")));
+        }
+        Err(e) => {
+            return Err(VaultError::AnyhowError(anyhow!("Session error: {}", e)));
+        }
+    }
 }
 
 pub fn handle_command_vaults(current_vault: &Option<Vault>) {

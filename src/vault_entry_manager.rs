@@ -14,7 +14,7 @@ use crate::errors::VaultError;
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct Vault {
     pub name: String,
-    entries: Vec<Entry>,
+    pub entries: Vec<Entry>,
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize, PartialEq)]
