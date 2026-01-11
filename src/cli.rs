@@ -3,7 +3,7 @@ use crate::errors::*;
 use crate::vault_entry_manager::*;
 use crate::vault_file_manager::*;
 use crate::session::*;
-use crate::test::*;
+//use crate::test::*;
 
 use anyhow::anyhow;
 use clap::{Parser, Subcommand, command};

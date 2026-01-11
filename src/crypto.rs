@@ -12,7 +12,6 @@ File tampering is detected by authentication failure
 use enc_file::{AeadAlg, EncryptOptions, decrypt_bytes, encrypt_bytes};
 use secrecy::SecretString;
 
-use std::{any, fmt};
 use crate::errors::CryptoError;
 
 

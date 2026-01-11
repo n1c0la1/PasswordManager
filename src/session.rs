@@ -18,6 +18,7 @@ pub struct Session {
 //a session is active when: opened_vault and master_password = Some(_)
 //a session is inactive when: opened_vault and master_password = None
 
+/// Checks, if there is currently a session active
 pub fn active_session(option_session: &Option<Session>) -> bool {
     option_session.is_none()
 }

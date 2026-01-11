@@ -42,17 +42,17 @@ fn main() {
             continue;
         }
 
-        // Die Eingabe splitten wie CLI-Args
+        // split input like CLI-Args
         let args: Vec<String> = input
             .split_whitespace()
             .map(|s| s.to_string())
             .collect();
 
-        // Clap erwartet args inklusive Programmnamen als args[0]
+        // Clap expects args including program names as args[0]
         let mut args_with_prog = vec!["pw".to_string()];
         args_with_prog.extend(args);
 
-        // Mit Clap parsen
+        // parse input with parse
         let cli = match CLI::try_parse_from(args_with_prog) {
             Ok(cli)  => cli,
             Err(e) => {
@@ -94,6 +94,10 @@ fn main() {
             },
 
             CommandCLI::Add { name, username, url, notes , password} => {
+                if !active_session(&current_session) {
+                    println!("There is no session active right now, consider using open <vault-name>!");
+                    continue 'interactive_shell;
+                }
                 match handle_command_add(&mut current_vault, name, username, url, notes, password) {
                     Ok(())             => {/* Do Nothing */},
                     Err(VaultError::NoVaultOpen) => {
@@ -108,6 +112,10 @@ fn main() {
             },
 
             CommandCLI::Get { name, show } => {
+                if !active_session(&current_session) {
+                    println!("There is no session active right now, consider using open <vault-name>!");
+                    continue 'interactive_shell;
+                }
                 match handle_command_get(&mut current_vault, name, show) {
                     Ok(())             => {/* Do Nothing */},
                     Err(VaultError::NoVaultOpen) => {
@@ -128,6 +136,10 @@ fn main() {
             },
 
             CommandCLI::Getall { show  } => {
+                if !active_session(&current_session) {
+                    println!("There is no session active right now, consider using open <vault-name>!");
+                    continue 'interactive_shell;
+                }
                 match handle_command_getall(&mut current_vault, show) {
                     Ok(()) => {/* Do nothing */},
                     Err(VaultError::NoVaultOpen) => {
@@ -152,6 +164,10 @@ fn main() {
             },
 
             CommandCLI::Delete { name } => {
+                if !active_session(&current_session) {
+                    println!("There is no session active right now, consider using open <vault-name>!");
+                    continue 'interactive_shell;
+                }
                 match handle_command_delete(&mut current_vault, name) {
                     Ok(()) => {/* Do Nothing */}
                     Err(VaultError::NoVaultOpen) => {
@@ -168,6 +184,7 @@ fn main() {
             },
 
             CommandCLI::Deletevault {  } => {
+                // There is a Anyhow error here, if current_vault == None, no need to check active session
                 match handle_command_deletevault(&mut current_vault) {
                     Ok(()) => {
                         current_vault = None;
