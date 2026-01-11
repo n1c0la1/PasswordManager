@@ -235,7 +235,7 @@ fn main() {
             },
 
             CommandCLI::Open { name } => {
-                match handle_command_open(name) {
+                match handle_command_open(name, &current_session, &current_vault) {
                     Ok(session) => {
                         current_session = Some(session);
                         current_vault = session.opened_vault;
