@@ -443,46 +443,46 @@ pub fn handle_command_get(
     return Err(SessionError::SessionInactive);
 }
 
-pub fn handle_command_getall(option_vault: &mut Option<Vault>, show: bool) -> Result<(), VaultError> {
-    if option_vault.is_none() {
-        println!("No vault is active!");
-        println!("Hint: Use init or open <vault-name>!");
-    }
-
-    // check Master-Password when show is passed.
-    if show {
-        match master_pw_check(&*option_vault) {
-            Ok(())             => {/* Do nothing */},
-            Err(VaultError::AnyhowError(ref g)) if g.to_string() == "Exit" => {
-                return Err(VaultError::AnyhowError(anyhow!("Exit")));
-            }
-            Err(e) => {
-                return Err(e);
-            }
-        }
-    }
-
-    let vault = option_vault.ok_or(VaultError::NoVaultOpen)?;
-    let entries = vault.get_entries();
-
-    if entries.is_empty() {
-        return Err(VaultError::CouldNotGetEntry);
-    }
-
-    for entry in entries {
-        println!("\n==== Entry: {} ====", entry.get_entry_name());
-        println!("Username: {}", entry.get_user_name().as_deref().unwrap_or("--EMPTY--"));
-        println!("URL:      {}", entry.get_url().as_deref().unwrap_or("--EMPTY--"));
-        println!("Notes:    {}", entry.get_notes().as_deref().unwrap_or("--EMPTY--"));
-
+pub fn handle_command_getall(
+    option_session: &mut Option<Session>, 
+    option_vault: &mut Option<Vault>, 
+    show: bool)
+    -> Result<(), SessionError> 
+    {
+    if let Some(session) = option_session {
+        // check Master-Password when show is passed.
         if show {
-            println!("Password: {}", entry.get_password().as_deref().unwrap_or("--EMPTY--"));
-        } else {
-            println!("Password: *****");
+            let name_of_vault = option_vault.as_ref().unwrap().get_name();
+            let master_input: SecretString = rpassword::prompt_password
+                (format!("Enter master password for '{}': ", name_of_vault))?.into()
+            ;
+            session.verify_master_pw(master_input)?;
         }
-        println!();
+
+        if let Some(vault) = option_vault {
+            let entries = vault.get_entries();
+
+            if entries.is_empty() {
+                return Err(SessionError::VaultError(VaultError::CouldNotGetEntry));
+            }
+
+            for entry in entries {
+                println!("\n==== Entry: {} ====", entry.get_entry_name());
+                println!("Username: {}", entry.get_user_name().as_deref().unwrap_or("--EMPTY--"));
+                println!("URL:      {}", entry.get_url().as_deref().unwrap_or("--EMPTY--"));
+                println!("Notes:    {}", entry.get_notes().as_deref().unwrap_or("--EMPTY--"));
+
+                if show {
+                    println!("Password: {}", entry.get_password().as_deref().unwrap_or("--EMPTY--"));
+                } else {
+                    println!("Password: *****");
+                }
+                println!();
+            }
+        }
+        return Ok(());
     }
-    Ok(())
+    return Err(SessionError::SessionInactive);
 }
 
 pub fn handle_command_delete(option_vault: &mut Option<Vault>, entry_to_delete: String) -> Result<(), VaultError> {
