@@ -5,6 +5,7 @@ use crate::vault_entry_manager::*;
 use crate::vault_file_manager::initialize_vault;
 use crate::vault_file_manager::close_vault;
 use crate::vault_file_manager::open_vault;
+use secrecy::ExposeSecret;
 use secrecy::SecretString;
 use crate::errors::VaultError;
 
@@ -80,10 +81,15 @@ impl Session {
         Ok(())
     }
 
-    pub fn save(&mut self) -> Result<(), SessionError>{
+    pub fn save(&mut self) -> Result<(), SessionError> {
         let (vault, master) = self.session_state()?;
         close_vault(vault, master).map_err(|e| SessionError::VaultError(e))?;
         Ok(())
+    }
+
+    pub fn verify_master_pw(&self, key: SecretString) -> bool {
+        // no need to check, there are enough checks, where it's called.
+        self.master_password.as_ref().unwrap().expose_secret() == key.expose_secret()
     }
 
 
