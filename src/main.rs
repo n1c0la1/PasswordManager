@@ -175,6 +175,7 @@ fn main() {
                         match current_session {
                             Some(session) => {
                                 session.opened_vault.new_save(current_vault);
+                                println!("Vault saved.\n");
                             }
                             None => {
                                 // Should never happen because of active_session check
@@ -182,10 +183,10 @@ fn main() {
                             }
                         }
                     }
-                    Err(VaultError::NoVaultOpen) => {
+                    Err(SessionError::VaultError(VaultError::NoVaultOpen)) => {
                         println!("No vault is active! Use init or open <vault-name>!");
                     }
-                    Err(VaultError::CouldNotGetEntry) => {
+                    Err(SessionError::VaultError(VaultError::EntryNotFound)) => {
                         // because of printing name => in cli.rs
                     }
                     Err(e) => {

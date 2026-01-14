@@ -16,7 +16,6 @@ use std::io::stdout;
 use std::io::{self, Write};
 use std::path::Path;
 use std::{time::Duration};
-
 use arboard::Clipboard;
 
 #[derive(Parser)]
@@ -434,7 +433,7 @@ pub fn handle_command_get(
                 return Ok(());
             } else {
                 println!("Error: Entry {} not found", entry_name);
-                return Err(SessionError::VaultError(VaultError::CouldNotGetEntry));
+                return Err(SessionError::VaultError(VaultError::EntryNotFound));
             }
         } else {
             return Err(SessionError::VaultError(VaultError::NoVaultOpen));
@@ -485,38 +484,37 @@ pub fn handle_command_getall(
     return Err(SessionError::SessionInactive);
 }
 
-pub fn handle_command_delete(option_vault: &mut Option<Vault>, entry_to_delete: String) -> Result<(), VaultError> {
+pub fn handle_command_delete(option_vault: &mut Option<Vault>, entry_to_delete: String) -> Result<(), SessionError> {
+    if let Some(vault) = option_vault {
+        let entry = vault.get_entry_by_name(&entry_to_delete)
+            .ok_or(SessionError::VaultError(VaultError::EntryNotFound))?
+        ;
 
-    let vault = option_vault.ok_or_else(|| {
-        println!();
-        VaultError::NoVaultOpen})?;
+        print!("Are you sure, you want to delete '{}'? (y/n): ", entry.get_entry_name());
+        stdout().flush().unwrap();
 
-    let entry = vault.get_entry_by_name(&entry_to_delete).ok_or(VaultError::EntryNotFound)?;
-
-    print!("Are you sure, you want to delete '{}'? (y/n): ", entry.get_entry_name());
-    stdout().flush().unwrap();
-
-    let mut confirm = String::new();
-    io::stdin().read_line(&mut confirm)?;
-                
-    if confirm.trim().eq_ignore_ascii_case("y") {
-        // Master PW query maybe? TODO
-        let spinner = spinner();
-        spinner.enable_steady_tick(Duration::from_millis(80));
-        spinner.set_message("Removing entry ...");
+        let mut confirm = String::new();
+        io::stdin().read_line(&mut confirm)?;
                     
-        vault.remove_entry_by_name(&entry_to_delete.clone());
-        vault.save()?;
-                    
-        spinner.finish_and_clear();
-        println!();
-        println!("Entry '{}' successfully removed!", entry_to_delete);
-        println!("  Vault saved.\n");
-        Ok(())
-    } else {
-        println!("Cancelled.\n");
-        Ok(())
-    }      
+        if confirm.trim().eq_ignore_ascii_case("y") {
+            // Master PW query maybe? TODO
+            let spinner = spinner();
+            spinner.enable_steady_tick(Duration::from_millis(80));
+            spinner.set_message("Removing entry ...");
+                        
+            vault.remove_entry_by_name(&entry_to_delete);
+                        
+            spinner.finish_and_clear();
+            
+            println!();
+            println!("Entry '{}' successfully removed!", entry_to_delete);
+            return Ok(());
+        } else {
+            println!("Cancelled.\n");
+            return Ok(());
+        }   
+    }
+    return Err(SessionError::SessionInactive);
 }
 
 pub fn handle_command_deletevault(option_session: &mut Option<Session>, option_vault: &mut Option<Vault>) -> Result<(), VaultError> {
@@ -663,9 +661,7 @@ pub fn handle_command_change_master(option_session: &mut Option<Session>) -> Res
         let old_password: SecretString = rpassword::prompt_password
             (format!("Enter the current master password for '{}': ", session_vault_name))?.into()
         ;
-        if !session.verify_master_pw(old_password) {
-            return Err(SessionError::VaultError(VaultError::InvalidKey));
-        }
+        session.verify_master_pw(old_password)?;
         
         let new_password: SecretString = 'input_new_master: loop {
             io::stdout().flush().unwrap();
