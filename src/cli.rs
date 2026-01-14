@@ -232,7 +232,7 @@ pub fn handle_command_add(
     username: Option<String>, 
     url: Option<String>, 
     notes: Option<String>, 
-    password: Option<String>) -> Result<(), VaultError>{
+    password: Option<String>) -> Result<(), VaultError> {
     if let Some(vault) = option_vault {
         
         // Entry Name (REQUIRED)
@@ -240,8 +240,7 @@ pub fn handle_command_add(
         // Collect all existing entrynames
         let existing_names: Vec<String> = vault.get_entries().iter()
         .map(|e| e.get_entry_name().clone())
-        .collect()
-        ;
+        .collect();
     
     let final_name = if let Some(n) = name {
         if existing_names.contains(&n) {

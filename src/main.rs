@@ -69,16 +69,18 @@ fn main() {
                 }
                 match handle_command_init(name) {
                     Ok(())            => {
-                        if let Some(opened_vault) = current_vault.take() {
-                            match opened_vault.close() {
-                                Ok(())             => {/*  Do nothing */},
-                                Err(e) => {
-                                    println!("Error: {}", e);
-                                }
-                            }
-                        }
+                    //     if let Some(opened_vault) = current_vault.take() {
+                    //         match opened_vault.close() {
+                    //             Ok(())             => {/*  Do nothing */},
+                    //             Err(e) => {
+                    //                 println!("Error: {}", e);
+                    //             }
+                    //         }
+                    //     }
 
-                        current_vault = Some(vault);
+                    //     current_vault = Some(vault);
+                    //     not needed, vault gets created and closed immidiatly
+                    /* Do nothing */
                     },
                     Err(VaultError::NameExists) => {
                         println!();
@@ -94,12 +96,23 @@ fn main() {
             },
 
             CommandCLI::Add { name, username, url, notes , password} => {
-                if !active_session(&current_session) {
+                if !active_session(current_session) {
                     println!("There is no session active right now, consider using open <vault-name>!");
                     continue 'interactive_shell;
                 }
                 match handle_command_add(&mut current_vault, name, username, url, notes, password) {
-                    Ok(())             => {/* Do Nothing */},
+                    Ok(())             => {
+                        // write changes from current_vault to current_session with save
+                        match current_session {
+                            Some(session) => {
+                                session.opened_vault.new_save(current_vault);
+                            }
+                            None => {
+                                // Should never happen because of check line 99
+                                println!("Something went wrong, try starting a new session");
+                            }
+                        }
+                    },
                     Err(VaultError::NoVaultOpen) => {
                         println!("Error: {}", VaultError::NoVaultOpen);
                         println!("Consider using init or open <vault-name>!");
@@ -122,7 +135,7 @@ fn main() {
                         println!("No vault is active! Use init or open <vault-name>!");
                     }
                     Err(VaultError::CouldNotGetEntry) => {
-                        // because of printing the name of non-existent vault => in cli.rs
+                        // already printing the name of non-existent vault in cli.rs
                         /* Do Nothing */
                     }
                     Err(VaultError::AnyhowError(ref e)) if e.to_string() == "Exit" => {
@@ -184,6 +197,10 @@ fn main() {
             },
 
             CommandCLI::Deletevault {  } => {
+                if !active_session(&current_session) {
+                    println!("There is no session active right now, consider using open <vault-name>!");
+                    continue 'interactive_shell;
+                }
                 // There is a Anyhow error here, if current_vault == None, no need to check active session
                 match handle_command_deletevault(&mut current_vault) {
                     Ok(()) => {
@@ -215,6 +232,10 @@ fn main() {
             },
 
             CommandCLI::ChangeMaster {  } => {
+                if !active_session(&current_session) {
+                    println!("There is no session active right now, consider using open <vault-name>!");
+                    continue 'interactive_shell;
+                }
                 match handle_command_change_master(&mut current_vault) {
                     Ok(()) => {/* Do nothing */}
                     Err(e) => {
@@ -225,6 +246,10 @@ fn main() {
             },
 
             CommandCLI::Edit { name } => {
+                if !active_session(&current_session) {
+                    println!("There is no session active right now, consider using open <vault-name>!");
+                    continue 'interactive_shell;
+                }
                 match handle_command_edit(&mut current_vault, name) {
                     Ok(()) => {/* Do nothing */}
                     Err(e) => {
