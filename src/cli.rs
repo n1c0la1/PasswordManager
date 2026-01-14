@@ -517,7 +517,7 @@ pub fn handle_command_delete(option_vault: &mut Option<Vault>, entry_to_delete: 
     return Err(SessionError::SessionInactive);
 }
 
-pub fn handle_command_deletevault(option_session: &mut Option<Session>, option_vault: &mut Option<Vault>) -> Result<(), VaultError> {
+pub fn handle_command_deletevault(option_session: &mut Option<Session>, option_vault: &mut Option<Vault>) -> Result<(), SessionError> {
     println!();
 
     if let Some(session) = option_session {
@@ -530,25 +530,16 @@ pub fn handle_command_deletevault(option_session: &mut Option<Session>, option_v
             let mut input = String::new();
             io::stdin().read_line(&mut input)?;
 
-            if !input.trim().eq_ignore_ascii_case("n") {
-                return Err(VaultError::AnyhowError(anyhow!("Cancelled.")));
+            if input.trim().eq_ignore_ascii_case("n") {
+                return Err(SessionError::VaultError(VaultError::AnyhowError(anyhow!("Cancelled."))));
             }
 
             println!();
             print!("Enter master password for {}: ", vault_name);
             stdout().flush().unwrap();
-            let master_input: SecretString = SecretString::new(rpassword::read_password()?.into());
+            let master_input: SecretString = rpassword::read_password()?.into();
 
-            /* 
-            MUSS NOCH AN SESSION ANGEPASST WERDEN!!!
-            ANYHOW VERMEIDEN
-            if !master_input.expose_secret().eq(vault.key.as_ref().unwrap().as_str()) {
-                return Err(VaultError::AnyhowError(anyhow!("Invalid master password! Deletion cancelled.")));
-            } */
-
-            if !session.verify_master_pw(master_input) {
-                return Err(VaultError::InvalidKey);
-            }
+            session.verify_master_pw(master_input)?;
 
             println!();
             println!("Password verified.");
@@ -573,7 +564,7 @@ pub fn handle_command_deletevault(option_session: &mut Option<Session>, option_v
                 } else if trimmed == expected {
                     break 'input;
                 } else if trimmed == "exit" {
-                    return Err(VaultError::AnyhowError(anyhow!("exit")));
+                    return Err(SessionError::VaultError(VaultError::AnyhowError(anyhow!("exit"))));
                 } else {
                     println!();
                     println!("Wrong input! Try again or type exit.");
@@ -582,16 +573,11 @@ pub fn handle_command_deletevault(option_session: &mut Option<Session>, option_v
             }
 
             let spinner = spinner();
+            spinner.set_message(format!("Permanently deleting '{}' ...", vault_name));
             spinner.enable_steady_tick(Duration::from_millis(80));
             let path = Path::new("vaults").join(format!("{vault_name}.psdb"));
 
-            match session.end_session() {
-                Ok(()) => {/* Do nothing */}
-                Err(e) => {
-                    // Anyhow necessary because function returns a VaultError, not SessionError.
-                    return Err(VaultError::AnyhowError(anyhow!("{}", e)));
-                }
-            }
+            session.end_session()?;
 
             fs::remove_file(path)?;
             spinner.finish_and_clear();
@@ -600,9 +586,13 @@ pub fn handle_command_deletevault(option_session: &mut Option<Session>, option_v
 
             return Ok(());
         }
-            return Err(VaultError::AnyhowError(anyhow!("Due to RustPass' logic, you have to open the vault you want to delete first!")));
+            return Err(SessionError::VaultError(VaultError::AnyhowError(anyhow!
+                ("Due to RustPass' logic, you have to open the vault you want to delete first!")
+            )));
     } 
-        return Err(VaultError::AnyhowError(anyhow!("NO SESSION ACTIVE!")));
+        return Err(SessionError::VaultError(VaultError::AnyhowError(anyhow!
+            ("NO SESSION ACTIVE!")
+        )));
 }
 
 pub fn handle_command_generate(length: i32, no_symbols: bool) -> Result<String, VaultError> {
@@ -691,7 +681,7 @@ pub fn handle_command_change_master(option_session: &mut Option<Session>) -> Res
         println!("Master password successfully updated!");
 
         let spinner = spinner();
-        spinner.set_message("Encrypting vault with new password ...");
+        spinner.set_message("Automatically encrypting vault with new password ...");
         spinner.enable_steady_tick(Duration::from_millis(80));
 
         session.end_session()?;

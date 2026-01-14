@@ -207,10 +207,10 @@ fn main() {
                         current_vault   = None;
                         current_session = None;
                     }
-                    Err(VaultError::AnyhowError(ref e)) if e.to_string() == "Cancelled." => {
+                    Err(SessionError::VaultError(VaultError::AnyhowError(ref e))) if e.to_string() == "Cancelled." => {
                         println!("\nDeletion cancelled.");
                     }
-                    Err(VaultError::AnyhowError(ref e)) if e.to_string() == "exit" => {
+                    Err(SessionError::VaultError(VaultError::AnyhowError(ref e))) if e.to_string() == "exit" => {
                         println!("Exiting...");
                     }
                     Err(e) => {
@@ -238,7 +238,7 @@ fn main() {
                     continue 'interactive_shell;
                 }
                 match handle_command_change_master(&mut current_session) {
-                    Ok(()) => {/* Do nothing */}
+                    Ok(()) => {/* Do nothing, saving and closing and ending session happens in cli.rs */}
                     Err(e) => {
                         println!("Error: {}", e);
                     }
