@@ -21,7 +21,14 @@ pub struct Session {
 
 /// Checks, if there is currently a session active
 pub fn active_session(option_session: &Option<Session>) -> bool {
-    option_session.is_none()
+    if option_session.is_none() {
+        false
+    } else if option_session.as_ref().unwrap().opened_vault.is_none() 
+           || option_session.as_ref().unwrap().master_password.is_none() {
+        false
+    } else {
+        true
+    }
 }
 
 pub fn create_new_vault(vault_name: String, master: SecretString) -> Result<(), VaultError>{
