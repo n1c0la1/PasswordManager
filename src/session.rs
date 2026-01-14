@@ -94,9 +94,12 @@ impl Session {
         Ok(())
     }
 
-    pub fn verify_master_pw(&self, key: SecretString) -> bool {
-        // no need to check, there are enough checks, where it's called.
-        self.master_password.as_ref().unwrap().expose_secret() == key.expose_secret()
+    pub fn verify_master_pw(&self, key: SecretString) -> Result<(), SessionError> {
+        // no need to check if self.is_some(), there are enough checks, where it's called.
+        if !(self.master_password.as_ref().unwrap().expose_secret() == key.expose_secret()) {
+            return Err(SessionError::VaultError(VaultError::InvalidKey));
+        }
+        Ok(())
     }
 
     pub fn change_master_pw(&mut self, new_key: SecretString) -> Result<(), SessionError> {
