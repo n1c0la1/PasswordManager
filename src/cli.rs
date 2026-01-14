@@ -516,78 +516,92 @@ pub fn handle_command_delete(option_vault: &mut Option<Vault>, entry_to_delete: 
     }      
 }
 
-pub fn handle_command_deletevault(option_vault: &mut Option<Vault>) -> Result<(), VaultError> {
+pub fn handle_command_deletevault(option_session: &mut Option<Session>, option_vault: &mut Option<Vault>) -> Result<(), VaultError> {
     println!();
 
-    if let Some(vault) = option_vault {
-        let vault_name = vault.get_name();
-        println!("WARNING: You are about to PERMANENTLY delete vault '{}'!", vault_name);
-        print!("Do you wish to continue? (y/n): ");
+    if let Some(session) = option_session {
+        if let Some(vault) = option_vault {
+            let vault_name = vault.get_name();
+            println!("WARNING: You are about to PERMANENTLY delete vault '{}'!", vault_name);
+            print!("Do you wish to continue? (y/n): ");
 
-        stdout().flush().unwrap();
-        let mut input = String::new();
-        io::stdin().read_line(&mut input)?;
-
-        if !input.trim().eq_ignore_ascii_case("y") {
-            return Err(VaultError::AnyhowError(anyhow!("Cancelled.")));
-        }
-
-        println!();
-        print!("Enter master password for {}: ", vault_name);
-        stdout().flush().unwrap();
-        let master_input: SecretString = SecretString::new(rpassword::read_password()?.into());
-
-        /* 
-        MUSS NOCH AN SESSION ANGEPASST WERDEN!!!
-        ANYHOW VERMEIDEN
-        if !master_input.expose_secret().eq(vault.key.as_ref().unwrap().as_str()) {
-            return Err(VaultError::AnyhowError(anyhow!("Invalid master password! Deletion cancelled.")));
-        } */
-
-        println!();
-        println!("Password verified.");
-        println!();
-
-        println!("FINAL WARNING: This action CANNOT be undone!");
-
-        'input: loop {
-            println!("Type 'DELETE {}' to confirm: ", vault_name);
-    
-            let mut input = String::new();
             stdout().flush().unwrap();
+            let mut input = String::new();
             io::stdin().read_line(&mut input)?;
-            let trimmed = input.trim();
-            
-            let expected = format!("DELETE {}", vault.get_name());
-            let expected_low_case = format!("delete {}", vault.get_name());
-            if trimmed == expected_low_case {
-                println!();
-                println!("You have to use capital letters! Try again or type exit.");
-                continue 'input;
-            } else if trimmed == expected {
-                break 'input;
-            } else if trimmed == "exit" {
-                return Err(VaultError::AnyhowError(anyhow!("exit")));
-            } else {
-                println!();
-                println!("Wrong input! Try again or type exit.");
-                continue 'input;
+
+            if !input.trim().eq_ignore_ascii_case("n") {
+                return Err(VaultError::AnyhowError(anyhow!("Cancelled.")));
             }
+
+            println!();
+            print!("Enter master password for {}: ", vault_name);
+            stdout().flush().unwrap();
+            let master_input: SecretString = SecretString::new(rpassword::read_password()?.into());
+
+            /* 
+            MUSS NOCH AN SESSION ANGEPASST WERDEN!!!
+            ANYHOW VERMEIDEN
+            if !master_input.expose_secret().eq(vault.key.as_ref().unwrap().as_str()) {
+                return Err(VaultError::AnyhowError(anyhow!("Invalid master password! Deletion cancelled.")));
+            } */
+
+            if !session.verify_master_pw(master_input) {
+                return Err(VaultError::InvalidKey);
+            }
+
+            println!();
+            println!("Password verified.");
+            println!();
+
+            println!("FINAL WARNING: This action CANNOT be undone!");
+
+            'input: loop {
+                println!("Type 'DELETE {}' to confirm: ", vault_name);
+        
+                let mut input = String::new();
+                stdout().flush().unwrap();
+                io::stdin().read_line(&mut input)?;
+                let trimmed = input.trim();
+                
+                let expected = format!("DELETE {}", vault.get_name());
+                let expected_low_case = format!("delete {}", vault.get_name());
+                if trimmed == expected_low_case {
+                    println!();
+                    println!("You have to use capital letters! Try again or type exit.");
+                    continue 'input;
+                } else if trimmed == expected {
+                    break 'input;
+                } else if trimmed == "exit" {
+                    return Err(VaultError::AnyhowError(anyhow!("exit")));
+                } else {
+                    println!();
+                    println!("Wrong input! Try again or type exit.");
+                    continue 'input;
+                }
+            }
+
+            let spinner = spinner();
+            spinner.enable_steady_tick(Duration::from_millis(80));
+            let path = Path::new("vaults").join(format!("{vault_name}.psdb"));
+
+            match session.end_session() {
+                Ok(()) => {/* Do nothing */}
+                Err(e) => {
+                    // Anyhow necessary because function returns a VaultError, not SessionError.
+                    return Err(VaultError::AnyhowError(anyhow!("{}", e)));
+                }
+            }
+
+            fs::remove_file(path)?;
+            spinner.finish_and_clear();
+            println!();
+            println!("Vault '{}' deleted permanently.", vault_name);
+
+            return Ok(());
         }
-
-        let spinner = spinner();
-        spinner.enable_steady_tick(Duration::from_millis(80));
-        let path = Path::new("vaults").join(format!("{vault_name}.psdb"));
-
-        fs::remove_file(path)?;
-        spinner.finish_and_clear();
-        println!();
-        println!("Vault '{}' deleted permanently.", vault_name);
-
-        return Ok(());
-    }
-
-    Err(VaultError::AnyhowError(anyhow!("Due to RustPass' logic, you have to open the vault you want to delete first!")))
+            return Err(VaultError::AnyhowError(anyhow!("Due to RustPass' logic, you have to open the vault you want to delete first!")));
+    } 
+        return Err(VaultError::AnyhowError(anyhow!("NO SESSION ACTIVE!")));
 }
 
 pub fn handle_command_generate(length: i32, no_symbols: bool) -> Result<String, VaultError> {

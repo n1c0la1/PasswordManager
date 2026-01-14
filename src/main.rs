@@ -205,13 +205,14 @@ fn main() {
 
             CommandCLI::Deletevault {  } => {
                 if !active_session(&current_session) {
-                    println!("There is no session active right now, consider using open <vault-name>!");
+                    println!("Due to RustPass's logic, you have to open your vault first!");
+                    println!("Hint: Consider using open <vault-name>!");
                     continue 'interactive_shell;
                 }
-                // There is a Anyhow error here, if current_vault == None, no need to check active session
-                match handle_command_deletevault(&mut current_vault) {
+                match handle_command_deletevault(&mut current_session, &mut current_vault) {
                     Ok(()) => {
-                        current_vault = None;
+                        current_vault   = None;
+                        current_session = None;
                     }
                     Err(VaultError::AnyhowError(ref e)) if e.to_string() == "Cancelled." => {
                         println!("\nDeletion cancelled.");
