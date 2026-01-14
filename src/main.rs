@@ -267,7 +267,7 @@ fn main() {
                     println!("There is no session active right now, consider using open <vault-name>!");
                     continue 'interactive_shell;
                 }
-                match handle_command_change_master(&mut current_vault) {
+                match handle_command_change_master(&mut current_session) {
                     Ok(()) => {/* Do nothing */}
                     Err(e) => {
                         println!("Error: {}", e);

@@ -1,7 +1,6 @@
 use crate::errors::*;
 //use password_manager::*;
 use crate::vault_entry_manager::*;
-use crate::vault_file_manager::*;
 use crate::session::*;
 //use crate::test::*;
 
@@ -652,59 +651,60 @@ pub fn handle_command_generate(length: i32, no_symbols: bool) -> Result<String, 
     Ok(password)
 }   
 
-pub fn handle_command_change_master(option_vault: &mut Option<Vault>) -> Result<(), VaultError> {
-    if let Some(vault) = option_vault {
-        print!("Enter current master password: ");
-        io::stdout().flush().unwrap();
-        let old_password = rpassword::read_password().unwrap();
-        
-        let new_password;
+pub fn handle_command_change_master(option_session: &mut Option<Session>) -> Result<(), SessionError> {
+    if let Some(session) = option_session {
+        let session_vault_name = session.vault_name.clone();
 
-        'input_new_master: loop {
-            print!("Enter new master password: ");
+        io::stdout().flush().unwrap();
+        let old_password: SecretString = rpassword::prompt_password
+            (format!("Enter the current master password for '{}': ", session_vault_name))?.into()
+        ;
+        if !session.verify_master_pw(old_password) {
+            return Err(SessionError::VaultError(VaultError::InvalidKey));
+        }
+        
+        let new_password: SecretString = 'input_new_master: loop {
             io::stdout().flush().unwrap();
-            let input = rpassword::read_password().unwrap();
+            let input: SecretString = rpassword::prompt_password
+                (format!("Enter the new master password for '{}': ", session_vault_name))?.into()
+            ;
             
-            if input.is_empty() {
+           if input.expose_secret().is_empty() {
                 println!("New password cannot be empty!");
                 continue 'input_new_master;
             }
             
-            print!("Confirm new master password: ");
             io::stdout().flush().unwrap();
-            let confirm_password = rpassword::read_password().unwrap();
+            let confirm_new_passwd: SecretString = rpassword::prompt_password
+                ("Confirm the new master password")?.into()
+            ;
             
-            if input != confirm_password {
-                println!("Passwords do not match!");
+            if input.expose_secret() == confirm_new_passwd.expose_secret() {
+                println!("Passwords do not match! Try again.");
                 continue 'input_new_master;
             }
+            //new_password = input;
+            break 'input_new_master input;
+        };
 
-            new_password = input;
-            break 'input_new_master;
-        }
+        session.change_master_pw(new_password)?;
+        println!("Master password successfully updated!");
 
-        let secret_old_key: SecretString = old_password.into();
-        let secret_new_key: SecretString = new_password.into();
+        let spinner = spinner();
+        spinner.set_message("Encrypting vault with new password ...");
+        spinner.enable_steady_tick(Duration::from_millis(80));
 
-        match change_master_pw(*vault.get_name(), secret_old_key, secret_new_key) {
-            Ok(_) => {
-                let spinner = spinner();
-                spinner.enable_steady_tick(Duration::from_millis(80));
-                spinner.set_message("Re-encrypting vault...");
-                
-                vault.save()?;
-                
-                spinner.finish_and_clear();
-                println!("Master password changed successfully!");
-                println!("Vault re-encrypted with new password.\n");
+        session.end_session()?;
 
-                return Ok(());
-            }
-            Err(e) => println!("Error: {}\n", e),
-        }
+        println!("All done!");
+        println!("Hint: Use open <{}> to reopen your changed vault!", session_vault_name);
+        println!();
+        spinner.finish_and_clear();
+
+        return Ok(());
     }
 
-    Err(VaultError::NoVaultOpen)
+    Err(SessionError::SessionInactive)
 }
 
 pub fn handle_command_edit(option_vault: &mut Option<Vault>, entry_name: String) -> Result<(), VaultError> {

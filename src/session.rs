@@ -92,6 +92,10 @@ impl Session {
         self.master_password.as_ref().unwrap().expose_secret() == key.expose_secret()
     }
 
+    pub fn change_master_pw(&mut self, new_key: SecretString) -> Result<(), SessionError> {
+        self.master_password = Some(new_key);
+        Ok(())
+    }
 
     //this function does 3 things:
     //1. It checks whether the session is active 
