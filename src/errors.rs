@@ -87,6 +87,14 @@ impl fmt::Display for VaultError {
 
 impl Error for VaultError {}
 
+impl Error for SessionError {}
+
+impl From<std::io::Error> for SessionError {
+    fn from(error: std::io::Error) -> Self {
+        SessionError::VaultError(VaultError::IoError(error))
+    }
+}
+
 impl From<std::io::Error> for VaultError {
     fn from(error: std::io::Error) -> Self {
         VaultError::IoError(error)
