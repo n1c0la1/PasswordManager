@@ -127,18 +127,7 @@ fn main() {
                     continue 'interactive_shell;
                 }
                 match handle_command_get(&mut current_session, &mut current_vault, name, show) {
-                    Ok(())             => {
-                        // write changes from current_vault to current_session with save
-                        match current_session {
-                            Some(session) => {
-                                session.opened_vault.new_save(current_vault);
-                            }
-                            None => {
-                                // Should never happen because of active_session check
-                                println!("Something went wrong, try starting a new session");
-                            }
-                        }
-                    },
+                    Ok(())             => {/* Do nothing, vault did not change */}
                     Err(SessionError::VaultError(VaultError::NoVaultOpen)) => {
                         println!("No vault is active! Use init or open <vault-name>!");
                     }
@@ -159,18 +148,7 @@ fn main() {
                     continue 'interactive_shell;
                 }
                 match handle_command_getall(&mut current_session, &mut current_vault, show) {
-                    Ok(()) => {
-                        // write changes from current_vault to current_session with save
-                        match current_session {
-                            Some(session) => {
-                                session.opened_vault.new_save(current_vault);
-                            }
-                            None => {
-                                // Should never happen because of active_session check
-                                println!("Something went wrong, try starting a new session");
-                            }
-                        }
-                    },
+                    Ok(()) => {/* Do nothing, vault did not change */}
                     Err(SessionError::VaultError(VaultError::NoVaultOpen)) => {
                         println!("No vault is active! Use init or open <vault-name>!");
                     }
