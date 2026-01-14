@@ -209,12 +209,21 @@ pub fn handle_command_init(option_name: Option<String>) -> Result<(), VaultError
     spinner.enable_steady_tick(Duration::from_millis(80));
     println!();
     spinner.set_message(" Creating vault...");
-    let _ = create_new_vault(vault_name.clone(), key);
-    spinner.finish_and_clear();
+    // let _ = create_new_vault(vault_name.clone(), key);
+    match create_new_vault(vault_name.clone(), key) {
+        Ok(()) => {
+            spinner.finish_and_clear();
+            println!("Vault '{}' created successfully! \n", vault_name);
+            println!("Hint: Use 'open {}' to open it for the first time!", vault_name);
 
-    println!("Vault '{}' created successfully! \n", vault_name);
-
-    Ok(())
+            Ok(())
+        }
+        Err(e) => {
+            spinner.finish_and_clear();
+            Err(e)
+        }
+    }
+    
 }
 
 pub fn handle_command_add(

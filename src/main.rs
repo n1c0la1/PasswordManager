@@ -238,7 +238,7 @@ fn main() {
                 match handle_command_open(name, &current_session, &current_vault) {
                     Ok(session) => {
                         current_session = Some(session);
-                        current_vault = session.opened_vault;
+                        current_vault = Some(session.opened_vault);
                     },
                     Err(VaultError::InvalidKey) => {
                         println!("Error: Invalid password!")
