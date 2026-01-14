@@ -1,3 +1,10 @@
+mod cli;
+mod errors;
+mod vault_entry_manager;
+mod vault_file_manager;
+mod crypto;
+mod session;
+
 use crate::errors::*;
 use crate::session::Session;
 use crate::vault_entry_manager::*;
@@ -260,10 +267,11 @@ fn main() {
             },
 
             CommandCLI::Open { name } => {
-                match handle_command_open(name, &current_session, &current_vault) {
+                match handle_command_open(name, &mut current_session, &mut current_vault) {
                     Ok(session) => {
                         current_session = Some(session);
-                        current_vault = Some(session.opened_vault);
+                        // unwrap should not fail, handle_command_open opens the vault and sets it inside the session.
+                        current_vault = Some(session.opened_vault.unwrap_or_else(println!("Something went wrong!"))); 
                     },
                     Err(VaultError::InvalidKey) => {
                         println!("Error: Invalid password!")
@@ -273,6 +281,7 @@ fn main() {
                     }
                 }
             },
+            CommandCLI::Close {  } => {},
 
             CommandCLI::Vaults {  } => {handle_command_vaults(&current_vault);},
 
