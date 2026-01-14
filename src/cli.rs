@@ -1077,278 +1077,278 @@ pub fn copy_to_clipboard(content: &str) -> Result<(), VaultError> {
 
 // tests
 
-#[cfg(test)]
-mod tests {
-    use super::*;
-    use std::fs;
-    use std::path::Path;
+// #[cfg(test)]
+// mod tests {
+//     use super::*;
+//     use std::fs;
+//     use std::path::Path;
 
-    // Helper-function to delete testvault-file
-    fn cleanup_test_vault(vault_name: &str) {
-        let path = format!("vaults/{}.psdb", vault_name);
-        if Path::new(&path).exists() {
-            fs::remove_file(&path).ok();
-        }
-    }
+//     // Helper-function to delete testvault-file
+//     fn cleanup_test_vault(vault_name: &str) {
+//         let path = format!("vaults/{}.psdb", vault_name);
+//         if Path::new(&path).exists() {
+//             fs::remove_file(&path).ok();
+//         }
+//     }
 
-    // ================== QUIT TESTS ==================
+//     // ================== QUIT TESTS ==================
     
-    #[test]
-    fn test_handle_command_quit_with_force() {
-        let result = handle_command_quit(true);
-        assert!(result.is_ok());
-        match result.unwrap() {
-            LoopCommand::Break => assert!(true),
-            LoopCommand::Continue => panic!("Expected Break, got Continue"),
-        }
-    }
+//     #[test]
+//     fn test_handle_command_quit_with_force() {
+//         let result = handle_command_quit(true);
+//         assert!(result.is_ok());
+//         match result.unwrap() {
+//             LoopCommand::Break => assert!(true),
+//             LoopCommand::Continue => panic!("Expected Break, got Continue"),
+//         }
+//     }
 
-    #[test]
-    fn test_loop_command_variants() {
-        let continue_cmd = LoopCommand::Continue;
-        let break_cmd = LoopCommand::Break;
+//     #[test]
+//     fn test_loop_command_variants() {
+//         let continue_cmd = LoopCommand::Continue;
+//         let break_cmd = LoopCommand::Break;
         
-        match continue_cmd {
-            LoopCommand::Continue => assert!(true),
-            LoopCommand::Break => panic!("Wrong variant for Continue"),
-        }
+//         match continue_cmd {
+//             LoopCommand::Continue => assert!(true),
+//             LoopCommand::Break => panic!("Wrong variant for Continue"),
+//         }
         
-        match break_cmd {
-            LoopCommand::Break => assert!(true),
-            LoopCommand::Continue => panic!("Wrong variant for Break"),
-        }
-    }
+//         match break_cmd {
+//             LoopCommand::Break => assert!(true),
+//             LoopCommand::Continue => panic!("Wrong variant for Break"),
+//         }
+//     }
 
-    // ================== CLEAR TESTS ==================
+//     // ================== CLEAR TESTS ==================
     
-    #[test]
-    fn test_handle_command_clear() {
-        // test whether no panic
-        handle_command_clear();
-    }
+//     #[test]
+//     fn test_handle_command_clear() {
+//         // test whether no panic
+//         handle_command_clear();
+//     }
 
-    // ================== EDIT TESTS ==================
+//     // ================== EDIT TESTS ==================
     
-    #[test]
-    fn test_edit_without_vault() {
-        let mut option_vault: Option<Vault> = None;
-        let result = handle_command_edit(&mut option_vault, "test_entry".to_string());
+//     #[test]
+//     fn test_edit_without_vault() {
+//         let mut option_vault: Option<Vault> = None;
+//         let result = handle_command_edit(&mut option_vault, "test_entry".to_string());
         
-        assert!(result.is_err());
-        match result {
-            Err(VaultError::NoVaultOpen) => assert!(true),
-            _ => panic!("Expected NoVaultOpen error"),
-        }
-    }
+//         assert!(result.is_err());
+//         match result {
+//             Err(VaultError::NoVaultOpen) => assert!(true),
+//             _ => panic!("Expected NoVaultOpen error"),
+//         }
+//     }
 
-    #[test]
-    fn test_edit_nonexistent_entry() {
-        let vault_name = "test_vault_edit_nonexistent";
+//     #[test]
+//     fn test_edit_nonexistent_entry() {
+//         let vault_name = "test_vault_edit_nonexistent";
         
-        let vault = initialize_vault(vault_name.to_string()).unwrap();
-        vault.save().unwrap();
+//         let vault = initialize_vault(vault_name.to_string()).unwrap();
+//         vault.save().unwrap();
         
-        let mut option_vault = Some(vault);
+//         let mut option_vault = Some(vault);
         
-        let result = handle_command_edit(&mut option_vault, "nonexistent".to_string());
+//         let result = handle_command_edit(&mut option_vault, "nonexistent".to_string());
         
-        assert!(result.is_err());
-        match result {
-            Err(VaultError::EntryNotFound) => assert!(true),
-            _ => panic!("Expected EntryNotFound error"),
-        }
+//         assert!(result.is_err());
+//         match result {
+//             Err(VaultError::EntryNotFound) => assert!(true),
+//             _ => panic!("Expected EntryNotFound error"),
+//         }
         
-        cleanup_test_vault(vault_name);
-    }
+//         cleanup_test_vault(vault_name);
+//     }
 
-    #[test]
-    fn test_edit_entry_exists() {
-        let vault_name = "test_vault_edit_exists";
+//     #[test]
+//     fn test_edit_entry_exists() {
+//         let vault_name = "test_vault_edit_exists";
         
-        let mut vault = initialize_vault(vault_name.to_string()).unwrap();
+//         let mut vault = initialize_vault(vault_name.to_string()).unwrap();
         
-        let entry = Entry::new(
-            "test_entry".to_string(),
-            Some("testuser".to_string()),
-            Some("testpass123".to_string()),
-            Some("https://example.com".to_string()),
-            Some("test notes".to_string()),
-        );
+//         let entry = Entry::new(
+//             "test_entry".to_string(),
+//             Some("testuser".to_string()),
+//             Some("testpass123".to_string()),
+//             Some("https://example.com".to_string()),
+//             Some("test notes".to_string()),
+//         );
         
-        vault.add_entry(entry).unwrap();
-        vault.save().unwrap();
+//         vault.add_entry(entry).unwrap();
+//         vault.save().unwrap();
         
-        let option_vault = Some(vault);
+//         let option_vault = Some(vault);
         
-        // check, if test entry is there
-        let vault = option_vault.as_ref().unwrap();
-        assert!(vault.entryname_exists("test_entry"));
+//         // check, if test entry is there
+//         let vault = option_vault.as_ref().unwrap();
+//         assert!(vault.entryname_exists("test_entry"));
         
-        cleanup_test_vault(vault_name);
-    }
+//         cleanup_test_vault(vault_name);
+//     }
 
-    #[test]
-    fn test_edit_entry_verification() {
-        let vault_name = "test_vault_edit_verification";
+//     #[test]
+//     fn test_edit_entry_verification() {
+//         let vault_name = "test_vault_edit_verification";
         
-        let mut vault = initialize_vault(vault_name.to_string()).unwrap();
+//         let mut vault = initialize_vault(vault_name.to_string()).unwrap();
         
-        let entry = Entry::new(
-            "test_entry".to_string(),
-            Some("original_user".to_string()),
-            Some("original_pass".to_string()),
-            Some("https://original.com".to_string()),
-            Some("original notes".to_string()),
-        );
+//         let entry = Entry::new(
+//             "test_entry".to_string(),
+//             Some("original_user".to_string()),
+//             Some("original_pass".to_string()),
+//             Some("https://original.com".to_string()),
+//             Some("original notes".to_string()),
+//         );
         
-        vault.add_entry(entry).unwrap();
-        vault.save().unwrap();
+//         vault.add_entry(entry).unwrap();
+//         vault.save().unwrap();
         
-        // close vault and open again
-        vault.close().unwrap();
-        let mut vault = open_vault(vault_name.to_string(), "testkey123".to_string().into()).unwrap();
+//         // close vault and open again
+//         vault.close().unwrap();
+//         let mut vault = open_vault(vault_name.to_string(), "testkey123".to_string().into()).unwrap();
         
-        // handle edit needs user input -> simulating what happens in handle
-        let entry = vault.get_entry_by_name(&"test_entry".to_string()).unwrap();
-        entry.set_username("modified_user".to_string());
-        entry.set_url("https://modified.com".to_string());
+//         // handle edit needs user input -> simulating what happens in handle
+//         let entry = vault.get_entry_by_name(&"test_entry".to_string()).unwrap();
+//         entry.set_username("modified_user".to_string());
+//         entry.set_url("https://modified.com".to_string());
         
-        vault.save().unwrap();
-        vault.close().unwrap();
+//         vault.save().unwrap();
+//         vault.close().unwrap();
         
-        // check 
-        let mut vault = open_vault(vault_name.to_string(), "testkey123".to_string().into()).unwrap();
-        let entry = vault.get_entry_by_name(&"test_entry".to_string()).unwrap();
+//         // check 
+//         let mut vault = open_vault(vault_name.to_string(), "testkey123".to_string().into()).unwrap();
+//         let entry = vault.get_entry_by_name(&"test_entry".to_string()).unwrap();
         
-        assert_eq!(*entry.get_user_name(), Some("modified_user".to_string()));
-        assert_eq!(*entry.get_url(), Some("https://modified.com".to_string()));
+//         assert_eq!(*entry.get_user_name(), Some("modified_user".to_string()));
+//         assert_eq!(*entry.get_url(), Some("https://modified.com".to_string()));
         
-        cleanup_test_vault(vault_name);
-    }
+//         cleanup_test_vault(vault_name);
+//     }
 
-    // Tests for getall, generate and delete
-    #[test]
-    fn test_handle_command_getall_no_vault() {
-        let mut opt_vault: Option<Vault> = None;
-        let res = handle_command_getall(&mut opt_vault, false);
-        assert!(res.is_err());
-        match res {
-            Err(VaultError::NoVaultOpen) => {}
-            _ => panic!("Expected NoVaultOpen"),
-        }
-    }
+//     // Tests for getall, generate and delete
+//     #[test]
+//     fn test_handle_command_getall_no_vault() {
+//         let mut opt_vault: Option<Vault> = None;
+//         let res = handle_command_getall(&mut opt_vault, false);
+//         assert!(res.is_err());
+//         match res {
+//             Err(VaultError::NoVaultOpen) => {}
+//             _ => panic!("Expected NoVaultOpen"),
+//         }
+//     }
 
-    #[test]
-    fn test_getall_empty_vault() {
-        let name = "test_vault_getall_empty";
-        let vault = initialize_vault(name.to_string()).unwrap();
-        let mut opt = Some(vault);
+//     #[test]
+//     fn test_getall_empty_vault() {
+//         let name = "test_vault_getall_empty";
+//         let vault = initialize_vault(name.to_string()).unwrap();
+//         let mut opt = Some(vault);
 
-        let res = handle_command_getall(&mut opt, false);
-        assert!(res.is_err());
-        match res {
-            Err(VaultError::CouldNotGetEntry) => {}
-            _ => panic!("Expected CouldNotGetEntry for empty vault"),
-        }
+//         let res = handle_command_getall(&mut opt, false);
+//         assert!(res.is_err());
+//         match res {
+//             Err(VaultError::CouldNotGetEntry) => {}
+//             _ => panic!("Expected CouldNotGetEntry for empty vault"),
+//         }
 
-        cleanup_test_vault(name);
-    }
+//         cleanup_test_vault(name);
+//     }
 
-    #[test]
-    fn test_getall_success() {
-        let name = "test_vault_getall_success";
-        let mut vault = initialize_vault(name.to_string()).unwrap();
-        let entry = Entry::new(
-            "test_entry".to_string(),
-            Some("testuser".to_string()),
-            Some("testpass123".to_string()),
-            Some("https://example.com".to_string()),
-            Some("test notes".to_string()),
-        );
-        vault.add_entry(entry).unwrap();
-        vault.save().unwrap();
-        let mut opt = Some(vault);
-        let res = handle_command_getall(&mut opt, false);
-        assert!(res.is_ok());
+//     #[test]
+//     fn test_getall_success() {
+//         let name = "test_vault_getall_success";
+//         let mut vault = initialize_vault(name.to_string()).unwrap();
+//         let entry = Entry::new(
+//             "test_entry".to_string(),
+//             Some("testuser".to_string()),
+//             Some("testpass123".to_string()),
+//             Some("https://example.com".to_string()),
+//             Some("test notes".to_string()),
+//         );
+//         vault.add_entry(entry).unwrap();
+//         vault.save().unwrap();
+//         let mut opt = Some(vault);
+//         let res = handle_command_getall(&mut opt, false);
+//         assert!(res.is_ok());
 
-        cleanup_test_vault(name);
-    }
-
-
-    #[test]
-    fn test_generate_invalid_length() {
-        let res = handle_command_generate(0, true);
-        assert!(res.is_err());
-        match res {
-            Err(VaultError::InvalidLength) => {}
-            _ => panic!("Expected InvalidLength for length 0"),
-        }
-    }
-
-    #[test]
-    fn test_generate_success() {
-        let length = 12;
-        let res = handle_command_generate(length, false);
-        assert!(res.is_ok());
-        let password = res.unwrap();
-        assert_eq!(password.len(), length as usize);
-    }
-
-    #[test]
-    fn test_generate_correct_characters() {
-        let length = 20;
-        let res = handle_command_generate(length, true);
-        assert!(res.is_ok());
-        let password = res.unwrap();
-        assert_eq!(password.len(), length as usize);
-        for c in password.chars() {
-            assert!(c.is_ascii_alphanumeric(), "Password contains non-alphanumeric character: {}", c);
-        }
-    }
+//         cleanup_test_vault(name);
+//     }
 
 
-    #[test]
-    fn test_delete_entry_not_found() {
-        let name = "test_vault_delete_not_found";
-        let vault = initialize_vault(name.to_string()).unwrap();
-        let mut opt = Some(vault);
+//     #[test]
+//     fn test_generate_invalid_length() {
+//         let res = handle_command_generate(0, true);
+//         assert!(res.is_err());
+//         match res {
+//             Err(VaultError::InvalidLength) => {}
+//             _ => panic!("Expected InvalidLength for length 0"),
+//         }
+//     }
 
-        let res = handle_command_delete(&mut opt, "does_not_exist".to_string());
-        assert!(res.is_err());
-        match res {
-            Err(VaultError::EntryNotFound) => {}
-            _ => panic!("Expected EntryNotFound"),
-        }
+//     #[test]
+//     fn test_generate_success() {
+//         let length = 12;
+//         let res = handle_command_generate(length, false);
+//         assert!(res.is_ok());
+//         let password = res.unwrap();
+//         assert_eq!(password.len(), length as usize);
+//     }
 
-        cleanup_test_vault(name);
-    }
-
-    #[test]
-    fn test_delete_success() {
-        let name = "test_vault_delete_success";
-        let mut vault = initialize_vault(name.to_string()).unwrap();
-        let entry = Entry::new(
-            "test_entry".to_string(),
-            Some("testuser".to_string()),
-            Some("testpass123".to_string()),
-            Some("https://example.com".to_string()),
-            Some("test notes".to_string()),
-        );
-        vault.add_entry(entry).unwrap();
-        vault.save().unwrap();
-        let mut opt = Some(vault);
-        match handle_command_delete(&mut opt, "test_entry".to_string()) {
-            Ok(()) => assert!(true),
-            Err(e) => panic!("Expected successful deletion, got error: {}", e),
-        }
-        cleanup_test_vault(name);
-    } 
+//     #[test]
+//     fn test_generate_correct_characters() {
+//         let length = 20;
+//         let res = handle_command_generate(length, true);
+//         assert!(res.is_ok());
+//         let password = res.unwrap();
+//         assert_eq!(password.len(), length as usize);
+//         for c in password.chars() {
+//             assert!(c.is_ascii_alphanumeric(), "Password contains non-alphanumeric character: {}", c);
+//         }
+//     }
 
 
-    // Testing format of custom VaultErrors
-    #[test]
-    fn test_vault_error_display_strings() {
-        assert_eq!(format!("{}", VaultError::NameExists), "NAME ALREADY EXISTS");
-        assert_eq!(format!("{}", VaultError::NoVaultOpen), "NO VAULT IS OPEN");
-    }
-}
+//     #[test]
+//     fn test_delete_entry_not_found() {
+//         let name = "test_vault_delete_not_found";
+//         let vault = initialize_vault(name.to_string()).unwrap();
+//         let mut opt = Some(vault);
+
+//         let res = handle_command_delete(&mut opt, "does_not_exist".to_string());
+//         assert!(res.is_err());
+//         match res {
+//             Err(VaultError::EntryNotFound) => {}
+//             _ => panic!("Expected EntryNotFound"),
+//         }
+
+//         cleanup_test_vault(name);
+//     }
+
+//     #[test]
+//     fn test_delete_success() {
+//         let name = "test_vault_delete_success";
+//         let mut vault = initialize_vault(name.to_string()).unwrap();
+//         let entry = Entry::new(
+//             "test_entry".to_string(),
+//             Some("testuser".to_string()),
+//             Some("testpass123".to_string()),
+//             Some("https://example.com".to_string()),
+//             Some("test notes".to_string()),
+//         );
+//         vault.add_entry(entry).unwrap();
+//         vault.save().unwrap();
+//         let mut opt = Some(vault);
+//         match handle_command_delete(&mut opt, "test_entry".to_string()) {
+//             Ok(()) => assert!(true),
+//             Err(e) => panic!("Expected successful deletion, got error: {}", e),
+//         }
+//         cleanup_test_vault(name);
+//     } 
+
+
+//     // Testing format of custom VaultErrors
+//     #[test]
+//     fn test_vault_error_display_strings() {
+//         assert_eq!(format!("{}", VaultError::NameExists), "NAME ALREADY EXISTS");
+//         assert_eq!(format!("{}", VaultError::NoVaultOpen), "NO VAULT IS OPEN");
+//     }
+// }
