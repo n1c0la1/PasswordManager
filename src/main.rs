@@ -126,7 +126,7 @@ fn main() {
                     println!("There is no session active right now, consider using open <vault-name>!");
                     continue 'interactive_shell;
                 }
-                match handle_command_get(&mut current_vault, name, show) {
+                match handle_command_get(&mut current_session, &mut current_vault, name, show) {
                     Ok(())             => {
                         // write changes from current_vault to current_session with save
                         match current_session {
@@ -139,15 +139,12 @@ fn main() {
                             }
                         }
                     },
-                    Err(VaultError::NoVaultOpen) => {
+                    Err(SessionError::VaultError(VaultError::NoVaultOpen)) => {
                         println!("No vault is active! Use init or open <vault-name>!");
                     }
-                    Err(VaultError::CouldNotGetEntry) => {
+                    Err(SessionError::VaultError(VaultError::CouldNotGetEntry)) => {
                         // already printing the name of non-existent vault in cli.rs
                         /* Do Nothing */
-                    }
-                    Err(VaultError::AnyhowError(ref e)) if e.to_string() == "Exit" => {
-                        println!("Exiting...");
                     }
                     Err(e) => {
                         println!("Error: {}", e);

@@ -2,6 +2,7 @@ use crate::errors::*;
 //use password_manager::*;
 use crate::vault_entry_manager::*;
 use crate::session::*;
+use crate::vault_file_manager::initialize_vault;
 //use crate::test::*;
 
 use anyhow::anyhow;
@@ -398,46 +399,48 @@ pub fn handle_command_add(
     }
 }
 
-pub fn handle_command_get(option_vault: &mut Option<Vault>, entry_name: String, show: bool) -> Result<(), VaultError> {
-    if option_vault.is_none() {
-        return Err(VaultError::NoVaultOpen);
-    }
-    
-    // check Master-Password when show is passed.
-    if show {
-        match master_pw_check(option_vault) {
-            Ok(()) => {/* Do nothing */},
-            Err(VaultError::AnyhowError(ref g)) if g.to_string() == "Exit" => {
-                return Err(VaultError::AnyhowError(anyhow!("Exit")));
-            }
-            Err(e) => {
-                return Err(e);
-            }
-        }
-    }
-    
-    if let Some(vault) = option_vault {
-        if let Some(entry) = vault.get_entry_by_name(&entry_name) {
-            println!("\n==== Entry: {} ====", entry_name);
-            println!("Username: {}", entry.get_user_name().as_deref().unwrap_or("--EMPTY--"));
-            println!("URL:      {}", entry.get_url().as_deref().unwrap_or("--EMPTY--"));
-            println!("Notes:    {}", entry.get_notes().as_deref().unwrap_or("--EMPTY--"));
+pub fn handle_command_get(
+    option_session: &mut Option<Session>, 
+    option_vault: &mut Option<Vault>, 
+    entry_name: String, 
+    show: bool)
+    -> Result<(), SessionError> 
+    {
+    if let Some(session) = option_session {
 
-            if show {
-                println!("Password: {}", entry.get_password().as_deref().unwrap_or("--EMPTY--"));
-            } else {
-                println!("Password: *****");
-            }
-            println!();
-            
-            Ok(())
-        } else {
-            println!("Entry {} not found", entry_name);
-            Err(VaultError::CouldNotGetEntry)
+        // check Master-Password when show is passed.
+        if show {
+            let name_of_vault = option_vault.as_ref().unwrap().get_name();
+            let master_input: SecretString = rpassword::prompt_password
+                (format!("Enter master password for '{}': ", name_of_vault))?.into()
+            ;
+            session.verify_master_pw(master_input)?;
         }
-    } else {
-        Err(VaultError::NoVaultOpen)
-    }
+        
+        if let Some(vault) = option_vault {
+            if let Some(entry) = vault.get_entry_by_name(&entry_name) {
+                println!("\n==== Entry: {} ====", entry_name);
+                println!("Username: {}", entry.get_user_name().as_deref().unwrap_or("--EMPTY--"));
+                println!("URL:      {}", entry.get_url().as_deref().unwrap_or("--EMPTY--"));
+                println!("Notes:    {}", entry.get_notes().as_deref().unwrap_or("--EMPTY--"));
+
+                if show {
+                    println!("Password: {}", entry.get_password().as_deref().unwrap_or("--EMPTY--"));
+                } else {
+                    println!("Password: *****");
+                }
+                println!();
+                
+                return Ok(());
+            } else {
+                println!("Error: Entry {} not found", entry_name);
+                return Err(SessionError::VaultError(VaultError::CouldNotGetEntry));
+            }
+        } else {
+            return Err(SessionError::VaultError(VaultError::NoVaultOpen));
+        }
+    } 
+    return Err(SessionError::SessionInactive);
 }
 
 pub fn handle_command_getall(option_vault: &mut Option<Vault>, show: bool) -> Result<(), VaultError> {
