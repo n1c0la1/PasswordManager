@@ -9,16 +9,16 @@ use crate::errors::*;
 use crate::session::Session;
 use crate::vault_entry_manager::*;
 use crate::vault_file_manager::*;
+use crate::session::*;
 use clap::{Parser};
 use cli::*;
-use password_manager::active_session;
 use std::io::{self, Write};
 use std::time::Duration;
 use std::thread;
 
 
 fn main() {
-    password_manager::intro_animation();
+    intro_animation();
     let mut current_session: Option<Session> = None;
     let mut current_vault: Option<Vault>     = None;
 
@@ -93,7 +93,7 @@ fn main() {
             },
 
             CommandCLI::Add { name, username, url, notes , password} => {
-                if !active_session(current_session) {
+                if !active_session(&current_session) {
                     println!("There is no session active right now, consider using open <vault-name>!");
                     continue 'interactive_shell;
                 }
@@ -102,7 +102,7 @@ fn main() {
                         // write changes from current_vault to current_session with save
                         match current_session {
                             Some(session) => {
-                                session.opened_vault.new_save(current_vault);
+                                session.new_save(current_vault);
                             }
                             None => {
                                 // Should never happen because of active_session check
@@ -174,7 +174,7 @@ fn main() {
                         // write changes from current_vault to current_session with save
                         match current_session {
                             Some(session) => {
-                                session.opened_vault.new_save(current_vault);
+                                session.new_save(current_vault);
                                 println!("Vault saved.\n");
                             }
                             None => {
@@ -256,7 +256,7 @@ fn main() {
                         // write changes from current_vault to current_session with save
                         match current_session {
                             Some(session) => {
-                                session.opened_vault.new_save(current_vault);
+                                session.new_save(current_vault);
                             }
                             None => {
                                 // Should never happen because of active_session check
@@ -276,7 +276,8 @@ fn main() {
                     Ok(session) => {
                         current_session = Some(session);
                         // unwrap should not fail, handle_command_open opens the vault and sets it inside the session.
-                        current_vault = Some(session.opened_vault.unwrap_or_else(println!("Something went wrong!"))); 
+                        if session.opened_vault.is_none() {println!("Something went wrong!"); continue 'interactive_shell;}
+                        current_vault = Some(session.opened_vault.unwrap()); 
                     },
                     Err(VaultError::InvalidKey) => {
                         println!("Error: Invalid password!")

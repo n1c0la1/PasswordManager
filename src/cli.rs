@@ -979,6 +979,8 @@ pub fn handle_command_open(
     }
 }
 
+pub fn handle_command_close() {} 
+
 pub fn handle_command_vaults(current_vault: &Option<Vault>) {
     println!("\n=== Available Vaults ===");
                 
