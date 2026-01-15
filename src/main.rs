@@ -70,10 +70,6 @@ fn main() {
 
         match cli.command {
             CommandCLI::Init { name } => {
-                if !active_session(&current_session) {
-                    println!("There is no session active right now, consider using open <vault-name>!");
-                    continue 'interactive_shell;
-                }
                 match handle_command_init(name) {
                     Ok(())            => {
                     // nothing needed to do, vault gets created and closed immidiatly
