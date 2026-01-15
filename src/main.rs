@@ -274,10 +274,12 @@ fn main() {
             CommandCLI::Open { name } => {
                 match handle_command_open(name, &mut current_session, &mut current_vault) {
                     Ok(session) => {
+                        if session.opened_vault.is_none() {
+                            println!("Something went wrong!"); 
+                            continue 'interactive_shell;
+                        }
                         current_session = Some(session);
-                        // unwrap should not fail, handle_command_open opens the vault and sets it inside the session.
-                        if session.opened_vault.is_none() {println!("Something went wrong!"); continue 'interactive_shell;}
-                        current_vault = Some(session.opened_vault.unwrap()); 
+                        current_vault = session.opened_vault; 
                     },
                     Err(VaultError::InvalidKey) => {
                         println!("Error: Invalid password!")
@@ -286,8 +288,29 @@ fn main() {
                         println!("Error opening vault: {}", e);
                     }
                 }
+                continue 'interactive_shell;
             },
-            CommandCLI::Close {  } => {},
+            CommandCLI::Close { force } => {
+                if !active_session(&current_session) {
+                    println!("There is no session active right now, consider using open <vault-name>!");
+                    continue 'interactive_shell;
+                }
+                match handle_command_close(&mut current_session, force) {
+                    Ok(LoopCommand::Continue) => {
+                        // if the user says yes to closing.
+                        current_session = None;
+                        current_vault   = None;
+                    }
+                    Ok(LoopCommand::Cancel) => {
+                        // if the user wishes to cancel the closing process.
+                        /* Do nothing */
+                    }
+                    Err(e) => {
+                        println!("Error: {}", e);
+                    }
+                }
+                continue 'interactive_shell;
+            },
 
             CommandCLI::Vaults {  } => {handle_command_vaults(&current_vault);},
 
@@ -295,7 +318,7 @@ fn main() {
 
             CommandCLI::Quit { force } => { 
                 match handle_command_quit(force) {
-                    Ok(LoopCommand::Break)    => {
+                    Ok(LoopCommand::Continue)    => {
                         if let Some(opened_vault) = current_vault {
                             match opened_vault.close() {
                                 Ok(()) => {/* Do nothing */},
@@ -305,7 +328,7 @@ fn main() {
                             }
                         }
                         break    'interactive_shell;},
-                    Ok(LoopCommand::Continue) => {
+                    Ok(LoopCommand::Cancel) => {
                         thread::sleep(Duration::from_millis(500));
                         continue 'interactive_shell;}
                     Err(e) => {

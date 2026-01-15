@@ -27,7 +27,7 @@ pub struct CLI {
 
 pub enum LoopCommand {
     Continue,
-    Break,
+    Cancel,
 }
 
 #[derive(Subcommand)]
@@ -110,7 +110,10 @@ pub enum CommandCLI {
     },
 
     /// Closes the current vault and ends the session.
-    Close {},
+    Close {
+        #[arg(short = 'f', long = "force")]
+        force: bool,
+    },
 
     /// Clears terminal window.
     Clear {},
@@ -979,7 +982,47 @@ pub fn handle_command_open(
     }
 }
 
-pub fn handle_command_close() {} 
+pub fn handle_command_close(option_session: &mut Option<Session>, force: bool) -> Result<LoopCommand, SessionError> {
+    if let Some(session) = option_session {
+        let open_vault_name = session.vault_name.clone();
+
+        let spinner = spinner();
+        spinner.set_message("Closing current vault and session ...");
+        
+        if force {
+            spinner.enable_steady_tick(Duration::from_millis(80));
+            
+            session.end_session()?;
+            
+            spinner.finish_and_clear();
+            println!("Successfully closed '{}'!", open_vault_name);
+            
+            return Ok(LoopCommand::Continue);
+        }
+
+        print!("Do you really want to close the current session and vault? (y/n): ");
+        stdout().flush().unwrap();
+
+        let mut input = String::new();
+        io::stdin().read_line(&mut input);
+
+        if input.trim().eq_ignore_ascii_case("n") {
+            println!();
+            println!("Cancelled.");
+            return Ok(LoopCommand::Cancel)
+        }
+
+        spinner.enable_steady_tick(Duration::from_millis(80));
+        
+        session.end_session()?;
+
+        spinner.finish_and_clear();
+        println!("Successfully closed '{}'!", open_vault_name);
+
+        return Ok(LoopCommand::Continue);
+    }
+    return Err(SessionError::SessionInactive);
+} 
 
 pub fn handle_command_vaults(current_vault: &Option<Vault>) {
     println!("\n=== Available Vaults ===");
@@ -1035,7 +1078,7 @@ pub fn handle_command_clear() {
 pub fn handle_command_quit(force: bool) -> Result<LoopCommand, VaultError> {
     if force {
         println!("Quitting RustPass...");
-        return Ok(LoopCommand::Break);
+        return Ok(LoopCommand::Continue);
     } 
 
     print!("Are you sure you want to quit? (y/n): ");
@@ -1048,11 +1091,11 @@ pub fn handle_command_quit(force: bool) -> Result<LoopCommand, VaultError> {
     if input.trim().eq_ignore_ascii_case("y") {
         println!("Quitting RustPass...");
         // Closing the vault is happening in main.rs to avoid cloning.
-        Ok(LoopCommand::Break)
+        Ok(LoopCommand::Continue)
     } else {
         println!("Cancelled. \n");
         io::stdout().flush().unwrap();
-        Ok(LoopCommand::Continue)
+        Ok(LoopCommand::Cancel)
     }
 }
 
