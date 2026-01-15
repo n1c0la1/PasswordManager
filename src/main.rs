@@ -26,7 +26,7 @@ fn main() {
         //println!("===================");
         println!("___________________");
         println!("Current vault: {}", 
-            match current_vault {
+            match &mut current_vault {
                 Some(v) => v.get_name(),
                 None    => "None"
             }
@@ -100,9 +100,9 @@ fn main() {
                 match handle_command_add(&mut current_vault, name, username, url, notes, password) {
                     Ok(())             => {
                         // write changes from current_vault to current_session with save
-                        match current_session {
+                        match &mut current_session {
                             Some(session) => {
-                                session.new_save(current_vault);
+                                session.new_save(&current_vault);
                             }
                             None => {
                                 // Should never happen because of active_session check
@@ -172,9 +172,9 @@ fn main() {
                 match handle_command_delete(&mut current_vault, name) {
                     Ok(()) => {
                         // write changes from current_vault to current_session with save
-                        match current_session {
+                        match &mut current_session {
                             Some(session) => {
-                                session.new_save(current_vault);
+                                session.new_save(&current_vault);
                                 println!("Vault saved.\n");
                             }
                             None => {
@@ -254,9 +254,9 @@ fn main() {
                 match handle_command_edit(&mut current_vault, name) {
                     Ok(()) => {
                         // write changes from current_vault to current_session with save
-                        match current_session {
+                        match &mut current_session {
                             Some(session) => {
-                                session.new_save(current_vault);
+                                session.new_save(&current_vault);
                             }
                             None => {
                                 // Should never happen because of active_session check
@@ -278,8 +278,8 @@ fn main() {
                             println!("Something went wrong!"); 
                             continue 'interactive_shell;
                         }
+                        current_vault = session.opened_vault.clone();
                         current_session = Some(session);
-                        current_vault = session.opened_vault; 
                     },
                     Err(VaultError::InvalidKey) => {
                         println!("Error: Invalid password!")
@@ -319,8 +319,8 @@ fn main() {
             CommandCLI::Quit { force } => { 
                 match handle_command_quit(force) {
                     Ok(LoopCommand::Continue)    => {
-                        if let Some(opened_vault) = current_vault {
-                            match opened_vault.close() {
+                        if let Some(mut session) = current_session {
+                            match session.end_session() {
                                 Ok(()) => {/* Do nothing */},
                                 Err(e) => {
                                     println!("Error: {}", e);

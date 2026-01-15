@@ -857,7 +857,7 @@ pub fn handle_command_edit(option_vault: &mut Option<Vault>, entry_name: String)
     //let vault = option_vault.as_mut().unwrap();
     let entry = vault.get_entry_by_name(&entry_name).ok_or(VaultError::EntryNotFound)?;
 
-    if let Some(new_name) = new_entryname {entry.set_name(vault, new_name);}
+    if let Some(new_name) = new_entryname {entry.entryname = new_name;}
     if let Some(username) = new_username { entry.set_username(username); }
     if let Some(url) = new_url { entry.set_url(url); }
     if let Some(notes) = new_notes { entry.set_notes(notes); }
@@ -870,8 +870,6 @@ pub fn handle_command_edit(option_vault: &mut Option<Vault>, entry_name: String)
     let spinner = spinner();
     spinner.enable_steady_tick(Duration::from_millis(80));
     spinner.set_message("Saving changes...");
-    
-    vault.save()?;
     
     spinner.finish_and_clear();
     println!();

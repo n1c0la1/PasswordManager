@@ -82,8 +82,8 @@ impl Session {
         Ok(())
     }
 
-    pub fn new_save(&mut self, vault: Option<Vault>) -> Result<(), SessionError> {
-        self.opened_vault = vault;
+    pub fn new_save(&mut self, vault: &Option<Vault>) -> Result<(), SessionError> {
+        self.opened_vault = vault.clone();
 
         Ok(())
     }

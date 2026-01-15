@@ -19,7 +19,7 @@ pub struct Vault {
 
 #[derive(Debug, Clone, Serialize, Deserialize, PartialEq)]
 pub struct Entry {
-    entryname: String,
+    pub entryname: String,
     username: Option<String>,
     password: Option<String>,
     url: Option<String>,
