@@ -151,7 +151,7 @@ fn main() {
                     println!("There is no session active right now, consider using open <vault-name>!");
                     continue 'interactive_shell;
                 }
-                match handle_command_getall(&mut current_session, &mut current_vault, show) {
+                match handle_command_getall(&mut current_session, show) {
                     Ok(()) => {/* Do nothing, vault did not change */}
                     Err(SessionError::VaultError(VaultError::NoVaultOpen)) => {
                         println!("No vault is active! Use init or open <vault-name>!");
