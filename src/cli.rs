@@ -882,23 +882,26 @@ pub fn handle_command_edit(option_vault: &mut Option<Vault>, entry_name: String)
 pub fn handle_command_open(
     vault_to_open: String, 
     current_session: &mut Option<Session>, 
-    current_vault: &mut Option<Vault>
 ) 
--> Result<Session, VaultError> {
+-> Result<Session, SessionError> {
     // Check if vault file exists
     let path = Path::new("vaults").join(format!("{vault_to_open}.psdb"));
     if !path.exists() {
-        return Err(VaultError::VaultDoesNotExist);
+        return Err(SessionError::VaultError(VaultError::VaultDoesNotExist));
     }
 
-    // check, if it's the selected vault is already opened
-    if let Some(vault) = current_vault.as_ref() {
-        if vault_to_open.as_str() == vault.get_name() {
+    //check if the same vault is already open
+    if let Some(session) = current_session.as_ref() {
+        if vault_to_open == session.vault_name && active_session(current_session){
             println!();
-            return Err(VaultError::AnyhowError(anyhow!("Vault '{}' already opened!", vault_to_open)));
+            return Err(SessionError::VaultError(VaultError::AnyhowError(anyhow!("Vault '{}' already opened!", vault_to_open))));
         }
 
-        let old_name = vault.get_name();
+    }
+
+    //close any existing session
+    if let Some(session) = current_session.as_mut(){
+        let old_name = session.vault_name.clone();
 
         println!();
 
@@ -906,22 +909,19 @@ pub fn handle_command_open(
         spinner.set_message(format!("Closing currently opened vault '{}' first", old_name));
         spinner.enable_steady_tick(Duration::from_millis(80));
 
-        if let Some(session) = current_session.as_mut() {
-            match session.end_session() {
-                Ok(()) => {
-                    spinner.finish_and_clear();
-                    println!("Vault '{}' closed successfully.", old_name);
-                },
-                Err(_) => {
-                    spinner.finish_and_clear();
-                    return Err(VaultError::CouldNotClose);
-                }
+        match session.end_session() {
+            Ok(()) => {
+                spinner.finish_and_clear();
+                println!("Vault '{}' closed successfully.", old_name);
+            },
+            Err(_) => {
+                spinner.finish_and_clear();
+                return Err(SessionError::VaultError(VaultError::CouldNotClose));
             }
-            *current_session = None;
-            *current_vault   = None;
         }
+        *current_session = None;
     }
-
+    
     println!();
     println!("Selected vault: {}", vault_to_open);
     
@@ -933,13 +933,13 @@ pub fn handle_command_open(
     spinner.set_message("Opening vault ...");
     spinner.enable_steady_tick(Duration::from_millis(80));
     
-    // Session
+    //starting session for new vault
     let mut new_session = Session::new(vault_to_open.clone());
     match new_session.start_session(master) {
         Ok(())               => {
             spinner.finish_and_clear();
 
-            let opened_vault = new_session.opened_vault.clone().ok_or(VaultError::CouldNotOpen)?;
+            let opened_vault = new_session.opened_vault.as_mut().ok_or(SessionError::VaultError(VaultError::CouldNotOpen))?;
 
             println!();
             println!("╔═══════════════════════════════════════════╗");
@@ -950,6 +950,7 @@ pub fn handle_command_open(
                 " ".repeat(35 - vault_to_open.len().min(35))
             );
             println!("║  Entries: {}{}", 
+                //new_session.opened_vault.as_ref().entries.len(),
                 opened_vault.entries.len(),
                 " ".repeat(33 - opened_vault.entries.len().to_string().len())
             );
@@ -963,7 +964,7 @@ pub fn handle_command_open(
         Err(SessionError::VaultError(VaultError::InvalidKey)) => {
             spinner.finish_and_clear();
             println!();
-            return Err(VaultError::InvalidKey);
+            return Err(SessionError::VaultError(VaultError::InvalidKey));
         }
         Err(SessionError::SessionActive) => {
             spinner.finish_and_clear();
@@ -972,10 +973,10 @@ pub fn handle_command_open(
 
             // because main.rs prints the returned error and only VaultErrors can be returned
             // a session error has to be printed out here and the main function prints an empty string
-            return Err(VaultError::AnyhowError(anyhow!("")));
+            return Err(SessionError::VaultError(VaultError::AnyhowError(anyhow!(""))));
         }
         Err(e) => {
-            return Err(VaultError::AnyhowError(anyhow!("Session error: {}", e)));
+            return Err(SessionError::VaultError(VaultError::AnyhowError(anyhow!("Session error: {}", e))));
         }
     }
 }

@@ -272,16 +272,15 @@ fn main() {
             },
 
             CommandCLI::Open { name } => {
-                match handle_command_open(name, &mut current_session, &mut current_vault) {
+                match handle_command_open(name, &mut current_session) {
                     Ok(session) => {
                         if session.opened_vault.is_none() {
                             println!("Something went wrong!"); 
                             continue 'interactive_shell;
                         }
-                        current_vault = session.opened_vault.clone();
                         current_session = Some(session);
                     },
-                    Err(VaultError::InvalidKey) => {
+                    Err(SessionError::VaultError(VaultError::InvalidKey)) => {
                         println!("Error: Invalid password!")
                     }
                     Err(e) => {
