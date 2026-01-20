@@ -406,41 +406,46 @@ pub fn handle_command_add(
 
 pub fn handle_command_get(
     option_session: &mut Option<Session>, 
-    option_vault: &mut Option<Vault>, 
+    //option_vault: &mut Option<Vault>, 
     entry_name: String, 
     show: bool)
     -> Result<(), SessionError> 
     {
     if let Some(session) = option_session {
-
         // check Master-Password when show is passed.
         if show {
-            let name_of_vault = option_vault.as_ref().unwrap().get_name();
+            let name_of_vault: &String = match &session.opened_vault {
+                Some(vault) => {
+                    vault.get_name()
+                }
+                None => {
+                    return Err(SessionError::VaultError(VaultError::NoVaultOpen));
+                }
+            };
             let master_input: SecretString = rpassword::prompt_password
                 (format!("Enter master password for '{}': ", name_of_vault))?.into()
             ;
             session.verify_master_pw(master_input)?;
         }
-        
-        if let Some(vault) = option_vault {
-            if let Some(entry) = vault.get_entry_by_name(&entry_name) {
-                println!("\n==== Entry: {} ====", entry_name);
-                println!("Username: {}", entry.get_user_name().as_deref().unwrap_or("--EMPTY--"));
-                println!("URL:      {}", entry.get_url().as_deref().unwrap_or("--EMPTY--"));
-                println!("Notes:    {}", entry.get_notes().as_deref().unwrap_or("--EMPTY--"));
+        if let Some(ref mut opened_vault) = session.opened_vault {
+            if let Some(entry) = opened_vault.get_entry_by_name(&entry_name) {
+                    println!("\n==== Entry: {} ====", entry_name);
+                    println!("Username: {}", entry.get_user_name().as_deref().unwrap_or("--EMPTY--"));
+                    println!("URL:      {}", entry.get_url().as_deref().unwrap_or("--EMPTY--"));
+                    println!("Notes:    {}", entry.get_notes().as_deref().unwrap_or("--EMPTY--"));
 
-                if show {
-                    println!("Password: {}", entry.get_password().as_deref().unwrap_or("--EMPTY--"));
+                    if show {
+                        println!("Password: {}", entry.get_password().as_deref().unwrap_or("--EMPTY--"));
+                    } else {
+                        println!("Password: *****");
+                    }
+                    println!();
+                    
+                    return Ok(());
                 } else {
-                    println!("Password: *****");
+                    println!("Error: Entry {} not found", entry_name);
+                    return Err(SessionError::VaultError(VaultError::EntryNotFound));
                 }
-                println!();
-                
-                return Ok(());
-            } else {
-                println!("Error: Entry {} not found", entry_name);
-                return Err(SessionError::VaultError(VaultError::EntryNotFound));
-            }
         } else {
             return Err(SessionError::VaultError(VaultError::NoVaultOpen));
         }
