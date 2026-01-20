@@ -229,175 +229,178 @@ pub fn handle_command_init(option_name: Option<String>) -> Result<(), VaultError
 }
 
 pub fn handle_command_add(
-    option_vault: &mut Option<Vault>, 
+    option_session: &mut Option<Session>, 
     name: Option<String>, 
     username: Option<String>, 
     url: Option<String>, 
     notes: Option<String>, 
-    password: Option<String>) -> Result<(), VaultError> {
-    if let Some(vault) = option_vault {
+    password: Option<String>) -> Result<(), SessionError> {
+    if let Some(session) = option_session {
+        if let Some(ref mut opened_vault) = session.opened_vault {
+            // Entry Name (REQUIRED)
+            
+            // Collect all existing entrynames
+            let existing_names: Vec<String> = opened_vault.get_entries().iter()
+            .map(|e| e.get_entry_name().clone())
+            .collect();
         
-        // Entry Name (REQUIRED)
-        
-        // Collect all existing entrynames
-        let existing_names: Vec<String> = vault.get_entries().iter()
-        .map(|e| e.get_entry_name().clone())
-        .collect();
-    
-        let final_name = if let Some(n) = name {
-            if existing_names.contains(&n) {
-                return Err(VaultError::NameExists);
+            let final_name = if let Some(n) = name {
+                if existing_names.contains(&n) {
+                    return Err(SessionError::VaultError(VaultError::NameExists));
+                } else {
+                    n
+                }
             } else {
-                n
-            }
-        } else {
-            let input_name;
-            'input: loop {
-                println!("\n=== Adding new entry ===");
-                println!("Entry name (required): ");
+                let input_name;
+                'input: loop {
+                    println!("\n=== Adding new entry ===");
+                    println!("Entry name (required): ");
+                        print!("> ");
+                        io::stdout().flush().unwrap();
+            
+                        let mut input = String::new();
+                        io::stdin().read_line(&mut input)?;
+
+                        let trimmed_name: String = input.trim().to_string();
+                        if trimmed_name.is_empty() {
+                            println!("Error: Entry name cannot be empty!");
+                            continue 'input;
+                        } else if trimmed_name.eq("-EXIT-") {
+                            return Ok(());
+                        }
+
+                        if existing_names.contains(&trimmed_name) {
+                            println!("Error: the name '{}' already exists! Try again or type '-EXIT-'.", trimmed_name);
+                            continue 'input;
+                        }
+
+                        input_name = trimmed_name;
+                        break 'input;
+                    }
+                    input_name
+                };
+
+                println!("\n(Press Enter to skip optional fields)");
+                
+                // Username
+                let final_username = if let Some(u) = username {
+                    Some(u)
+                } else {
+                    println!("Username: ");
                     print!("> ");
                     io::stdout().flush().unwrap();
-        
-                    let mut input = String::new();
-                    io::stdin().read_line(&mut input)?;
 
-                    let trimmed_name: String = input.trim().to_string();
-                    if trimmed_name.is_empty() {
-                        println!("Error: Entry name cannot be empty!");
-                        continue 'input;
-                    } else if trimmed_name.eq("-EXIT-") {
-                        return Ok(());
+                    let mut input_username = String::new();
+                    io::stdin().read_line(&mut input_username)?;
+                    let trimmed_username = input_username.trim().to_string();
+                    if trimmed_username.is_empty() {
+                        None
+                    } else {
+                        println!();
+                        Some(trimmed_username)
                     }
+                };
 
-                    if existing_names.contains(&trimmed_name) {
-                        println!("Error: the name '{}' already exists! Try again or type '-EXIT-'.", trimmed_name);
-                        continue 'input;
-                    }
-
-                    input_name = trimmed_name;
-                    break 'input;
-                }
-                input_name
-            };
-
-            println!("\n(Press Enter to skip optional fields)");
-            
-            // Username
-            let final_username = if let Some(u) = username {
-                Some(u)
-            } else {
-                println!("Username: ");
-                print!("> ");
-                io::stdout().flush().unwrap();
-
-                let mut input_username = String::new();
-                io::stdin().read_line(&mut input_username)?;
-                let trimmed_username = input_username.trim().to_string();
-                if trimmed_username.is_empty() {
-                    None
+                // URL
+                let final_url = if let Some(url) = url {
+                    Some(url)
                 } else {
-                    println!();
-                    Some(trimmed_username)
-                }
-            };
-
-            // URL
-            let final_url = if let Some(url) = url {
-                Some(url)
-            } else {
-                println!("URL: ");
-                print!("> ");
-                io::stdout().flush().unwrap();
-
-                let mut input_url = String::new();
-                io::stdin().read_line(&mut input_url)?;
-                let trimmed_url = input_url.trim().to_string();
-                if trimmed_url.is_empty() {
-                    None
-                } else {
-                    println!();
-                    Some(trimmed_url)
-                }
-            };
-
-            // Notes
-            let final_notes = if let Some(n) = notes {
-                Some(n)
-            } else {
-                println!("Type additional notes, if needed (enter submits it): ");
-                print!("> ");
-                io::stdout().flush().unwrap();
-
-                let mut input_url = String::new();
-                io::stdin().read_line(&mut input_url)?;
-                let trimmed_notes = input_url.trim().to_string();
-                if trimmed_notes.is_empty() {
-                    None
-                } else {
-                    println!();
-                    Some(trimmed_notes)
-                }
-            };
-
-            // Password
-            let final_pw = if let Some(p) = password {
-                Some(p)
-            } else {
-                let mut loop_pw = String::new();
-                'input_pw: loop {
-                    print!("Enter password for the entry (or press Enter to skip): ");
+                    println!("URL: ");
+                    print!("> ");
                     io::stdout().flush().unwrap();
-                    let input_password = rpassword::read_password()?;
-                    
-                    if input_password.is_empty() {
+
+                    let mut input_url = String::new();
+                    io::stdin().read_line(&mut input_url)?;
+                    let trimmed_url = input_url.trim().to_string();
+                    if trimmed_url.is_empty() {
+                        None
+                    } else {
+                        println!();
+                        Some(trimmed_url)
+                    }
+                };
+
+                // Notes
+                let final_notes = if let Some(n) = notes {
+                    Some(n)
+                } else {
+                    println!("Type additional notes, if needed (enter submits it): ");
+                    print!("> ");
+                    io::stdout().flush().unwrap();
+
+                    let mut input_url = String::new();
+                    io::stdin().read_line(&mut input_url)?;
+                    let trimmed_notes = input_url.trim().to_string();
+                    if trimmed_notes.is_empty() {
+                        None
+                    } else {
+                        println!();
+                        Some(trimmed_notes)
+                    }
+                };
+
+                // Password
+                let final_pw = if let Some(p) = password {
+                    Some(p)
+                } else {
+                    let mut loop_pw = String::new();
+                    'input_pw: loop {
+                        print!("Enter password for the entry (or press Enter to skip): ");
+                        io::stdout().flush().unwrap();
+                        let input_password = rpassword::read_password()?;
+                        
+                        if input_password.is_empty() {
+                            break 'input_pw;
+                        }
+
+                        print!("Please confirm the password: ");
+                        io::stdout().flush().unwrap();
+                        let confirm = rpassword::read_password()?;
+                        
+                        if input_password != confirm {
+                            println!("The passwords do not match! Try again:");
+                            println!();
+                            continue 'input_pw;
+                        }
+
+                        loop_pw = input_password;
                         break 'input_pw;
                     }
-
-                    print!("Please confirm the password: ");
-                    io::stdout().flush().unwrap();
-                    let confirm = rpassword::read_password()?;
-                    
-                    if input_password != confirm {
-                        println!("The passwords do not match! Try again:");
+                    if loop_pw.is_empty() {
+                        None
+                    } else {
                         println!();
-                        continue 'input_pw;
+                        Some(loop_pw)
                     }
+                };
 
-                    loop_pw = input_password;
-                    break 'input_pw;
+                let entry = Entry::new(final_name.clone(), final_username, final_pw, final_url, final_notes);
+
+                let spinner = spinner();
+                spinner.enable_steady_tick(Duration::from_millis(80));
+                spinner.set_message("Adding PasswordEntry...");
+
+                match opened_vault.add_entry(entry) {
+                    Ok(_) => {
+                        spinner.finish_and_clear();
+
+                        println!();
+                        println!("Entry '{}' added successfully!", final_name);
+                        println!("Vault saved.\n");
+
+
+                        Ok(())
+                    },
+                    Err(e) => {
+                        spinner.finish_and_clear();
+                        Err(SessionError::VaultError(e))
+                    },
                 }
-                if loop_pw.is_empty() {
-                    None
-                } else {
-                    println!();
-                    Some(loop_pw)
-                }
-            };
-
-            let entry = Entry::new(final_name.clone(), final_username, final_pw, final_url, final_notes);
-
-            let spinner = spinner();
-            spinner.enable_steady_tick(Duration::from_millis(80));
-            spinner.set_message("Adding PasswordEntry...");
-
-            match vault.add_entry(entry) {
-                Ok(_) => {
-                    spinner.finish_and_clear();
-
-                    println!();
-                    println!("Entry '{}' added successfully!", final_name);
-                    println!("Vault saved.\n");
-
-
-                    Ok(())
-                },
-                Err(e) => {
-                    spinner.finish_and_clear();
-                    Err(e)
-                },
-            }
+        } else {
+            Err(SessionError::VaultError(VaultError::NoVaultOpen))
+        }
     } else {
-        Err(VaultError::NoVaultOpen)
+        Err(SessionError::SessionInactive)
     }
 }
 
