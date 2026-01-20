@@ -20,22 +20,27 @@ use std::thread;
 fn main() {
     intro_animation();
     let mut current_session: Option<Session> = None;
-    let mut current_vault: Option<Vault>     = None;
+    // let mut current_vault: Option<Vault>     = None;
 
     'interactive_shell: loop {
         //println!("===================");
         println!("___________________");
         println!("Current vault: {}", 
-            match &mut current_vault {
-                Some(v) => v.get_name(),
-                None    => "None"
+            match &current_session {
+                Some(session) => {
+                    match session.opened_vault {
+                        Some(v) => {v.get_name()}
+                        None    => "None"
+                    }
+                },
+                None => "None"
             }
         );
         println!("What action do you want to do? ");
         
         if !check_vaults_exist() {
             eprintln!("\nHint: There are currently no vaults at all, consider using 'init' to create one!");
-        } else if current_vault.is_none() {
+        } else if !active_session(&current_session) {
             eprintln!("\nHint: There are currently no vaults open, consider using 'open <vault-name>'!");
         }
         
