@@ -716,183 +716,185 @@ pub fn handle_command_change_master(option_session: &mut Option<Session>) -> Res
     Err(SessionError::SessionInactive)
 }
 
-pub fn handle_command_edit(option_vault: &mut Option<Vault>, entry_name: String) -> Result<(), VaultError> {
-
-    let vault = option_vault.as_mut().ok_or(VaultError::NoVaultOpen)?;
-
-    if !vault.entryname_exists(&entry_name) {
-        return Err(VaultError::EntryNotFound);
-    }
-
-    // collecting current data, to avoid borrow checker
-    let current_entry = vault.get_entries().iter()
-        .find(|e| *e.get_entry_name() == entry_name)
-        .ok_or(VaultError::EntryNotFound)?;
-    
-    let current_username = current_entry.get_user_name().clone();
-    let current_url = current_entry.get_url().clone();
-    let current_notes = current_entry.get_notes().clone();
-    let current_password = current_entry.get_password().clone();
-    let has_password = current_password.is_some();
-
-    // Collect all existing entrynames except the own one
-    let existing_names: Vec<String> = vault.get_entries().iter()
-        .filter_map(|e| {
-            if *e.get_entry_name() != entry_name {
-                Some(e.get_entry_name().clone())
-            } else {
-                None
+pub fn handle_command_edit(option_session: &mut Option<Session>, entry_name: String) -> Result<(), SessionError> {
+    if let Some(session) = option_session {
+        if let Some(ref mut vault) = session.opened_vault {
+            if !vault.entryname_exists(&entry_name) {
+                return Err(SessionError::VaultError(VaultError::EntryNotFound));
             }
-        })
-        .collect();
 
-    // Collecting user inputs
-    println!("\n==== Editing entry: '{}' ====", entry_name);
-    println!("Hint: (Press enter to keep current value)\n");
-
-    // Entryname
-    let new_entryname = loop {
-        print!("New entry name [current: {}]: ", entry_name);
-        stdout().flush().unwrap();
-        
-        let mut input_entryname = String::new();
-        io::stdin().read_line(&mut input_entryname)?;
-        let trimmed_input = input_entryname.trim().to_string();
-
-        if trimmed_input.is_empty() || trimmed_input == entry_name {
-            // Keep current name
-            break None;
-        } else if existing_names.contains(&trimmed_input) {
-            println!("Error: An entry with the name '{}' already exists! Try a different name.", trimmed_input);
-            continue;
-        } else {
-            break Some(trimmed_input);
-        }
-    };
-
-    // Username 
-    print!("New username [current: {}]: ", current_username.as_deref().unwrap_or("--EMPTY--"));
-    stdout().flush().unwrap();
-    let mut input_username = String::new();
-    io::stdin().read_line(&mut input_username)?;
-    let new_username = if input_username.trim().is_empty() {
-        None
-    } else {
-        Some(input_username.trim().to_string())
-    };
-
-    // URL 
-    print!("New URL [current: {}]: ", current_url.as_deref().unwrap_or("--EMPTY--"));
-    stdout().flush().unwrap();
-    let mut input_url = String::new();
-    io::stdin().read_line(&mut input_url)?;
-    let new_url = if input_url.trim().is_empty() {
-        None
-    } else {
-        Some(input_url.trim().to_string())
-    };
-
-    // Notes sammeln
-    print!("New notes [current: {}]: ", current_notes.as_deref().unwrap_or("--EMPTY--"));
-    stdout().flush().unwrap();
-    let mut input_notes = String::new();
-    io::stdin().read_line(&mut input_notes)?;
-    let new_notes = if input_notes.trim().is_empty() {
-        None
-    } else {
-        Some(input_notes.trim().to_string())
-    };
-
-    // Password 
-    let new_password = if has_password {
-        'input_new_pw: loop {
-        print!("New password (press Enter to keep current, type 'clear' to remove): ");
-        stdout().flush().unwrap();
-        let input_password = rpassword::read_password()?;
-        
-        if input_password.is_empty() {
-            // Keep current password
-            break 'input_new_pw None;
-        } else if input_password == "clear" {
-            break 'input_new_pw Some("".to_string());
-        } else {
-            // Confirm new password
-            print!("Confirm new password: ");
-            stdout().flush().unwrap();
-            let confirm = rpassword::read_password()?;
+            // collecting current data, to avoid borrow checker
+            let current_entry = vault.get_entries().iter()
+                .find(|e| *e.get_entry_name() == entry_name)
+                .ok_or(SessionError::VaultError(VaultError::EntryNotFound))?;
             
-            if input_password != confirm {
-                println!("Passwords do not match! Try again.");
-                continue 'input_new_pw;
+            let current_username = current_entry.get_user_name().clone();
+            let current_url = current_entry.get_url().clone();
+            let current_notes = current_entry.get_notes().clone();
+            let current_password = current_entry.get_password().clone();
+            let has_password = current_password.is_some();
+
+            // Collect all existing entrynames except the own one
+            let existing_names: Vec<String> = vault.get_entries().iter()
+                .filter_map(|e| {
+                    if *e.get_entry_name() != entry_name {
+                        Some(e.get_entry_name().clone())
+                    } else {
+                        None
+                    }
+                })
+                .collect();
+
+            // Collecting user inputs
+            println!("\n==== Editing entry: '{}' ====", entry_name);
+            println!("Hint: (Press enter to keep current value)\n");
+
+            // Entryname
+            let new_entryname = loop {
+                print!("New entry name [current: {}]: ", entry_name);
+                stdout().flush().unwrap();
+                
+                let mut input_entryname = String::new();
+                io::stdin().read_line(&mut input_entryname)?;
+                let trimmed_input = input_entryname.trim().to_string();
+
+                if trimmed_input.is_empty() || trimmed_input == entry_name {
+                    // Keep current name
+                    break None;
+                } else if existing_names.contains(&trimmed_input) {
+                    println!("Error: An entry with the name '{}' already exists! Try a different name.", trimmed_input);
+                    continue;
+                } else {
+                    break Some(trimmed_input);
+                }
+            };
+
+            // Username 
+            print!("New username [current: {}]: ", current_username.as_deref().unwrap_or("--EMPTY--"));
+            stdout().flush().unwrap();
+            let mut input_username = String::new();
+            io::stdin().read_line(&mut input_username)?;
+            let new_username = if input_username.trim().is_empty() {
+                None
             } else {
-                break 'input_new_pw Some(input_password);
-            }
-        }}   
-    } else {
-        // No password exists, ask if user wants to add one
-        print!("Add password? (y/n): ");
-        stdout().flush().unwrap();
-        let mut input = String::new();
-        io::stdin().read_line(&mut input)?;
-        
-        if input.trim().eq_ignore_ascii_case("y") {
-            let mut loop_pw = String::new();
-            'input_pw: loop {
-                print!("Enter password: ");
+                Some(input_username.trim().to_string())
+            };
+
+            // URL 
+            print!("New URL [current: {}]: ", current_url.as_deref().unwrap_or("--EMPTY--"));
+            stdout().flush().unwrap();
+            let mut input_url = String::new();
+            io::stdin().read_line(&mut input_url)?;
+            let new_url = if input_url.trim().is_empty() {
+                None
+            } else {
+                Some(input_url.trim().to_string())
+            };
+
+            // Notes sammeln
+            print!("New notes [current: {}]: ", current_notes.as_deref().unwrap_or("--EMPTY--"));
+            stdout().flush().unwrap();
+            let mut input_notes = String::new();
+            io::stdin().read_line(&mut input_notes)?;
+            let new_notes = if input_notes.trim().is_empty() {
+                None
+            } else {
+                Some(input_notes.trim().to_string())
+            };
+
+            // Password 
+            let new_password = if has_password {
+                'input_new_pw: loop {
+                print!("New password (press Enter to keep current, type 'clear' to remove): ");
                 stdout().flush().unwrap();
                 let input_password = rpassword::read_password()?;
                 
                 if input_password.is_empty() {
-                    break 'input_pw;
-                }
-
-                print!("Confirm password: ");
-                stdout().flush().unwrap();
-                let confirm = rpassword::read_password()?;
-                
-                if input_password != confirm {
-                    println!("Passwords do not match! Try again:");
-                    println!();
-                    continue 'input_pw;
-                }
-
-                loop_pw = input_password;
-                break 'input_pw;
-            }
-            if loop_pw.is_empty() {
-                None
+                    // Keep current password
+                    break 'input_new_pw None;
+                } else if input_password == "clear" {
+                    break 'input_new_pw Some("".to_string());
+                } else {
+                    // Confirm new password
+                    print!("Confirm new password: ");
+                    stdout().flush().unwrap();
+                    let confirm = rpassword::read_password()?;
+                    
+                    if input_password != confirm {
+                        println!("Passwords do not match! Try again.");
+                        continue 'input_new_pw;
+                    } else {
+                        break 'input_new_pw Some(input_password);
+                    }
+                }}   
             } else {
-                Some(loop_pw)
-            }
-        } else {
-            None
+                // No password exists, ask if user wants to add one
+                print!("Add password? (y/n): ");
+                stdout().flush().unwrap();
+                let mut input = String::new();
+                io::stdin().read_line(&mut input)?;
+                
+                if input.trim().eq_ignore_ascii_case("y") {
+                    let mut loop_pw = String::new();
+                    'input_pw: loop {
+                        print!("Enter password: ");
+                        stdout().flush().unwrap();
+                        let input_password = rpassword::read_password()?;
+                        
+                        if input_password.is_empty() {
+                            break 'input_pw;
+                        }
+
+                        print!("Confirm password: ");
+                        stdout().flush().unwrap();
+                        let confirm = rpassword::read_password()?;
+                        
+                        if input_password != confirm {
+                            println!("Passwords do not match! Try again:");
+                            println!();
+                            continue 'input_pw;
+                        }
+
+                        loop_pw = input_password;
+                        break 'input_pw;
+                    }
+                    if loop_pw.is_empty() {
+                        None
+                    } else {
+                        Some(loop_pw)
+                    }
+                } else {
+                    None
+                }
+            };
+
+            // Write changes to Entry
+            //let vault = option_vault.as_mut().unwrap();
+            let entry = vault.get_entry_by_name(&entry_name).ok_or(SessionError::VaultError(VaultError::EntryNotFound))?;
+
+            if let Some(new_name) = new_entryname {entry.entryname = new_name;}
+            if let Some(username) = new_username { entry.set_username(username); }
+            if let Some(url) = new_url { entry.set_url(url); }
+            if let Some(notes) = new_notes { entry.set_notes(notes); }
+            if let Some(password) = new_password { entry.set_password(password); }
+
+            // Get final name for printing
+            let final_entry_name = entry.get_entry_name().clone();
+
+            // Saving vault
+            let spinner = spinner();
+            spinner.enable_steady_tick(Duration::from_millis(80));
+            spinner.set_message("Saving changes...");
+            
+            spinner.finish_and_clear();
+            println!();
+            println!("Entry '{}' updated successfully!", final_entry_name);
+            println!("Vault saved.\n");
+
+            return Ok(());
         }
-    };
-
-    // Write changes to Entry
-    //let vault = option_vault.as_mut().unwrap();
-    let entry = vault.get_entry_by_name(&entry_name).ok_or(VaultError::EntryNotFound)?;
-
-    if let Some(new_name) = new_entryname {entry.entryname = new_name;}
-    if let Some(username) = new_username { entry.set_username(username); }
-    if let Some(url) = new_url { entry.set_url(url); }
-    if let Some(notes) = new_notes { entry.set_notes(notes); }
-    if let Some(password) = new_password { entry.set_password(password); }
-
-    // Get final name for printing
-    let final_entry_name = entry.get_entry_name().clone();
-
-    // Saving vault
-    let spinner = spinner();
-    spinner.enable_steady_tick(Duration::from_millis(80));
-    spinner.set_message("Saving changes...");
-    
-    spinner.finish_and_clear();
-    println!();
-    println!("Entry '{}' updated successfully!", final_entry_name);
-    println!("Vault saved.\n");
-
-    Ok(())
+    }
+    return Err(SessionError::SessionInactive);
 }
 
 pub fn handle_command_open(
