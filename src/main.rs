@@ -202,9 +202,8 @@ fn main() {
                     println!("Hint: Consider using open <vault-name>!");
                     continue 'interactive_shell;
                 }
-                match handle_command_deletevault(&mut current_session, &mut current_vault) {
+                match handle_command_deletevault(&mut current_session) {
                     Ok(()) => {
-                        current_vault   = None;
                         current_session = None;
                     }
                     Err(SessionError::VaultError(VaultError::AnyhowError(ref e))) if e.to_string() == "Cancelled." => {
