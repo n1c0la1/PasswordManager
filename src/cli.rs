@@ -1023,7 +1023,7 @@ pub fn handle_command_close(option_session: &mut Option<Session>, force: bool) -
     return Err(SessionError::SessionInactive);
 } 
 
-pub fn handle_command_vaults(current_vault: &Option<Vault>) {
+pub fn handle_command_vaults(current_session: &Option<Session>) {
     println!("\n=== Available Vaults ===");
                 
     match fs::read_dir("vaults") {
@@ -1050,15 +1050,24 @@ pub fn handle_command_vaults(current_vault: &Option<Vault>) {
             } else {
                 vault_files.sort();
                 
-                let current_vault_name = current_vault.as_ref()
-                    .map(|v| v.get_name());
-                
-                for vault_name in vault_files {
-                    if Some(&vault_name) == current_vault_name {
-                        println!("  → {} (currently open)", vault_name);
+                if current_session.is_none() || !active_session(current_session) {
+                    for vault_name in vault_files {
+                        println!("    {}", vault_name);
+                    }
+                }
+                else {
+                    let current_vault_name = current_session
+                        .as_ref()
+                        .and_then(|s| s.opened_vault.as_ref())
+                        .map(|v| v.get_name());
+
+                    for vault_name in vault_files {
+                        if Some(&vault_name) == current_vault_name{
+                            println!("  → {} (currently open)", vault_name);
                     } else {
                         println!("    {}", vault_name);
                     }
+                    }                    
                 }
             }
             println!();

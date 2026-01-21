@@ -311,7 +311,7 @@ fn main() {
                 continue 'interactive_shell;
             },
 
-            CommandCLI::Vaults {  } => {handle_command_vaults(&current_vault);},
+            CommandCLI::Vaults {  } => {handle_command_vaults(&current_session);},
 
             CommandCLI::Clear {  } => {handle_command_clear();},
 
