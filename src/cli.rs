@@ -500,35 +500,38 @@ pub fn handle_command_getall(
     return Err(SessionError::SessionInactive);
 }
 
-pub fn handle_command_delete(option_vault: &mut Option<Vault>, entry_to_delete: String) -> Result<(), SessionError> {
-    if let Some(vault) = option_vault {
-        let entry = vault.get_entry_by_name(&entry_to_delete)
-            .ok_or(SessionError::VaultError(VaultError::EntryNotFound))?
-        ;
+pub fn handle_command_delete(option_session: &mut Option<Session>, entry_to_delete: String) -> Result<(), SessionError> {
+    if let Some(session) = option_session {
+        if let Some(ref mut opened_vault) = session.opened_vault {
+            let entry = opened_vault.get_entry_by_name(&entry_to_delete)
+                .ok_or(SessionError::VaultError(VaultError::EntryNotFound))?
+            ;
 
-        print!("Are you sure, you want to delete '{}'? (y/n): ", entry.get_entry_name());
-        stdout().flush().unwrap();
+            print!("Are you sure, you want to delete '{}'? (y/n): ", entry.get_entry_name());
+            stdout().flush().unwrap();
 
-        let mut confirm = String::new();
-        io::stdin().read_line(&mut confirm)?;
-                    
-        if confirm.trim().eq_ignore_ascii_case("y") {
-            // Master PW query maybe? TODO
-            let spinner = spinner();
-            spinner.enable_steady_tick(Duration::from_millis(80));
-            spinner.set_message("Removing entry ...");
+            let mut confirm = String::new();
+            io::stdin().read_line(&mut confirm)?;
                         
-            vault.remove_entry_by_name(&entry_to_delete);
-                        
-            spinner.finish_and_clear();
-            
-            println!();
-            println!("Entry '{}' successfully removed!", entry_to_delete);
-            return Ok(());
-        } else {
-            println!("Cancelled.\n");
-            return Ok(());
-        }   
+            if confirm.trim().eq_ignore_ascii_case("y") {
+                // Master PW query maybe? TODO
+                let spinner = spinner();
+                spinner.enable_steady_tick(Duration::from_millis(80));
+                spinner.set_message("Removing entry ...");
+                            
+                opened_vault.remove_entry_by_name(&entry_to_delete);
+                            
+                spinner.finish_and_clear();
+                
+                println!();
+                println!("Entry '{}' successfully removed!", entry_to_delete);
+                return Ok(());
+            } else {
+                println!("Cancelled.\n");
+                return Ok(());
+            }   
+        }
+        return Err(SessionError::VaultError(VaultError::NoVaultOpen));
     }
     return Err(SessionError::SessionInactive);
 }

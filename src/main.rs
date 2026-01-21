@@ -152,7 +152,10 @@ fn main() {
                     continue 'interactive_shell;
                 }
                 match handle_command_getall(&mut current_session, show) {
-                    Ok(()) => {/* Do nothing, vault did not change */}
+                    Ok(()) => {
+                        /* Save, even though vault did not change, just to be sure. */
+                        current_session.unwrap().save();
+                    }
                     Err(SessionError::VaultError(VaultError::NoVaultOpen)) => {
                         println!("No vault is active! Use init or open <vault-name>!");
                     }
@@ -173,19 +176,10 @@ fn main() {
                     println!("There is no session active right now, consider using open <vault-name>!");
                     continue 'interactive_shell;
                 }
-                match handle_command_delete(&mut current_vault, name) {
+                match handle_command_delete(&mut current_session, name) {
                     Ok(()) => {
-                        // write changes from current_vault to current_session with save
-                        match &mut current_session {
-                            Some(session) => {
-                                session.new_save(&current_vault);
-                                println!("Vault saved.\n");
-                            }
-                            None => {
-                                // Should never happen because of active_session check
-                                println!("Something went wrong, try starting a new session");
-                            }
-                        }
+                        /* Save, even though vault did not change, just to be sure. */
+                        current_session.unwrap().save();
                     }
                     Err(SessionError::VaultError(VaultError::NoVaultOpen)) => {
                         println!("No vault is active! Use init or open <vault-name>!");
