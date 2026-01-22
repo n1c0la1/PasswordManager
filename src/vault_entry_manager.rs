@@ -1,5 +1,5 @@
 //assumption: vault already exists
-/* what belongs here: 
+/* what belongs here:
 - Vault
 - Entry
 - Add / remove / edit entries
@@ -9,7 +9,6 @@
 use serde::{Deserialize, Serialize};
 
 use crate::errors::VaultError;
-
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct Vault {
@@ -104,8 +103,6 @@ impl Entry {
     }
 }
 
-
-
 impl Vault {
     pub fn new(name: String) -> Vault {
         Vault {
@@ -142,9 +139,7 @@ impl Vault {
     }
 
     pub fn get_entry_by_entry(&mut self, entry: Entry) -> Option<&mut Entry> {
-        self.entries
-            .iter_mut()
-            .find(|value| **value == entry)
+        self.entries.iter_mut().find(|value| **value == entry)
     }
 
     pub fn remove_entry_by_name(&mut self, name: &String) {
@@ -166,4 +161,3 @@ impl Vault {
         false
     }
 }
-

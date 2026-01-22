@@ -1,5 +1,5 @@
-use std::{fmt};
 use std::error::Error;
+use std::fmt;
 
 //use crate::crypto::CryptoError;
 
@@ -14,7 +14,9 @@ impl fmt::Display for CryptoError {
         match self {
             CryptoError::CouldNotEncrypt => write!(f, "COULD NOT ENCRYPT"),
             CryptoError::CouldNotDecrypt => write!(f, "COULD NOT DECRYPT"),
-        }}}
+        }
+    }
+}
 
 #[derive(Debug)]
 pub enum SessionError {
@@ -29,8 +31,9 @@ impl fmt::Display for SessionError {
             SessionError::SessionInactive => write!(f, "SESSION IS INACTIVE"),
             SessionError::SessionActive => write!(f, "SESSION IS ALREADY ACTIVE"),
             SessionError::VaultError(e) => write!(f, "VAULT ERROR: {}", e),
-        }}}
-
+        }
+    }
+}
 
 #[derive(Debug)]
 pub enum VaultError {
@@ -126,7 +129,7 @@ impl From<std::str::Utf8Error> for VaultError {
 }
 
 impl From<CryptoError> for VaultError {
-    fn from(error:CryptoError) -> Self {
+    fn from(error: CryptoError) -> Self {
         VaultError::CryptoError(error)
     }
 }

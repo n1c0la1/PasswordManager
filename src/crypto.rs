@@ -1,5 +1,5 @@
 //this file includes all security
-/*what belongs here: 
+/*what belongs here:
 - Encryption (AEAD)
 - Decryption (AEAD)
 
@@ -14,22 +14,19 @@ use secrecy::SecretString;
 
 use crate::errors::CryptoError;
 
-
 //----------------------------------------------------------------------------
 // Public functions
 //----------------------------------------------------------------------------
 
-pub fn encrypt_vault (password: &SecretString, vault_json: String,) -> Result<Vec<u8>, CryptoError> {
+pub fn encrypt_vault(password: &SecretString, vault_json: String) -> Result<Vec<u8>, CryptoError> {
     let encrypted_vault = encrypt_string(password, vault_json.as_bytes())
         .map_err(|_| CryptoError::CouldNotEncrypt)?;
-   Ok(encrypted_vault)
+    Ok(encrypted_vault)
 }
 
 pub fn decrypt_vault(pw: SecretString, msg: &[u8]) -> Result<String, CryptoError> {
-    let pt = decrypt_bytes(msg, pw )
-        .map_err(|_| CryptoError::CouldNotDecrypt)?;
-    let result_string = str::from_utf8(&pt)
-        .map_err(|_| CryptoError::CouldNotDecrypt)?;
+    let pt = decrypt_bytes(msg, pw).map_err(|_| CryptoError::CouldNotDecrypt)?;
+    let result_string = str::from_utf8(&pt).map_err(|_| CryptoError::CouldNotDecrypt)?;
     Ok(result_string.into())
 }
 
@@ -45,6 +42,3 @@ fn encrypt_string(pw: &SecretString, msg: &[u8]) -> Result<Vec<u8>, enc_file::En
 
     encrypt_bytes(msg, pw.clone(), &opts)
 }
-
-
-

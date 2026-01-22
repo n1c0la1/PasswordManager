@@ -1,6 +1,6 @@
 //coordinates crypto.rs and vault_entry_manager
 
-/*what belongs here: 
+/*what belongs here:
 - Create new vault
 - Open existing vault
 - Close vault
@@ -9,25 +9,25 @@
 
 */
 use secrecy::SecretString;
-use std::fs::{self, File}; 
-use std::io::{Read, Write}; 
+use std::fs::{self, File};
+use std::io::{Read, Write};
 use std::path::Path;
 use std::str;
 
 use crate::crypto;
-use crate::vault_entry_manager::{Vault};
 use crate::errors::VaultError;
+use crate::vault_entry_manager::Vault;
 
 //----------------------------------------------------------------------------
 // Public functions
 //----------------------------------------------------------------------------
 
 pub fn initialize_vault(name: String) -> Result<Vault, VaultError> {
-   // if key.len() > 200 {
-   //    return Err(VaultError::PasswordTooLong); 
-   // }
+    // if key.len() > 200 {
+    //    return Err(VaultError::PasswordTooLong);
+    // }
 
-   //IMPORTANT: password length should be checked at input (cli.rs)
+    //IMPORTANT: password length should be checked at input (cli.rs)
     let path = format!("vaults/{name}.psdb");
     if Path::new(&path).exists() {
         return Err(VaultError::FileExists);
@@ -37,7 +37,7 @@ pub fn initialize_vault(name: String) -> Result<Vault, VaultError> {
 }
 
 //encrypts file with a master password -> use session.rs to remember the master password temporarily. must always be called with the correct master from the session
-pub fn close_vault(vault: &Vault, password: SecretString) -> Result<(), VaultError>{
+pub fn close_vault(vault: &Vault, password: SecretString) -> Result<(), VaultError> {
     let encrypted_vault = crypto::encrypt_vault(&password, vault.to_json())?;
     let path = format!("vaults/{}.psdb", vault.name);
     let mut file = File::create(path)?;
@@ -46,7 +46,7 @@ pub fn close_vault(vault: &Vault, password: SecretString) -> Result<(), VaultErr
 }
 
 //opens the vault + checks if master password was correct by successfully encrypting the file
-pub fn open_vault(file_name: String, password: SecretString) -> Result<Vault, VaultError>{
+pub fn open_vault(file_name: String, password: SecretString) -> Result<Vault, VaultError> {
     let path = format!("vaults/{file_name}.psdb");
 
     let encrypted_bytes = read_file_to_bytes(&path)?;
@@ -58,33 +58,39 @@ pub fn open_vault(file_name: String, password: SecretString) -> Result<Vault, Va
 }
 
 /// Checks if any vaults exists in the vault folder.
-pub fn check_vaults_exist () -> bool {
+pub fn check_vaults_exist() -> bool {
     fs::read_dir("vaults")
-        .map(|mut entries| entries.any(|e| {
-            e.map(|entry| {
-                entry.path().extension()
-                    .and_then(|ext| ext.to_str())
-                    .map(|ext| ext == "psdb")
-                    .unwrap_or(false)
-            }).unwrap_or(false)
-        }))
+        .map(|mut entries| {
+            entries.any(|e| {
+                e.map(|entry| {
+                    entry
+                        .path()
+                        .extension()
+                        .and_then(|ext| ext.to_str())
+                        .map(|ext| ext == "psdb")
+                        .unwrap_or(false)
+                })
+                .unwrap_or(false)
+            })
+        })
         .unwrap_or(false)
 }
 
-pub fn change_master_pw(vault_name: String, old_password: SecretString, new_password: SecretString) -> Result<(), VaultError>{
-    let opening_vault = open_vault(vault_name, old_password)
-        .map_err(|_| VaultError::InvalidKey)?;
-    
-    let _ = close_vault(&opening_vault, new_password)
-        .map_err(|_| VaultError::CouldNotClose);
+pub fn change_master_pw(
+    vault_name: String,
+    old_password: SecretString,
+    new_password: SecretString,
+) -> Result<(), VaultError> {
+    let opening_vault = open_vault(vault_name, old_password).map_err(|_| VaultError::InvalidKey)?;
 
-    Ok(())  
+    let _ = close_vault(&opening_vault, new_password).map_err(|_| VaultError::CouldNotClose);
+
+    Ok(())
 }
 
 pub fn list_vaults() -> Result<Vec<String>, VaultError> {
     let mut vector = Vec::new();
     let entries = fs::read_dir("vaults")?;
-
 
     for entry in entries {
         let unwraped_entry = entry?;
@@ -94,7 +100,6 @@ pub fn list_vaults() -> Result<Vec<String>, VaultError> {
             let string_entry = file_name.to_string();
             vector.push(string_entry);
         }
-        
     }
     Ok(vector)
 }
@@ -113,5 +118,3 @@ fn read_file_to_bytes(path: &str) -> Result<Vec<u8>, VaultError> {
 fn vault_from_json(input: &str) -> Result<Vault, serde_json::Error> {
     serde_json::from_str(input)
 }
-
-

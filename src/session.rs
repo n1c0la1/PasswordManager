@@ -1,13 +1,13 @@
-//a session only exists when a vault has been opened successfully 
+//a session only exists when a vault has been opened successfully
 
 use crate::errors::SessionError;
+use crate::errors::VaultError;
 use crate::vault_entry_manager::*;
-use crate::vault_file_manager::initialize_vault;
 use crate::vault_file_manager::close_vault;
+use crate::vault_file_manager::initialize_vault;
 use crate::vault_file_manager::open_vault;
 use secrecy::ExposeSecret;
 use secrecy::SecretString;
-use crate::errors::VaultError;
 
 #[derive(Debug)]
 pub struct Session {
@@ -23,15 +23,16 @@ pub struct Session {
 pub fn active_session(option_session: &Option<Session>) -> bool {
     if option_session.is_none() {
         false
-    } else if option_session.as_ref().unwrap().opened_vault.is_none() 
-           || option_session.as_ref().unwrap().master_password.is_none() {
+    } else if option_session.as_ref().unwrap().opened_vault.is_none()
+        || option_session.as_ref().unwrap().master_password.is_none()
+    {
         false
     } else {
         true
     }
 }
 
-pub fn create_new_vault(vault_name: String, master: SecretString) -> Result<(), VaultError>{
+pub fn create_new_vault(vault_name: String, master: SecretString) -> Result<(), VaultError> {
     let new_vault = initialize_vault(vault_name)?;
     close_vault(&new_vault, master)?;
     Ok(())
@@ -47,8 +48,8 @@ impl Session {
     }
 
     //assumption: vault already exists in memory
-    //notes: authentication of the vault + store password 
-    pub fn start_session(&mut self, master: SecretString) -> Result<(), SessionError>{
+    //notes: authentication of the vault + store password
+    pub fn start_session(&mut self, master: SecretString) -> Result<(), SessionError> {
         //check if a vault is already open
         if self.opened_vault.is_some() {
             return Err(SessionError::SessionActive); //error: vault already open
@@ -61,13 +62,11 @@ impl Session {
             Ok(vault) => {
                 self.master_password = Some(master_for_session);
                 self.opened_vault = Some(vault);
-                //later start timer here or last activity 
+                //later start timer here or last activity
                 Ok(())
             }
-            Err(_) => {
-                Err(SessionError::VaultError(VaultError::InvalidKey))
-            }
-        }  
+            Err(_) => Err(SessionError::VaultError(VaultError::InvalidKey)),
+        }
     }
 
     pub fn end_session(&mut self) -> Result<(), SessionError> {
@@ -75,9 +74,15 @@ impl Session {
             return Err(SessionError::SessionInactive); //error: no active session
         }
 
-        let vault = self.opened_vault.take().ok_or(SessionError::SessionInactive)?; //no active vault 
-        let master = self.master_password.take().ok_or(SessionError::SessionInactive)?; //no active master
-        
+        let vault = self
+            .opened_vault
+            .take()
+            .ok_or(SessionError::SessionInactive)?; //no active vault 
+        let master = self
+            .master_password
+            .take()
+            .ok_or(SessionError::SessionInactive)?; //no active master
+
         close_vault(&vault, master).map_err(|e| SessionError::VaultError(e))?;
         Ok(())
     }
@@ -108,18 +113,24 @@ impl Session {
     }
 
     //this function does 3 things:
-    //1. It checks whether the session is active 
+    //1. It checks whether the session is active
     //2. It gives controlled access to the vault (vault remains owned by session, giving the caller a mutable reference to the vault)
     //3. It gives a usable copy of the master password (gives a SecretString which can be passed to crypto without removing it from session, and keeping it active)
-    fn session_state(&mut self) -> Result<(&mut Vault, SecretString), SessionError>{
+    fn session_state(&mut self) -> Result<(&mut Vault, SecretString), SessionError> {
         if self.opened_vault.is_none() || self.master_password.is_none() {
             return Err(SessionError::SessionInactive); //error: no active session, session inactive
-        } 
-        
-        let vault = self.opened_vault.as_mut().ok_or(SessionError::SessionInactive)?;
-        let pw = self.master_password.as_ref().ok_or(SessionError::SessionInactive)?.clone();
+        }
+
+        let vault = self
+            .opened_vault
+            .as_mut()
+            .ok_or(SessionError::SessionInactive)?;
+        let pw = self
+            .master_password
+            .as_ref()
+            .ok_or(SessionError::SessionInactive)?
+            .clone();
         Ok((vault, pw))
-        
     }
 }
 
