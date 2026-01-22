@@ -343,7 +343,39 @@ pub fn handle_command_add(
             } else {
                 let mut loop_pw = String::new();
                 'input_pw: loop {
-                    print!("Enter password for the entry (or press Enter to skip): ");
+                    print!("Generate password for entry (y/n): ");
+                    let mut input_choice_gen = String::new();
+                    io::stdin().read_line(&mut input_choice_gen)?;
+
+                    if input_choice_gen.trim().eq_ignore_ascii_case("y") {
+                        let length: i32;
+                        let no_symbols: bool;
+
+                        'input_length: loop {
+                            print!("Enter desired password-length: ");
+                            io::stdout().flush().unwrap();
+                            let mut length_input = String::new();
+                            io::stdin().read_line(&mut length_input)?;
+                            if length_input.parse::<i32>().is_ok() {
+                                length = length_input.parse::<i32>().unwrap();
+                                break 'input_length; 
+                            }
+                        }
+                        
+                        print!("Use symbols? (y/n): ");
+                        io::stdout().flush().unwrap();
+                        let mut no_symbols_input = String::new();
+                        io::stdin().read_line(&mut no_symbols_input)?;
+                        if input_choice_gen.trim().eq_ignore_ascii_case("y") {
+                            no_symbols = false;
+                        } else {
+                            no_symbols = true;
+                        }
+                        loop_pw = handle_command_generate(length, no_symbols)?;
+                        break 'input_pw;
+                    }
+
+                    print!("Enter password for entry (or press Enter to skip): ");
                     io::stdout().flush().unwrap();
                     let input_password = rpassword::read_password()?;
                     
