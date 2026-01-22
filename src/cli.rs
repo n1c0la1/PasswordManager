@@ -1,9 +1,7 @@
 use crate::errors::*;
-//use password_manager::*;
 use crate::vault_entry_manager::*;
 use crate::session::*;
 use crate::vault_file_manager::initialize_vault;
-//use crate::test::*;
 
 use anyhow::anyhow;
 use clap::{Parser, Subcommand, command};
@@ -633,15 +631,8 @@ pub fn handle_command_generate(length: i32, no_symbols: bool) -> Result<String, 
         if no_symbols { "No" } else { "Yes" }, if no_symbols { " " } else { "" }.repeat(33));
     println!("└─────────────────────────────────────────┘\n");
 
-    /* Password copy to clipboard? TODO mit neuer flag -c copy & Abfrage
-    use arboard::Clipboard;
-    let mut clipboard = Clipboard::new().expect("Clipboard nicht verfügbar");
-    clipboard
-        .set_text(password.clone())
-        .expect("Konnte nicht in Zwischenablage kopieren");
-
-    println!("Passwort wurde in die Zwischenablage kopiert!");
-        */
+    copy_to_clipboard(&password)?;
+    
     Ok(password)
 }   
 
@@ -1109,6 +1100,7 @@ pub fn handle_command_quit(force: bool) -> Result<LoopCommand, VaultError> {
 pub fn copy_to_clipboard(content: &str) -> Result<(), VaultError> {
     let mut clipboard = Clipboard::new().map_err(|_| VaultError::ClipboardError)?;
     clipboard.set_text(content.to_string()).map_err(|_| VaultError::ClipboardError)?;
+    println!("Passwort wurde in die Zwischenablage kopiert!");
     Ok(())
 }
 
