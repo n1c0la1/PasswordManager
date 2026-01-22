@@ -646,7 +646,10 @@ pub fn handle_command_generate(length: i32, no_symbols: bool) -> Result<String, 
 }   
 
 pub fn handle_command_change_master(option_session: &mut Option<Session>) -> Result<(), SessionError> {
-    if let Some(session) = option_session {
+    if !active_session(option_session) {
+        return Err(SessionError::SessionInactive);
+    }
+    let session = option_session.as_mut().unwrap();
         let session_vault_name = session.vault_name.clone();
 
         io::stdout().flush().unwrap();
@@ -671,7 +674,7 @@ pub fn handle_command_change_master(option_session: &mut Option<Session>) -> Res
                 ("Confirm the new master password")?.into()
             ;
             
-            if input.expose_secret() == confirm_new_passwd.expose_secret() {
+            if input.expose_secret() != confirm_new_passwd.expose_secret() {
                 println!("Passwords do not match! Try again.");
                 continue 'input_new_master;
             }
@@ -694,9 +697,6 @@ pub fn handle_command_change_master(option_session: &mut Option<Session>) -> Res
         spinner.finish_and_clear();
 
         return Ok(());
-    }
-
-    Err(SessionError::SessionInactive)
 }
 
 pub fn handle_command_edit(option_vault: &mut Option<Vault>, entry_name: String) -> Result<(), VaultError> {
