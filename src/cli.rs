@@ -132,11 +132,11 @@ pub fn clear_terminal() {
 
 pub fn intro_animation() {
         let frames =
-                r#"
-        === RustPass ================================
-        Secure • Fast • Rust-Powered Password Manager
-        =============================================
-                "#
+        r#"
+=== RustPass ================================
+Secure • Fast • Rust-Powered Password Manager
+=============================================
+        "#
         ;
         clear_terminal();
 

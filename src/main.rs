@@ -7,7 +7,7 @@ mod session;
 
 use crate::errors::*;
 use crate::session::Session;
-use crate::vault_entry_manager::*;
+// use crate::vault_entry_manager::*;
 use crate::vault_file_manager::*;
 use crate::session::*;
 use clap::{Parser};
