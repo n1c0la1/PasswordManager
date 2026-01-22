@@ -82,11 +82,11 @@ impl Session {
         Ok(())
     }
 
-    pub fn new_save(&mut self, vault: &Option<Vault>) -> Result<(), SessionError> {
-        self.opened_vault = vault.clone();
+    // pub fn new_save(&mut self, vault: &Option<Vault>) -> Result<(), SessionError> {
+    //     self.opened_vault = vault.clone();
 
-        Ok(())
-    }
+    //     Ok(())
+    // }
 
     pub fn save(&mut self) -> Result<(), SessionError> {
         let (vault, master) = self.session_state()?;
