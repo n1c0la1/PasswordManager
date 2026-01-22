@@ -26,16 +26,17 @@ fn main() {
         //println!("===================");
         println!("___________________");
         println!("Current vault: {}", 
-            match &current_session {
+            match &mut current_session {
                 Some(session) => {
-                    match session.opened_vault {
+                    match &session.opened_vault {
                         Some(v) => {v.get_name()}
                         None    => "None"
                     }
                 },
                 None => "None"
             }
-        );
+        )
+        ;
         println!("What action do you want to do? ");
         
         if !check_vaults_exist() {
@@ -100,16 +101,7 @@ fn main() {
                 }
                 match handle_command_add(&mut current_session, name, username, url, notes, password) {
                     Ok(())             => {
-                        // write changes from current_vault to current_session with save
-                        match &mut current_session {
-                            Some(session) => {
-                                session.save();
-                            }
-                            None => {
-                                // Should never happen because of active_session check
-                                println!("Something went wrong, try starting a new session");
-                            }
-                        }
+                        try_save(&mut current_session);
                     },
                     Err(SessionError::VaultError(VaultError::NoVaultOpen)) => {
                         println!("Error: {}", VaultError::NoVaultOpen);
@@ -130,7 +122,8 @@ fn main() {
                 match handle_command_get(&mut current_session, name, show) {
                     Ok(())             => {
                         /* Save, even though vault did not change, just to be sure. */
-                        current_session.unwrap().save();
+                        //current_session.unwrap().save();
+                        try_save(&mut current_session);
                     }
                     Err(SessionError::VaultError(VaultError::NoVaultOpen)) => {
                         println!("No vault is active! Use init or open <vault-name>!");
@@ -154,7 +147,7 @@ fn main() {
                 match handle_command_getall(&mut current_session, show) {
                     Ok(()) => {
                         /* Save, even though vault did not change, just to be sure. */
-                        current_session.unwrap().save();
+                        try_save(&mut current_session);
                     }
                     Err(SessionError::VaultError(VaultError::NoVaultOpen)) => {
                         println!("No vault is active! Use init or open <vault-name>!");
@@ -179,7 +172,7 @@ fn main() {
                 match handle_command_delete(&mut current_session, name) {
                     Ok(()) => {
                         /* Save, even though vault did not change, just to be sure. */
-                        current_session.unwrap().save();
+                        try_save(&mut current_session);
                     }
                     Err(SessionError::VaultError(VaultError::NoVaultOpen)) => {
                         println!("No vault is active! Use init or open <vault-name>!");
@@ -235,7 +228,9 @@ fn main() {
                     continue 'interactive_shell;
                 }
                 match handle_command_change_master(&mut current_session) {
-                    Ok(()) => {/* Do nothing, saving and closing and ending session happens in cli.rs */}
+                    Ok(()) => {
+                        try_save(&mut current_session);
+                    }
                     Err(e) => {
                         println!("Error: {}", e);
                     }
@@ -251,7 +246,7 @@ fn main() {
                 match handle_command_edit(&mut current_session, name) {
                     Ok(()) => {
                         /* Save, even though vault did not change, just to be sure. */
-                        current_session.unwrap().save();
+                        try_save(&mut current_session);
                     }
                     Err(e) => {
                         println!("Error: {}", e)
@@ -287,7 +282,6 @@ fn main() {
                     Ok(LoopCommand::Continue) => {
                         // if the user says yes to closing.
                         current_session = None;
-                        current_vault   = None;
                     }
                     Ok(LoopCommand::Cancel) => {
                         // if the user wishes to cancel the closing process.
@@ -307,7 +301,7 @@ fn main() {
             CommandCLI::Quit { force } => { 
                 match handle_command_quit(force) {
                     Ok(LoopCommand::Continue)    => {
-                        if let Some(mut session) = current_session {
+                        if let Some(session) = &mut current_session {
                             match session.end_session() {
                                 Ok(()) => {/* Do nothing */},
                                 Err(e) => {
@@ -325,6 +319,18 @@ fn main() {
                     }
                 }
             },
+        }
+    }
+}
+
+fn try_save(current_session: &mut Option<Session>) {
+    /* Save, even though vault did not change, just to be sure. */
+    if let Some(session) = current_session {
+        match session.save() {
+            Ok(()) => {/* Do nothing */}
+            Err(e) => {
+                println!("Error: {}", e);
+            }
         }
     }
 }
