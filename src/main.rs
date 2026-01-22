@@ -200,9 +200,8 @@ fn main() {
                     println!("Hint: Consider using open <vault-name>!");
                     continue 'interactive_shell;
                 }
-                match handle_command_deletevault(&mut current_session, &mut current_vault) {
+                match handle_command_deletevault(&mut current_session) {
                     Ok(()) => {
-                        current_vault   = None;
                         current_session = None;
                     }
                     Err(SessionError::VaultError(VaultError::AnyhowError(ref e))) if e.to_string() == "Cancelled." => {
@@ -262,16 +261,15 @@ fn main() {
             },
 
             CommandCLI::Open { name } => {
-                match handle_command_open(name, &mut current_session, &mut current_vault) {
+                match handle_command_open(name, &mut current_session) {
                     Ok(session) => {
                         if session.opened_vault.is_none() {
                             println!("Something went wrong!"); 
                             continue 'interactive_shell;
                         }
-                        current_vault = session.opened_vault.clone();
                         current_session = Some(session);
                     },
-                    Err(VaultError::InvalidKey) => {
+                    Err(SessionError::VaultError(VaultError::InvalidKey)) => {
                         println!("Error: Invalid password!")
                     }
                     Err(e) => {
@@ -302,7 +300,7 @@ fn main() {
                 continue 'interactive_shell;
             },
 
-            CommandCLI::Vaults {  } => {handle_command_vaults(&current_vault);},
+            CommandCLI::Vaults {  } => {handle_command_vaults(&current_session);},
 
             CommandCLI::Clear {  } => {handle_command_clear();},
 
