@@ -2,7 +2,7 @@ use crate::errors::*;
 //use password_manager::*;
 use crate::vault_entry_manager::*;
 use crate::session::*;
-use crate::vault_file_manager::initialize_vault;
+//use crate::vault_file_manager::initialize_vault;
 //use crate::test::*;
 
 use anyhow::anyhow;
@@ -211,7 +211,6 @@ pub fn handle_command_init(option_name: Option<String>) -> Result<(), VaultError
     spinner.enable_steady_tick(Duration::from_millis(80));
     println!();
     spinner.set_message(" Creating vault...");
-    // let _ = create_new_vault(vault_name.clone(), key);
     match create_new_vault(vault_name.clone(), key) {
         Ok(()) => {
             spinner.finish_and_clear();
@@ -386,8 +385,7 @@ pub fn handle_command_add(
 
                         println!();
                         println!("Entry '{}' added successfully!", final_name);
-                        println!("Vault saved.\n");
-
+                        println!();
 
                         Ok(())
                     },
@@ -503,8 +501,14 @@ pub fn handle_command_getall(
 pub fn handle_command_delete(option_session: &mut Option<Session>, entry_to_delete: String) -> Result<(), SessionError> {
     if let Some(session) = option_session {
         if let Some(ref mut opened_vault) = session.opened_vault {
-            let entry = opened_vault.get_entry_by_name(&entry_to_delete)
-                .ok_or(SessionError::VaultError(VaultError::EntryNotFound))?
+            let entry = 
+                if let Some(entry) = opened_vault.get_entry_by_name(&entry_to_delete) {
+                    entry
+                } else {
+                    println!();
+                    println!("'{}' not found in current vault \"{}\"!", entry_to_delete, opened_vault.get_name());
+                    return Err(SessionError::VaultError(VaultError::EntryNotFound));
+                }
             ;
 
             print!("Are you sure, you want to delete '{}'? (y/n): ", entry.get_entry_name());
@@ -888,7 +892,6 @@ pub fn handle_command_edit(option_session: &mut Option<Session>, entry_name: Str
             spinner.finish_and_clear();
             println!();
             println!("Entry '{}' updated successfully!", final_entry_name);
-            println!("Vault saved.\n");
 
             return Ok(());
         }
@@ -1003,9 +1006,9 @@ pub fn handle_command_close(option_session: &mut Option<Session>, force: bool) -
         let open_vault_name = session.vault_name.clone();
 
         let spinner = spinner();
-        spinner.set_message("Closing current vault and session ...");
         
         if force {
+            spinner.set_message("Closing current vault and session ...");
             spinner.enable_steady_tick(Duration::from_millis(80));
             
             session.end_session()?;
@@ -1015,12 +1018,12 @@ pub fn handle_command_close(option_session: &mut Option<Session>, force: bool) -
             
             return Ok(LoopCommand::Continue);
         }
-
+        
         print!("Do you really want to close the current session and vault? (y/n): ");
         stdout().flush().unwrap();
 
         let mut input = String::new();
-        io::stdin().read_line(&mut input);
+        io::stdin().read_line(&mut input)?;
 
         if input.trim().eq_ignore_ascii_case("n") {
             println!();
@@ -1028,6 +1031,7 @@ pub fn handle_command_close(option_session: &mut Option<Session>, force: bool) -
             return Ok(LoopCommand::Cancel)
         }
 
+        spinner.set_message("Closing current vault and session ...");
         spinner.enable_steady_tick(Duration::from_millis(80));
         
         session.end_session()?;

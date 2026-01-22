@@ -121,9 +121,7 @@ fn main() {
                 }
                 match handle_command_get(&mut current_session, name, show) {
                     Ok(())             => {
-                        /* Save, even though vault did not change, just to be sure. */
-                        //current_session.unwrap().save();
-                        try_save(&mut current_session);
+                        /* Do nothing */
                     }
                     Err(SessionError::VaultError(VaultError::NoVaultOpen)) => {
                         println!("No vault is active! Use init or open <vault-name>!");
@@ -146,8 +144,7 @@ fn main() {
                 }
                 match handle_command_getall(&mut current_session, show) {
                     Ok(()) => {
-                        /* Save, even though vault did not change, just to be sure. */
-                        try_save(&mut current_session);
+                        /* Do nothing */
                     }
                     Err(SessionError::VaultError(VaultError::NoVaultOpen)) => {
                         println!("No vault is active! Use init or open <vault-name>!");
@@ -326,9 +323,17 @@ fn main() {
 fn try_save(current_session: &mut Option<Session>) {
     /* Save, even though vault did not change, just to be sure. */
     if let Some(session) = current_session {
+        let spinner = spinner();
+        spinner.set_message("Saving vault ...");
+        spinner.enable_steady_tick(Duration::from_millis(80));
         match session.save() {
-            Ok(()) => {/* Do nothing */}
+            Ok(()) => {
+                spinner.finish_and_clear();
+                println!("Vault saved.")
+                /* Do nothing else */
+            }
             Err(e) => {
+                spinner.finish_and_clear();
                 println!("Error: {}", e);
             }
         }
