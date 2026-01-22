@@ -613,12 +613,12 @@ pub fn handle_command_deletevault(option_session: &mut Option<Session>) -> Resul
     }  
 }
 
-pub fn handle_command_generate(length: i32, no_symbols: bool) -> Result<String, VaultError> {
+pub fn handle_command_generate(length: i32, no_symbols: bool) -> Result<String, SessionError> {
     use rand::Rng;
 
     // Validierung der Länge
     if length <= 0 || length > 200 {
-        return Err(VaultError::InvalidLength);
+        return Err(SessionError::VaultError(VaultError::InvalidLength));
     }
 
     // Zeichensatz basierend auf no_symbols Flag
@@ -820,44 +820,7 @@ pub fn handle_command_edit(option_session: &mut Option<Session>, entry_name: Str
                     }
                 }}   
             } else {
-                // No password exists, ask if user wants to add one
-                print!("Add password? (y/n): ");
-                stdout().flush().unwrap();
-                let mut input = String::new();
-                io::stdin().read_line(&mut input)?;
-                
-                if input.trim().eq_ignore_ascii_case("y") {
-                    let mut loop_pw = String::new();
-                    'input_pw: loop {
-                        print!("Enter password: ");
-                        stdout().flush().unwrap();
-                        let input_password = rpassword::read_password()?;
-                        
-                        if input_password.is_empty() {
-                            break 'input_pw;
-                        }
-
-                        print!("Confirm password: ");
-                        stdout().flush().unwrap();
-                        let confirm = rpassword::read_password()?;
-                        
-                        if input_password != confirm {
-                            println!("Passwords do not match! Try again:");
-                            println!();
-                            continue 'input_pw;
-                        }
-
-                        loop_pw = input_password;
-                        break 'input_pw;
-                    }
-                    if loop_pw.is_empty() {
-                        None
-                    } else {
-                        Some(loop_pw)
-                    }
-                } else {
-                    None
-                }
+                add_password_to_entry()?
             };
 
             // Write changes to Entry
@@ -1117,14 +1080,14 @@ pub fn handle_command_quit(force: bool) -> Result<LoopCommand, VaultError> {
     }
 }
 
-pub fn copy_to_clipboard(content: &str) -> Result<(), VaultError> {
-    let mut clipboard = Clipboard::new().map_err(|_| VaultError::ClipboardError)?;
-    clipboard.set_text(content.to_string()).map_err(|_| VaultError::ClipboardError)?;
+pub fn copy_to_clipboard(content: &str) -> Result<(), SessionError> {
+    let mut clipboard = Clipboard::new().map_err(|_| SessionError::VaultError(VaultError::ClipboardError))?;
+    clipboard.set_text(content.to_string()).map_err(|_| SessionError::VaultError(VaultError::ClipboardError))?;
     println!("Passwort wurde in die Zwischenablage kopiert!");
     Ok(())
 }
 
-fn add_password_to_entry() -> Result<Option<String>, VaultError> {
+fn add_password_to_entry() -> Result<Option<String>, SessionError> {
     let mut loop_pw = String::new();
                 'input_pw: loop {
                     print!("Generate password for entry (y/n): ");
