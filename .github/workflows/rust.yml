@@ -1,0 +1,57 @@
+name: Rust
+
+on:
+  push:
+    branches: 
+      - "main"
+      - "json"
+  pull_request:
+    branches: 
+      - "main"
+      - "json"
+
+env:
+  CARGO_TERM_COLOR: always
+
+jobs:
+  build:
+
+    runs-on: ubuntu-latest
+
+    steps:
+    - uses: actions/checkout@v4
+    - name: Build
+      run: cargo build --verbose
+    - name: Run tests
+      run: cargo test --verbose
+
+  format:
+
+    runs-on: ubuntu-latest
+
+    steps:
+    - name: Checkout
+      uses: actions/checkout@v4
+    - name: Set up Rust
+      uses: actions-rust-lang/setup-rust-toolchain@v1
+      with:
+        components: rustfmt
+    - name: Run rustfmt (format code)
+      run: cargo fmt --all
+    - name: Commit and push formatted changes
+      env:
+        GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+      run: |
+        git config user.name "github-actions[bot]"
+        git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+        if [ -n "$(git status --porcelain)" ]; then
+          git add -A
+          git commit -m "chore: apply rustfmt via CI" || echo "No changes to commit"
+          git push
+        else
+          echo "No formatting changes"
+        fi
+
+
+    permissions:
+      contents: write

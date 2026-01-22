@@ -16,7 +16,6 @@ use std::io::{self, Write};
 use std::time::Duration;
 use std::thread;
 
-
 fn main() {
     intro_animation();
     let mut current_session: Option<Session> = None;
