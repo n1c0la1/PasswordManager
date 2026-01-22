@@ -7,7 +7,7 @@ mod session;
 
 use crate::errors::*;
 use crate::session::Session;
-use crate::vault_entry_manager::*;
+// use crate::vault_entry_manager::*;
 use crate::vault_file_manager::*;
 use crate::session::*;
 use clap::{Parser};
@@ -20,22 +20,27 @@ use std::thread;
 fn main() {
     intro_animation();
     let mut current_session: Option<Session> = None;
-    let mut current_vault: Option<Vault>     = None;
+    // let mut current_vault: Option<Vault>     = None;
 
     'interactive_shell: loop {
         //println!("===================");
         println!("___________________");
         println!("Current vault: {}", 
-            match &mut current_vault {
-                Some(v) => v.get_name(),
-                None    => "None"
+            match &current_session {
+                Some(session) => {
+                    match session.opened_vault {
+                        Some(v) => {v.get_name()}
+                        None    => "None"
+                    }
+                },
+                None => "None"
             }
         );
         println!("What action do you want to do? ");
         
         if !check_vaults_exist() {
             eprintln!("\nHint: There are currently no vaults at all, consider using 'init' to create one!");
-        } else if current_vault.is_none() {
+        } else if !active_session(&current_session) {
             eprintln!("\nHint: There are currently no vaults open, consider using 'open <vault-name>'!");
         }
         
@@ -70,10 +75,6 @@ fn main() {
 
         match cli.command {
             CommandCLI::Init { name } => {
-                if !active_session(&current_session) {
-                    println!("There is no session active right now, consider using open <vault-name>!");
-                    continue 'interactive_shell;
-                }
                 match handle_command_init(name) {
                     Ok(())            => {
                     // nothing needed to do, vault gets created and closed immidiatly
@@ -97,12 +98,12 @@ fn main() {
                     println!("There is no session active right now, consider using open <vault-name>!");
                     continue 'interactive_shell;
                 }
-                match handle_command_add(&mut current_vault, name, username, url, notes, password) {
+                match handle_command_add(&mut current_session, name, username, url, notes, password) {
                     Ok(())             => {
                         // write changes from current_vault to current_session with save
                         match &mut current_session {
                             Some(session) => {
-                                session.new_save(&current_vault);
+                                session.save();
                             }
                             None => {
                                 // Should never happen because of active_session check
@@ -110,7 +111,7 @@ fn main() {
                             }
                         }
                     },
-                    Err(VaultError::NoVaultOpen) => {
+                    Err(SessionError::VaultError(VaultError::NoVaultOpen)) => {
                         println!("Error: {}", VaultError::NoVaultOpen);
                         println!("Consider using init or open <vault-name>!");
                     }
@@ -126,8 +127,11 @@ fn main() {
                     println!("There is no session active right now, consider using open <vault-name>!");
                     continue 'interactive_shell;
                 }
-                match handle_command_get(&mut current_session, &mut current_vault, name, show) {
-                    Ok(())             => {/* Do nothing, vault did not change */}
+                match handle_command_get(&mut current_session, name, show) {
+                    Ok(())             => {
+                        /* Save, even though vault did not change, just to be sure. */
+                        current_session.unwrap().save();
+                    }
                     Err(SessionError::VaultError(VaultError::NoVaultOpen)) => {
                         println!("No vault is active! Use init or open <vault-name>!");
                     }
@@ -147,8 +151,11 @@ fn main() {
                     println!("There is no session active right now, consider using open <vault-name>!");
                     continue 'interactive_shell;
                 }
-                match handle_command_getall(&mut current_session, &mut current_vault, show) {
-                    Ok(()) => {/* Do nothing, vault did not change */}
+                match handle_command_getall(&mut current_session, show) {
+                    Ok(()) => {
+                        /* Save, even though vault did not change, just to be sure. */
+                        current_session.unwrap().save();
+                    }
                     Err(SessionError::VaultError(VaultError::NoVaultOpen)) => {
                         println!("No vault is active! Use init or open <vault-name>!");
                     }
@@ -169,19 +176,10 @@ fn main() {
                     println!("There is no session active right now, consider using open <vault-name>!");
                     continue 'interactive_shell;
                 }
-                match handle_command_delete(&mut current_vault, name) {
+                match handle_command_delete(&mut current_session, name) {
                     Ok(()) => {
-                        // write changes from current_vault to current_session with save
-                        match &mut current_session {
-                            Some(session) => {
-                                session.new_save(&current_vault);
-                                println!("Vault saved.\n");
-                            }
-                            None => {
-                                // Should never happen because of active_session check
-                                println!("Something went wrong, try starting a new session");
-                            }
-                        }
+                        /* Save, even though vault did not change, just to be sure. */
+                        current_session.unwrap().save();
                     }
                     Err(SessionError::VaultError(VaultError::NoVaultOpen)) => {
                         println!("No vault is active! Use init or open <vault-name>!");
@@ -250,18 +248,10 @@ fn main() {
                     println!("There is no session active right now, consider using open <vault-name>!");
                     continue 'interactive_shell;
                 }
-                match handle_command_edit(&mut current_vault, name) {
+                match handle_command_edit(&mut current_session, name) {
                     Ok(()) => {
-                        // write changes from current_vault to current_session with save
-                        match &mut current_session {
-                            Some(session) => {
-                                session.new_save(&current_vault);
-                            }
-                            None => {
-                                // Should never happen because of active_session check
-                                println!("Something went wrong, try starting a new session");
-                            }
-                        }
+                        /* Save, even though vault did not change, just to be sure. */
+                        current_session.unwrap().save();
                     }
                     Err(e) => {
                         println!("Error: {}", e)
