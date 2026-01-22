@@ -47,7 +47,7 @@ jobs:
         if [ -n "$(git status --porcelain)" ]; then
           git add -A
           git commit -m "chore: apply rustfmt via CI" || echo "No changes to commit"
-          git push origin HEAD:${GITHUB_REF_NAME}
+          git push origin HEAD:main
         else
           echo "No formatting changes"
         fi
