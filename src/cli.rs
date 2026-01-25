@@ -1192,8 +1192,8 @@ fn add_password_to_entry() -> Result<Option<String>, SessionError> {
                 let mut length_input = String::new();
                 io::stdout().flush().unwrap();
                 io::stdin().read_line(&mut length_input)?;
-                if length_input.trim().parse::<i32>().is_ok() {
-                    length = length_input.parse::<i32>().unwrap();
+                if let Ok(len) = length_input.trim().parse::<i32>() {
+                    length = len;
                     break 'input_length;
                 }
             }
