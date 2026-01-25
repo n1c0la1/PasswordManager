@@ -1433,53 +1433,37 @@ fn check_vault_name(vault_name: &str) -> Result<(), VaultError> {
         cleanup_test_vault(vault_name);
     }
 
-//     // Tests for getall, generate and delete
-//     #[test]
-//     fn test_handle_command_getall_no_vault() {
-//         let mut opt_vault: Option<Vault> = None;
-//         let res = handle_command_getall(&mut opt_vault, false);
-//         assert!(res.is_err());
-//         match res {
-//             Err(VaultError::NoVaultOpen) => {}
-//             _ => panic!("Expected NoVaultOpen"),
-//         }
-//     }
+    // Tests for getall, generate and delete
+    #[test]
+    fn test_handle_command_getall_no_vault() {
+        let vault_name = "test_vault";
+        let session = create_test_session(vault_name);
+        let res = handle_command_getall(&mut Some(session), false);
+        assert!(res.is_err());
+        match res {
+            Err(SessionError::VaultError(VaultError::CouldNotGetEntry)) => {}
+            _ => panic!("Expected No Entry"),
+        }
+        cleanup_test_vault(vault_name);
+    }
 
-//     #[test]
-//     fn test_getall_empty_vault() {
-//         let name = "test_vault_getall_empty";
-//         let vault = initialize_vault(name.to_string()).unwrap();
-//         let mut opt = Some(vault);
-
-//         let res = handle_command_getall(&mut opt, false);
-//         assert!(res.is_err());
-//         match res {
-//             Err(VaultError::CouldNotGetEntry) => {}
-//             _ => panic!("Expected CouldNotGetEntry for empty vault"),
-//         }
-
-//         cleanup_test_vault(name);
-//     }
-
-//     #[test]
-//     fn test_getall_success() {
-//         let name = "test_vault_getall_success";
-//         let mut vault = initialize_vault(name.to_string()).unwrap();
-//         let entry = Entry::new(
-//             "test_entry".to_string(),
-//             Some("testuser".to_string()),
-//             Some("testpass123".to_string()),
-//             Some("https://example.com".to_string()),
-//             Some("test notes".to_string()),
-//         );
-//         vault.add_entry(entry).unwrap();
-//         vault.save().unwrap();
-//         let mut opt = Some(vault);
-//         let res = handle_command_getall(&mut opt, false);
-//         assert!(res.is_ok());
-
-//         cleanup_test_vault(name);
-//     }
+    #[test]
+    fn test_getall_success() {
+        let vault_name = "test_vault";
+        let mut session = create_test_session(vault_name);
+        let entry = Entry::new(
+            "test_entry".to_string(),
+            Some("testuser".to_string()),
+            Some("testpass123".to_string()),
+            Some("https://example.com".to_string()),
+            Some("test notes".to_string()),
+        );
+        let vault = session.opened_vault.as_mut().unwrap();
+        vault.add_entry(entry).unwrap();
+        let res = handle_command_getall(&mut Some(session), false);
+        assert!(res.is_ok());
+        cleanup_test_vault(vault_name);
+    }
 
 //     #[test]
 //     fn test_generate_invalid_length() {
