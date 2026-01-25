@@ -1436,47 +1436,43 @@ fn add_password_to_entry() -> Result<Option<String>, SessionError> {
         }
     }
 
-//     #[test]
-//     fn test_delete_entry_not_found() {
-//         let name = "test_vault_delete_not_found";
-//         let vault = initialize_vault(name.to_string()).unwrap();
-//         let mut opt = Some(vault);
+    #[test]
+    fn test_delete_entry_not_found() {
+        let vault_name = "test_vault_delete_not_found";
+        let session = create_test_session(vault_name);
+        let res = handle_command_delete(&mut Some(session), "does_not_exist".to_string());
+        assert!(res.is_err());
+        match res {
+            Err(SessionError::VaultError(VaultError::EntryNotFound)) => {}
+            _ => panic!("Expected EntryNotFound"),
+        }
+        cleanup_test_vault(vault_name);
+    }
 
-//         let res = handle_command_delete(&mut opt, "does_not_exist".to_string());
-//         assert!(res.is_err());
-//         match res {
-//             Err(VaultError::EntryNotFound) => {}
-//             _ => panic!("Expected EntryNotFound"),
-//         }
+    #[test]
+    fn test_delete_success() {
+        let vault_name = "test_vault_delete_success";
+        let mut session = create_test_session(vault_name);
+        let entry = Entry::new(
+            "test_entry".to_string(),
+            Some("testuser".to_string()),
+            Some("testpass123".to_string()),
+            Some("https://example.com".to_string()),
+            Some("test notes".to_string()),
+        );
+        let vault = session.opened_vault.as_mut().unwrap();
+        vault.add_entry(entry).unwrap();
+        match handle_command_delete(&mut Some(session), "test_entry".to_string()) {
+            Ok(()) => assert!(true),
+            Err(e) => panic!("Expected successful deletion, got error: {}", e),
+        }
+        cleanup_test_vault(vault_name);
+    }
 
-//         cleanup_test_vault(name);
-//     }
-
-//     #[test]
-//     fn test_delete_success() {
-//         let name = "test_vault_delete_success";
-//         let mut vault = initialize_vault(name.to_string()).unwrap();
-//         let entry = Entry::new(
-//             "test_entry".to_string(),
-//             Some("testuser".to_string()),
-//             Some("testpass123".to_string()),
-//             Some("https://example.com".to_string()),
-//             Some("test notes".to_string()),
-//         );
-//         vault.add_entry(entry).unwrap();
-//         vault.save().unwrap();
-//         let mut opt = Some(vault);
-//         match handle_command_delete(&mut opt, "test_entry".to_string()) {
-//             Ok(()) => assert!(true),
-//             Err(e) => panic!("Expected successful deletion, got error: {}", e),
-//         }
-//         cleanup_test_vault(name);
-//     }
-
-//     // Testing format of custom VaultErrors
-//     #[test]
-//     fn test_vault_error_display_strings() {
-//         assert_eq!(format!("{}", VaultError::NameExists), "NAME ALREADY EXISTS");
-//         assert_eq!(format!("{}", VaultError::NoVaultOpen), "NO VAULT IS OPEN");
-//     }
-}
+    // Testing format of custom VaultErrors
+    #[test]
+    fn test_vault_error_display_strings() {
+        assert_eq!(format!("{}", VaultError::NameExists), "NAME ALREADY EXISTS");
+        assert_eq!(format!("{}", VaultError::NoVaultOpen), "NO VAULT IS OPEN");
+    }
+}    
