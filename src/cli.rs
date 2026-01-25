@@ -1405,36 +1405,36 @@ fn add_password_to_entry() -> Result<Option<String>, SessionError> {
         cleanup_test_vault(vault_name);
     }
 
-//     #[test]
-//     fn test_generate_invalid_length() {
-//         let res = handle_command_generate(0, true);
-//         assert!(res.is_err());
-//         match res {
-//             Err(VaultError::InvalidLength) => {}
-//             _ => panic!("Expected InvalidLength for length 0"),
-//         }
-//     }
+    #[test]
+    fn test_generate_invalid_length() {
+        let res = handle_command_generate(0, true);
+        assert!(res.is_err());
+        match res {
+            Err(SessionError::VaultError(VaultError::InvalidLength)) => {}
+            _ => panic!("Expected InvalidLength for length 0"),
+        }
+    }
 
-//     #[test]
-//     fn test_generate_success() {
-//         let length = 12;
-//         let res = handle_command_generate(length, false);
-//         assert!(res.is_ok());
-//         let password = res.unwrap();
-//         assert_eq!(password.len(), length as usize);
-//     }
+     #[test]
+    fn test_generate_success() {
+        let length = 12;
+        let res = handle_command_generate(length, false);
+        assert!(res.is_ok());
+        let password = res.unwrap();
+        assert_eq!(password.len(), length as usize);
+    }
 
-//     #[test]
-//     fn test_generate_correct_characters() {
-//         let length = 20;
-//         let res = handle_command_generate(length, true);
-//         assert!(res.is_ok());
-//         let password = res.unwrap();
-//         assert_eq!(password.len(), length as usize);
-//         for c in password.chars() {
-//             assert!(c.is_ascii_alphanumeric(), "Password contains non-alphanumeric character: {}", c);
-//         }
-//     }
+    #[test]
+    fn test_generate_correct_characters() {
+        let length = 20;
+        let res = handle_command_generate(length, true);
+        assert!(res.is_ok());
+        let password = res.unwrap();
+        assert_eq!(password.len(), length as usize);
+        for c in password.chars() {
+            assert!(c.is_ascii_alphanumeric(), "Password contains non-alphanumeric character: {}", c);
+        }
+    }
 
 //     #[test]
 //     fn test_delete_entry_not_found() {
