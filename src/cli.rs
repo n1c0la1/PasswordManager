@@ -1242,57 +1242,53 @@ fn add_password_to_entry() -> Result<Option<String>, SessionError> {
 
 // tests
 
-// #[cfg(test)]
-// mod tests {
-//     use super::*;
-//     use std::fs;
-//     use std::path::Path;
+#[cfg(test)]
+ mod tests {
+    use super::*;
+    use std::fs;
+    use std::path::Path;
+    // Helper-function to delete testvault-file
+    fn cleanup_test_vault(vault_name: &str) {
+        let path = format!("vaults/{}.psdb", vault_name);
+        if Path::new(&path).exists() {
+            fs::remove_file(&path).ok();
+        }
+    }
 
-//     // Helper-function to delete testvault-file
-//     fn cleanup_test_vault(vault_name: &str) {
-//         let path = format!("vaults/{}.psdb", vault_name);
-//         if Path::new(&path).exists() {
-//             fs::remove_file(&path).ok();
-//         }
-//     }
+    // ================== QUIT TESTS ==================
 
-//     // ================== QUIT TESTS ==================
+    #[test]
+    fn test_handle_command_quit_with_force() {
+        let result = handle_command_quit(true);
+        assert!(result.is_ok());
+        match result.unwrap() {
+            LoopCommand::Cancel => assert!(true),
+            LoopCommand::Continue => panic!("Expected Break, got Continue"),
+        }
+    }
 
-//     #[test]
-//     fn test_handle_command_quit_with_force() {
-//         let result = handle_command_quit(true);
-//         assert!(result.is_ok());
-//         match result.unwrap() {
-//             LoopCommand::Break => assert!(true),
-//             LoopCommand::Continue => panic!("Expected Break, got Continue"),
-//         }
-//     }
+    #[test]
+    fn test_loop_command_variants() {
+        let continue_cmd = LoopCommand::Continue;
+        let break_cmd = LoopCommand::Cancel;
+        match continue_cmd {
+            LoopCommand::Continue => assert!(true),
+            LoopCommand::Cancel => panic!("Wrong variant for Continue"),
+        }
+        match break_cmd {
+            LoopCommand::Cancel => assert!(true),
+            LoopCommand::Continue => panic!("Wrong variant for Break"),
+        }
+    }
 
-//     #[test]
-//     fn test_loop_command_variants() {
-//         let continue_cmd = LoopCommand::Continue;
-//         let break_cmd = LoopCommand::Break;
+    // ================== CLEAR TESTS ==================
 
-//         match continue_cmd {
-//             LoopCommand::Continue => assert!(true),
-//             LoopCommand::Break => panic!("Wrong variant for Continue"),
-//         }
-
-//         match break_cmd {
-//             LoopCommand::Break => assert!(true),
-//             LoopCommand::Continue => panic!("Wrong variant for Break"),
-//         }
-//     }
-
-//     // ================== CLEAR TESTS ==================
-
-//     #[test]
-//     fn test_handle_command_clear() {
-//         // test whether no panic
-//         handle_command_clear();
-//     }
-
-//     // ================== EDIT TESTS ==================
+    #[test]
+    fn test_handle_command_clear() {
+        // test whether no panic
+        handle_command_clear();
+    }
+    // ================== EDIT TESTS ==================
 
 //     #[test]
 //     fn test_edit_without_vault() {
@@ -1513,4 +1509,4 @@ fn add_password_to_entry() -> Result<Option<String>, SessionError> {
 //         assert_eq!(format!("{}", VaultError::NameExists), "NAME ALREADY EXISTS");
 //         assert_eq!(format!("{}", VaultError::NoVaultOpen), "NO VAULT IS OPEN");
 //     }
-// }
+}
