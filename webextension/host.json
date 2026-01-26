@@ -1,0 +1,7 @@
+{
+  "name": "com.example.fill_test",
+  "description": "Native host for fill-test",
+  "path": "", // Path needs to be set during installation
+  "type": "stdio",
+  "allowed_extensions": ["fill_test@example.org"]
+}
