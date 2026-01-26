@@ -405,58 +405,59 @@ pub fn handle_command_get(
     entry_name: String,
     show: bool,
 ) -> Result<(), SessionError> {
-    if let Some(session) = option_session {
-        // check Master-Password when show is passed.
-        if show {
-            let name_of_vault: &String = match &session.opened_vault {
-                Some(vault) => vault.get_name(),
-                None => {
-                    return Err(SessionError::VaultError(VaultError::NoVaultOpen));
-                }
-            };
-            let master_input: SecretString = rpassword::prompt_password(format!(
-                "Enter master password for '{}': ",
-                name_of_vault
-            ))?
-            .into();
-            session.verify_master_pw(master_input)?;
-        }
-        if let Some(ref mut opened_vault) = session.opened_vault {
-            if let Some(entry) = opened_vault.get_entry_by_name(&entry_name) {
-                println!("\n==== Entry: {} ====", entry_name);
-                println!(
-                    "Username: {}",
-                    entry.get_user_name().as_deref().unwrap_or("--EMPTY--")
-                );
-                println!(
-                    "URL:      {}",
-                    entry.get_url().as_deref().unwrap_or("--EMPTY--")
-                );
-                println!(
-                    "Notes:    {}",
-                    entry.get_notes().as_deref().unwrap_or("--EMPTY--")
-                );
-
-                if show {
-                    println!(
-                        "Password: {}",
-                        entry.get_password().as_deref().unwrap_or("--EMPTY--")
-                    );
-                } else {
-                    println!("Password: *****");
-                }
-                println!();
-
-                return Ok(());
-            } else {
-                println!("Error: Entry {} not found", entry_name);
-                return Err(SessionError::VaultError(VaultError::EntryNotFound));
+    let session = option_session
+        .as_mut()
+        .ok_or(SessionError::SessionInactive)?;
+    
+    // check Master-Password when show is passed.
+    if show {
+        let name_of_vault: &String = match &session.opened_vault {
+            Some(vault) => vault.get_name(),
+            None => {
+                return Err(SessionError::VaultError(VaultError::NoVaultOpen));
             }
-        } else {
-            return Err(SessionError::VaultError(VaultError::NoVaultOpen));
-        }
+        };
+        let master_input: SecretString =
+            rpassword::prompt_password(format!("Enter master password for '{}': ", name_of_vault))?
+                .into();
+        session.verify_master_pw(master_input)?;
     }
-    return Err(SessionError::SessionInactive);
+
+    let vault = session
+        .opened_vault
+        .as_mut()
+        .ok_or(SessionError::VaultError(VaultError::NoVaultOpen))?;
+
+    let entry = vault.get_entry_by_name(&entry_name).ok_or_else(|| {
+        println!("Error: Entry {} not found", entry_name);
+        SessionError::VaultError(VaultError::EntryNotFound)
+    })?;
+
+    println!("\n==== Entry: {} ====", entry_name);
+    println!(
+        "Username: {}",
+        entry.get_user_name().as_deref().unwrap_or("--EMPTY--")
+    );
+    println!(
+        "URL:      {}",
+        entry.get_url().as_deref().unwrap_or("--EMPTY--")
+    );
+    println!(
+        "Notes:    {}",
+        entry.get_notes().as_deref().unwrap_or("--EMPTY--")
+    );
+
+    if show {
+        println!(
+            "Password: {}",
+            entry.get_password().as_deref().unwrap_or("--EMPTY--")
+        );
+    } else {
+        println!("Password: *****");
+    }
+    println!();
+
+    Ok(())
 }
 
 pub fn handle_command_getall(
@@ -466,7 +467,7 @@ pub fn handle_command_getall(
     let session = option_session
         .as_mut()
         .ok_or(SessionError::SessionInactive)?;
-    
+
     // check Master-Password when show is passed.
     if show {
         let name_of_vault: &String = match &session.opened_vault {
