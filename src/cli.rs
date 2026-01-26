@@ -1,4 +1,5 @@
 use crate::errors::*;
+use crate::session;
 //use password_manager::*;
 use crate::session::*;
 use crate::vault_entry_manager::*;
@@ -505,50 +506,50 @@ pub fn handle_command_delete(
     option_session: &mut Option<Session>,
     entry_to_delete: String,
 ) -> Result<(), SessionError> {
-    if let Some(session) = option_session {
-        if let Some(ref mut opened_vault) = session.opened_vault {
-            let entry = if let Some(entry) = opened_vault.get_entry_by_name(&entry_to_delete) {
-                entry
-            } else {
-                println!();
-                println!(
-                    "'{}' not found in current vault \"{}\"!",
-                    entry_to_delete,
-                    opened_vault.get_name()
-                );
-                return Err(SessionError::VaultError(VaultError::EntryNotFound));
-            };
+    let session = option_session
+        .as_mut()
+        .ok_or(SessionError::SessionInactive)?;
+    let vault = session
+        .opened_vault
+        .as_mut()
+        .ok_or(SessionError::VaultError(VaultError::NoVaultOpen))?;
+    let entry = if let Some(entry) = vault.get_entry_by_name(&entry_to_delete) {
+        entry
+    } else {
+        println!();
+        println!(
+            "'{}' not found in current vault \"{}\"!",
+            entry_to_delete,
+            vault.get_name()
+        );
+        return Err(SessionError::VaultError(VaultError::EntryNotFound));
+    };
 
-            print!(
-                "Are you sure, you want to delete '{}'? (y/n): ",
-                entry.get_entry_name()
-            );
-            stdout().flush().unwrap();
+    print!(
+        "Are you sure, you want to delete '{}'? (y/n): ",
+        entry.get_entry_name()
+    );
+    stdout().flush().unwrap();
 
-            let mut confirm = String::new();
-            io::stdin().read_line(&mut confirm)?;
+    let mut confirm = String::new();
+    io::stdin().read_line(&mut confirm)?;
 
-            if confirm.trim().eq_ignore_ascii_case("y") {
-                // Master PW query maybe? TODO
-                let spinner = spinner();
-                spinner.enable_steady_tick(Duration::from_millis(80));
-                spinner.set_message("Removing entry ...");
+    if confirm.trim().eq_ignore_ascii_case("y") {
+        // Master PW query maybe? TODO
+        let spinner = spinner();
+        spinner.enable_steady_tick(Duration::from_millis(80));
+        spinner.set_message("Removing entry ...");
 
-                opened_vault.remove_entry_by_name(&entry_to_delete);
+        vault.remove_entry_by_name(&entry_to_delete);
 
-                spinner.finish_and_clear();
+        spinner.finish_and_clear();
 
-                println!();
-                println!("Entry '{}' successfully removed!", entry_to_delete);
-                return Ok(());
-            } else {
-                println!("Cancelled.\n");
-                return Ok(());
-            }
-        }
-        return Err(SessionError::VaultError(VaultError::NoVaultOpen));
+        println!();
+        println!("Entry '{}' successfully removed!", entry_to_delete);
+    } else {
+        println!("Cancelled.\n");
     }
-    return Err(SessionError::SessionInactive);
+    Ok(())
 }
 
 pub fn handle_command_deletevault(
@@ -741,7 +742,7 @@ pub fn handle_command_change_master(
     println!();
     spinner.finish_and_clear();
 
-    return Ok(());
+    Ok(())
 }
 
 pub fn handle_command_edit(
@@ -755,7 +756,7 @@ pub fn handle_command_edit(
     let vault = session
         .opened_vault
         .as_mut()
-        .ok_or(SessionError::SessionInactive)?;
+        .ok_or(SessionError::VaultError(VaultError::NoVaultOpen))?;
 
     if !vault.entryname_exists(&entry_name) {
         return Err(SessionError::VaultError(VaultError::EntryNotFound));
@@ -1310,7 +1311,7 @@ mod tests {
         let result = handle_command_edit(&mut option_session, "test_entry".to_string());
         assert!(result.is_err());
         match result {
-            Err(SessionError::SessionInactive) => assert!(true),
+            Err(SessionError::VaultError(VaultError::NoVaultOpen)) => assert!(true),
             _ => panic!("Expected NoVaultOpen error"),
         }
     }
