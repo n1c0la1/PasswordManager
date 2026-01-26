@@ -573,83 +573,83 @@ pub fn handle_command_deletevault(
     println!();
 
     //deleting vault only acceptible, if a vault is currently open (-> session is active)
-    if active_session(option_session) {
-        let session = option_session.as_mut().unwrap();
-        let vault_name = session.vault_name.clone();
-        println!(
-            "WARNING: You are about to PERMANENTLY delete vault '{}'!",
-            vault_name
-        );
-        print!("Do you wish to continue? (y/n): ");
-
-        stdout().flush().unwrap();
-        let mut input = String::new();
-        io::stdin().read_line(&mut input)?;
-
-        if input.trim().eq_ignore_ascii_case("n") {
-            return Err(SessionError::VaultError(VaultError::AnyhowError(anyhow!(
-                "Cancelled."
-            ))));
-        }
-
-        println!();
-        print!("Enter master password for {}: ", vault_name);
-        stdout().flush().unwrap();
-        let master_input: SecretString = rpassword::read_password()?.into();
-
-        session.verify_master_pw(master_input)?;
-
-        println!();
-        println!("Password verified.");
-        println!();
-
-        println!("FINAL WARNING: This action CANNOT be undone!");
-
-        'input: loop {
-            println!("Type 'DELETE {}' to confirm: ", vault_name);
-
-            let mut input = String::new();
-            stdout().flush().unwrap();
-            io::stdin().read_line(&mut input)?;
-            let trimmed = input.trim();
-
-            let expected = format!("DELETE {}", vault_name);
-            let expected_low_case = format!("delete {}", vault_name);
-            if trimmed == expected_low_case {
-                println!();
-                println!("You have to use capital letters! Try again or type exit.");
-                continue 'input;
-            } else if trimmed == expected {
-                break 'input;
-            } else if trimmed == "exit" {
-                return Err(SessionError::VaultError(VaultError::AnyhowError(anyhow!(
-                    "exit"
-                ))));
-            } else {
-                println!();
-                println!("Wrong input! Try again or type exit.");
-                continue 'input;
-            }
-        }
-
-        let spinner = spinner();
-        spinner.set_message(format!("Permanently deleting '{}' ...", vault_name));
-        spinner.enable_steady_tick(Duration::from_millis(80));
-        let path = Path::new("vaults").join(format!("{vault_name}.psdb"));
-
-        session.end_session()?;
-
-        fs::remove_file(path)?;
-        spinner.finish_and_clear();
-        println!();
-        println!("Vault '{}' deleted permanently.", vault_name);
-
-        Ok(())
-    } else {
+    if !active_session(option_session) {
         return Err(SessionError::VaultError(VaultError::AnyhowError(anyhow!(
             "Due to RustPass' logic, you have to open the vault you want to delete first!"
         ))));
     }
+
+    let session = option_session.as_mut().unwrap();
+    let vault_name = session.vault_name.clone();
+    println!(
+        "WARNING: You are about to PERMANENTLY delete vault '{}'!",
+        vault_name
+    );
+    print!("Do you wish to continue? (y/n): ");
+
+    stdout().flush().unwrap();
+    let mut input = String::new();
+    io::stdin().read_line(&mut input)?;
+
+    if input.trim().eq_ignore_ascii_case("n") {
+        return Err(SessionError::VaultError(VaultError::AnyhowError(anyhow!(
+            "Cancelled."
+        ))));
+    }
+
+    println!();
+    print!("Enter master password for {}: ", vault_name);
+    stdout().flush().unwrap();
+    let master_input: SecretString = rpassword::read_password()?.into();
+
+    session.verify_master_pw(master_input)?;
+
+    println!();
+    println!("Password verified.");
+    println!();
+
+    println!("FINAL WARNING: This action CANNOT be undone!");
+
+    'input: loop {
+        println!("Type 'DELETE {}' to confirm: ", vault_name);
+
+        let mut input = String::new();
+        stdout().flush().unwrap();
+        io::stdin().read_line(&mut input)?;
+        let trimmed = input.trim();
+
+        let expected = format!("DELETE {}", vault_name);
+        let expected_low_case = format!("delete {}", vault_name);
+        if trimmed == expected_low_case {
+            println!();
+            println!("You have to use capital letters! Try again or type exit.");
+            continue 'input;
+        } else if trimmed == expected {
+            break 'input;
+        } else if trimmed == "exit" {
+            return Err(SessionError::VaultError(VaultError::AnyhowError(anyhow!(
+                "exit"
+            ))));
+        } else {
+            println!();
+            println!("Wrong input! Try again or type exit.");
+            continue 'input;
+        }
+    }
+
+    let spinner = spinner();
+    spinner.set_message(format!("Permanently deleting '{}' ...", vault_name));
+    spinner.enable_steady_tick(Duration::from_millis(80));
+    let path = Path::new("vaults").join(format!("{vault_name}.psdb"));
+
+    session.end_session()?;
+
+    fs::remove_file(path)?;
+    spinner.finish_and_clear();
+    println!();
+    println!("Vault '{}' deleted permanently.", vault_name);
+
+    Ok(())
 }
 
 pub fn handle_command_generate(length: i32, no_symbols: bool) -> Result<String, SessionError> {
@@ -1303,7 +1303,7 @@ fn check_vault_name(vault_name: &str) -> Result<(), VaultError> {
 // tests
 
 #[cfg(test)]
- mod tests {
+mod tests {
     use super::*;
     use std::fs;
     use std::path::Path;
@@ -1370,9 +1370,9 @@ fn check_vault_name(vault_name: &str) -> Result<(), VaultError> {
         }
     }
 
-     #[test]
+    #[test]
     fn test_edit_nonexistent_entry() {
-        let vault_name ="test_vault_edit_nonexistent";
+        let vault_name = "test_vault_edit_nonexistent";
         let session = create_test_session(vault_name);
         let result = handle_command_edit(&mut Some(session), "nonexistent".to_string());
         assert!(result.is_err());
@@ -1475,7 +1475,7 @@ fn check_vault_name(vault_name: &str) -> Result<(), VaultError> {
         }
     }
 
-     #[test]
+    #[test]
     fn test_generate_success() {
         let length = 12;
         let res = handle_command_generate(length, false);
@@ -1492,7 +1492,11 @@ fn check_vault_name(vault_name: &str) -> Result<(), VaultError> {
         let password = res.unwrap();
         assert_eq!(password.len(), length as usize);
         for c in password.chars() {
-            assert!(c.is_ascii_alphanumeric(), "Password contains non-alphanumeric character: {}", c);
+            assert!(
+                c.is_ascii_alphanumeric(),
+                "Password contains non-alphanumeric character: {}",
+                c
+            );
         }
     }
 
@@ -1535,4 +1539,4 @@ fn check_vault_name(vault_name: &str) -> Result<(), VaultError> {
         assert_eq!(format!("{}", VaultError::NameExists), "NAME ALREADY EXISTS");
         assert_eq!(format!("{}", VaultError::NoVaultOpen), "NO VAULT IS OPEN");
     }
-}    
+}
