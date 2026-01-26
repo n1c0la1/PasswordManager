@@ -1061,35 +1061,15 @@ pub fn handle_command_close(
     option_session: &mut Option<Session>,
     force: bool,
 ) -> Result<LoopCommand, SessionError> {
-    if let Some(session) = option_session {
-        let open_vault_name = session.vault_name.clone();
+    let session = option_session
+        .as_mut()
+        .ok_or(SessionError::SessionInactive)?;
 
-        let spinner = spinner();
+    let open_vault_name = session.vault_name.clone();
 
-        if force {
-            spinner.set_message("Closing current vault and session ...");
-            spinner.enable_steady_tick(Duration::from_millis(80));
+    let spinner = spinner();
 
-            session.end_session()?;
-
-            spinner.finish_and_clear();
-            println!("Successfully closed '{}'!", open_vault_name);
-
-            return Ok(LoopCommand::Continue);
-        }
-
-        print!("Do you really want to close the current session and vault? (y/n): ");
-        stdout().flush().unwrap();
-
-        let mut input = String::new();
-        io::stdin().read_line(&mut input)?;
-
-        if input.trim().eq_ignore_ascii_case("n") {
-            println!();
-            println!("Cancelled.");
-            return Ok(LoopCommand::Cancel);
-        }
-
+    if force {
         spinner.set_message("Closing current vault and session ...");
         spinner.enable_steady_tick(Duration::from_millis(80));
 
@@ -1100,7 +1080,28 @@ pub fn handle_command_close(
 
         return Ok(LoopCommand::Continue);
     }
-    return Err(SessionError::SessionInactive);
+
+    print!("Do you really want to close the current session and vault? (y/n): ");
+    stdout().flush().unwrap();
+
+    let mut input = String::new();
+    io::stdin().read_line(&mut input)?;
+
+    if input.trim().eq_ignore_ascii_case("n") {
+        println!();
+        println!("Cancelled.");
+        return Ok(LoopCommand::Cancel);
+    }
+
+    spinner.set_message("Closing current vault and session ...");
+    spinner.enable_steady_tick(Duration::from_millis(80));
+
+    session.end_session()?;
+
+    spinner.finish_and_clear();
+    println!("Successfully closed '{}'!", open_vault_name);
+
+    return Ok(LoopCommand::Continue);
 }
 
 pub fn handle_command_vaults(current_session: &Option<Session>) {
