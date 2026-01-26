@@ -1,10 +1,6 @@
 use crate::errors::*;
-use crate::session;
-//use password_manager::*;
 use crate::session::*;
 use crate::vault_entry_manager::*;
-//use crate::vault_file_manager::initialize_vault;
-//use crate::test::*;
 
 use anyhow::anyhow;
 use arboard::Clipboard;
@@ -413,10 +409,8 @@ pub fn handle_command_get(
         .as_mut()
         .ok_or(SessionError::VaultError(VaultError::NoVaultOpen))?;
 
-    let entry = vault.get_entry_by_name(&entry_name).ok_or_else(|| {
-        println!("Error: Entry {} not found", entry_name);
-        SessionError::VaultError(VaultError::EntryNotFound)
-    })?;
+    let entry = vault.get_entry_by_name(&entry_name).ok_or(
+        SessionError::VaultError(VaultError::EntryNotFound))?;
 
     println!("\n==== Entry: {} ====", entry_name);
     println!(
@@ -1175,7 +1169,7 @@ pub fn handle_command_quit(force: bool) -> Result<LoopCommand, VaultError> {
     }
 }
 
-pub fn copy_to_clipboard(content: &str) -> Result<(), SessionError> {
+fn copy_to_clipboard(content: &str) -> Result<(), SessionError> {
     let mut clipboard =
         Clipboard::new().map_err(|_| SessionError::VaultError(VaultError::ClipboardError))?;
     clipboard

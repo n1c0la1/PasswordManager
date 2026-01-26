@@ -243,7 +243,9 @@ fn main() {
                 }
                 match handle_command_change_master(&mut current_session) {
                     Ok(()) => {
-                        try_save(&mut current_session);
+                        // wurde bereits gespeichert mit end_session
+                        //try_save(&mut current_session);
+                        current_session = None
                     }
                     Err(e) => {
                         println!("Error: {}", e);
