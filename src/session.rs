@@ -9,11 +9,14 @@ use crate::vault_file_manager::open_vault;
 use secrecy::ExposeSecret;
 use secrecy::SecretString;
 
+use std::time::{Duration, Instant};
+
 #[derive(Debug)]
 pub struct Session {
     pub vault_name: String,
     pub opened_vault: Option<Vault>,
     master_password: Option<SecretString>,
+    pub last_activity: Instant,
 }
 
 //a session is active when: opened_vault and master_password = Some(_)
@@ -44,7 +47,16 @@ impl Session {
             vault_name: vault_name,
             opened_vault: None,
             master_password: None,
+            last_activity: Instant::now(),
         }
+    }
+
+    pub fn update_activity(&mut self) {
+        self.last_activity = Instant::now();
+    }
+
+    pub fn check_timeout(&self, timeout: Duration) -> bool {
+        self.last_activity.elapsed() >= timeout
     }
 
     //assumption: vault already exists in memory
@@ -62,7 +74,7 @@ impl Session {
             Ok(vault) => {
                 self.master_password = Some(master_for_session);
                 self.opened_vault = Some(vault);
-                //later start timer here or last activity
+                self.last_activity = Instant::now();
                 Ok(())
             }
             Err(_) => Err(SessionError::VaultError(VaultError::InvalidKey)),
