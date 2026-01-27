@@ -13,13 +13,31 @@ use crate::vault_file_manager::*;
 use clap::Parser;
 use cli::*;
 use std::io::{self, Write};
+use std::sync::mpsc;
 use std::thread;
 use std::time::Duration;
 
 fn main() {
     intro_animation();
     let mut current_session: Option<Session> = None;
-    // let mut current_vault: Option<Vault>     = None;
+    let timeout_duration = Duration::from_secs(300); // 5 Minutes = 300 seconds
+
+    // Channel for communication between reader thread and main thread
+    let (tx, rx) = mpsc::channel::<String>();
+
+    // Reader thread: blocking read_line and forward lines to main thread
+    thread::spawn(move || {
+        loop {
+            let mut input = String::new();
+            if io::stdin().read_line(&mut input).is_err() {
+                break;
+            }
+            let input = input.trim_end().to_string();
+            if tx.send(input).is_err() {
+                break; // main thread dropped receiver
+            }
+        }
+    });
 
     'interactive_shell: loop {
         //println!("===================");
@@ -48,11 +66,30 @@ fn main() {
             );
         }
 
+        print!("> ");
         io::stdout().flush().unwrap();
 
-        let mut input = String::new();
-        io::stdin().read_line(&mut input).unwrap();
-        let input = input.trim();
+        let input_line = match rx.recv_timeout(timeout_duration) {
+            Ok(line) => line,
+            Err(mpsc::RecvTimeoutError::Timeout) => {
+                println!("\nNo input for {} seconds. Auto-logout.", timeout_duration.as_secs());
+                if let Some(session) = &mut current_session {
+                    match session.end_session() {
+                        Ok(()) => { /* Do nothing */ }
+                        Err(e) => {
+                            eprintln!("Error during auto-logout: {}", e);
+                        }
+                    }
+                }
+                current_session = None;
+                continue 'interactive_shell;
+            }
+            Err(mpsc::RecvTimeoutError::Disconnected) => {
+                break 'interactive_shell; // reader thread ended
+            }
+        };
+
+        let input = input_line.trim();
 
         if input.is_empty() {
             continue;
