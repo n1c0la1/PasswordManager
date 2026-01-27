@@ -35,13 +35,18 @@ fn main() {
                     if session.check_timeout(Duration::from_secs(10)) {
                         let name = session.vault_name.clone();
                         // Attempt to end session
-                        if let Ok(_) = session.end_session() {
-                            handle_command_clear();
-                            println!(
-                                "\n\nYou have been logged out. Last used vault was : {} Use open to open it again",
-                                name
-                            );
-                            io::stdout().flush().unwrap();
+                        match session.end_session() {
+                            Ok(_) => {
+                                handle_command_clear();
+                                println!(
+                                    "\n\nYou have been logged out. Last used vault was : {} Use open to open it again",
+                                    name
+                                );
+                                io::stdout().flush().unwrap();
+                            }
+                            Err(e) => {
+                                eprintln!("\nError in AutoLock: Could not end session: {}", e);
+                            }
                         }
                     }
                 } else {
