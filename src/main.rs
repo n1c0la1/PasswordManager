@@ -72,7 +72,10 @@ fn main() {
         let input_line = match rx.recv_timeout(timeout_duration) {
             Ok(line) => line,
             Err(mpsc::RecvTimeoutError::Timeout) => {
-                println!("\nNo input for {} seconds. Auto-logout.", timeout_duration.as_secs());
+                println!(
+                    "\nNo input for {} seconds. Auto-logout.",
+                    timeout_duration.as_secs()
+                );
                 if let Some(session) = &mut current_session {
                     match session.end_session() {
                         Ok(()) => { /* Do nothing */ }
