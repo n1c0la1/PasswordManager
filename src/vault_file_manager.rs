@@ -8,10 +8,12 @@
 -knows file names and paths
 
 */
+use directories::ProjectDirs;
 use secrecy::SecretString;
 use std::fs::{self, File};
+
 use std::io::{Read, Write};
-use std::path::Path;
+use std::path::{Path, PathBuf};
 use std::str;
 
 use crate::crypto;
@@ -28,8 +30,8 @@ pub fn initialize_vault(name: String) -> Result<Vault, VaultError> {
     // }
 
     //IMPORTANT: password length should be checked at input (cli.rs)
-    let path = format!("vaults/{name}.psdb");
-    if Path::new(&path).exists() {
+    let path = get_vaults_dir()?.join(format!("{name}.psdb"));
+    if path.exists() {
         return Err(VaultError::FileExists);
     }
     let vault: Vault = Vault::new(name); //deleted mut 
@@ -39,7 +41,7 @@ pub fn initialize_vault(name: String) -> Result<Vault, VaultError> {
 //encrypts file with a master password -> use session.rs to remember the master password temporarily. must always be called with the correct master from the session
 pub fn close_vault(vault: &Vault, password: SecretString) -> Result<(), VaultError> {
     let encrypted_vault = crypto::encrypt_vault(&password, vault.to_json())?;
-    let path = format!("vaults/{}.psdb", vault.name);
+    let path = get_vaults_dir()?.join(format!("{}.psdb", vault.name));
     let mut file = File::create(path)?;
     file.write_all(&encrypted_vault)?;
     Ok(())
@@ -47,7 +49,7 @@ pub fn close_vault(vault: &Vault, password: SecretString) -> Result<(), VaultErr
 
 //opens the vault + checks if master password was correct by successfully encrypting the file
 pub fn open_vault(file_name: String, password: SecretString) -> Result<Vault, VaultError> {
-    let path = format!("vaults/{file_name}.psdb");
+    let path = get_vaults_dir()?.join(format!("{file_name}.psdb"));
 
     let encrypted_bytes = read_file_to_bytes(&path)?;
     //handle error: enc_file::EncFileError::Crypto to validate password
@@ -59,7 +61,12 @@ pub fn open_vault(file_name: String, password: SecretString) -> Result<Vault, Va
 
 /// Checks if any vaults exists in the vault folder.
 pub fn check_vaults_exist() -> bool {
-    fs::read_dir("vaults")
+    let vaults_dir = match get_vaults_dir() {
+        Ok(dir) => dir,
+        Err(_) => return false,
+    };
+
+    fs::read_dir(vaults_dir)
         .map(|mut entries| {
             entries.any(|e| {
                 e.map(|entry| {
@@ -90,7 +97,8 @@ pub fn change_master_pw(
 
 pub fn list_vaults() -> Result<Vec<String>, VaultError> {
     let mut vector = Vec::new();
-    let entries = fs::read_dir("vaults")?;
+    let vaults_dir = get_vaults_dir()?;
+    let entries = fs::read_dir(vaults_dir)?;
 
     for entry in entries {
         let unwraped_entry = entry?;
@@ -104,11 +112,46 @@ pub fn list_vaults() -> Result<Vec<String>, VaultError> {
     Ok(vector)
 }
 
+pub fn get_vault_path(name: &str) -> Result<PathBuf, VaultError> {
+    Ok(get_vaults_dir()?.join(format!("{name}.psdb")))
+}
+
+pub fn vault_exists(name: &str) -> Result<bool, VaultError> {
+    Ok(get_vault_path(name)?.exists())
+}
+
+pub fn delete_vault_file(name: &str) -> Result<(), VaultError> {
+    let path = get_vault_path(name)?;
+    if path.exists() {
+        fs::remove_file(path)?;
+        Ok(())
+    } else {
+        Err(VaultError::VaultDoesNotExist)
+    }
+}
+
 //----------------------------------------------------------------------------
 // Internal helper functions (private)
 //----------------------------------------------------------------------------
 
-fn read_file_to_bytes(path: &str) -> Result<Vec<u8>, VaultError> {
+fn get_vaults_dir() -> Result<PathBuf, VaultError> {
+    let proj_dirs = ProjectDirs::from("", "", "password_manager").ok_or_else(|| {
+        VaultError::IoError(std::io::Error::new(
+            std::io::ErrorKind::NotFound,
+            "Home directory not found",
+        ))
+    })?;
+
+    let vaults_dir = proj_dirs.data_dir().join("vaults");
+
+    if !vaults_dir.exists() {
+        fs::create_dir_all(&vaults_dir)?;
+    }
+
+    Ok(vaults_dir)
+}
+
+fn read_file_to_bytes(path: &Path) -> Result<Vec<u8>, VaultError> {
     let mut file = File::open(path)?;
     let mut contents = Vec::new();
     file.read_to_end(&mut contents)?;

@@ -167,8 +167,7 @@ pub fn handle_command_init(option_name: Option<String>) -> Result<(), VaultError
         input.trim().to_string()
     };
 
-    let path = Path::new("vaults").join(format!("{vault_name}.psdb"));
-    if path.exists() {
+    if crate::vault_file_manager::vault_exists(&vault_name)? {
         return Err(VaultError::NameExists);
     }
 
@@ -619,11 +618,9 @@ pub fn handle_command_deletevault(
         let spinner = spinner();
         spinner.set_message(format!("Permanently deleting '{}' ...", vault_name));
         spinner.enable_steady_tick(Duration::from_millis(80));
-        let path = Path::new("vaults").join(format!("{vault_name}.psdb"));
-
         session.end_session()?;
-
-        fs::remove_file(path)?;
+        crate::vault_file_manager::delete_vault_file(&vault_name)
+            .map_err(SessionError::VaultError)?;
         spinner.finish_and_clear();
         println!();
         println!("Vault '{}' deleted permanently.", vault_name);
