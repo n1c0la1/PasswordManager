@@ -1,6 +1,8 @@
 use std::error::Error;
 use std::fmt;
 
+use zxcvbn::ZxcvbnError;
+
 //use crate::crypto::CryptoError;
 
 #[derive(Debug)]
@@ -51,12 +53,14 @@ pub enum VaultError {
     NoVaultOpen,
     CouldNotOpen,
     VaultDoesNotExist,
+    WeakPassword,
     IoError(std::io::Error),
     SerdeError(serde_json::Error),
     EncFileError(enc_file::EncFileError),
     AnyhowError(anyhow::Error),
     Utf8Error(std::str::Utf8Error),
     CryptoError(CryptoError),
+    ZxcvbnError(zxcvbn::ZxcvbnError),
     ClipboardError,
 }
 
@@ -77,12 +81,14 @@ impl fmt::Display for VaultError {
             VaultError::NoVaultOpen => write!(f, "NO VAULT IS OPEN"),
             VaultError::CouldNotOpen => write!(f, "COULD NOT OPEN VAULT"),
             VaultError::VaultDoesNotExist => write!(f, "VAULT DOES NOT EXIST"),
+            VaultError::WeakPassword => write!(f, "PASSWORD IS TOO WEAK"),
             VaultError::IoError(e) => write!(f, "{}", e),
             VaultError::SerdeError(e) => write!(f, "SERDE ERROR: {}", e),
             VaultError::EncFileError(e) => write!(f, "ENC FILE ERROR: {}", e),
             VaultError::AnyhowError(e) => write!(f, "{}", e),
             VaultError::Utf8Error(e) => write!(f, "UTF8 ERROR: {}", e),
             VaultError::CryptoError(e) => write!(f, "CRYPTO ERROR: {}", e),
+            VaultError::ZxcvbnError(e) => write!(f, "ZXCVBN ERROR: {}", e),
             VaultError::ClipboardError => write!(f, "COULD NOT COPY TO CLIPBOARD"),
         }
     }
@@ -131,5 +137,11 @@ impl From<std::str::Utf8Error> for VaultError {
 impl From<CryptoError> for VaultError {
     fn from(error: CryptoError) -> Self {
         VaultError::CryptoError(error)
+    }
+}
+
+impl From<ZxcvbnError> for VaultError {
+    fn from(error: zxcvbn::ZxcvbnError) -> Self {
+        VaultError::ZxcvbnError(error)
     }
 }

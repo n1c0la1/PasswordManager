@@ -17,6 +17,7 @@ use std::io::stdout;
 use std::io::{self, Write};
 use std::path::Path;
 use std::time::Duration;
+use zxcvbn::zxcvbn;
 
 #[derive(Parser)]
 #[command(name = "pw")]
@@ -167,6 +168,7 @@ pub fn handle_command_init(option_name: Option<String>) -> Result<(), VaultError
         input.trim().to_string()
     };
 
+    
     let path = Path::new("vaults").join(format!("{vault_name}.psdb"));
     if path.exists() {
         return Err(VaultError::NameExists);
@@ -179,17 +181,34 @@ pub fn handle_command_init(option_name: Option<String>) -> Result<(), VaultError
         io::stdout().flush().unwrap();
 
         let password: SecretString = rpassword::prompt_password("Master-Password: ")?.into();
-
+/*
         if password.expose_secret().is_empty() {
             println!("The Master-Password may not be empty! Try again.");
             println!();
             continue 'define_mw;
-        } else if password.expose_secret().len() < 3 {
+        } else if password.expose_secret().len() < 10 {
             println!("The Password is too short! (minimum length is 3) Try again.");
             println!();
             continue 'define_mw;
         }
+         */
 
+        match check_password_strength(&password) {
+            Err(_) => continue 'define_mw,
+            Ok(()) => {
+                let password_confirm: SecretString =
+                rpassword::prompt_password("Please confirm the Master-Password: ")?.into();
+
+                if password.expose_secret() != password_confirm.expose_secret() {
+                    println!("The passwords do not match, please try again.");
+                    println!();
+                    continue 'define_mw;
+                }
+
+                break 'define_mw password;
+            }
+        }
+/*
         let password_confirm: SecretString =
             rpassword::prompt_password("Please confirm the Master-Password: ")?.into();
 
@@ -200,6 +219,7 @@ pub fn handle_command_init(option_name: Option<String>) -> Result<(), VaultError
         }
 
         break 'define_mw password;
+         */
     };
 
     let spinner = spinner();
@@ -1240,6 +1260,30 @@ fn add_password_to_entry() -> Result<Option<String>, SessionError> {
     }
 }
 
+fn check_password_strength(password: &SecretString) -> Result<(), VaultError>{
+    if password.expose_secret().is_empty() {
+        println!("The Master-Password may not be empty! Try again.");
+        println!();
+        return Err(VaultError::WeakPassword);
+    }
+    if password.expose_secret().len() < 10 {
+        println!("The Password is too short! (minimum length is 10 characters) Try again.");
+        println!();
+        return Err(VaultError::WeakPassword);
+    }
+
+    let min_number_of_guesses = 1_000_000_000;
+    let estimate = zxcvbn(&password.expose_secret(), &[])?;
+    if estimate.guesses() < min_number_of_guesses {
+        println!("Estimated guesses: {}", estimate.guesses());
+        println!("The password is too weak, do not use common passwords. Try combining unrelated words.");
+        return Err(VaultError::WeakPassword);
+    }
+    //println!("Estimated guesses: {}", estimate.guesses());
+    
+    Ok(())
+
+}
 // tests
 
 // #[cfg(test)]
