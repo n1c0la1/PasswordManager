@@ -156,6 +156,38 @@ pub fn spinner() -> ProgressBar {
 pub fn handle_command_init(option_name: Option<String>) -> Result<(), VaultError> {
     println!("\nInitializing new vault: ");
 
+    let vault_name: String = 'define_vault_name: loop {
+        if let Some(option_vault_name) = option_name.clone() {
+            match check_vault_name(&option_vault_name) {
+                Err(_) => {
+                    println!("Invalid name.");
+                    println!("Suggestion: Vault name should be less than 64 characters long");
+                    println!("Suggestion: Vault name is allowed to contain only letters, numbers, \"_\" and \"-\" \n");
+                    continue 'define_vault_name
+                }
+                Ok(()) => break 'define_vault_name option_vault_name
+            }
+        } else {
+            println!("What should be the name of your new vault?");
+            print!("> ");
+            io::stdout().flush().unwrap();
+            let mut input = String::new();
+            io::stdin().read_line(&mut input)?;
+            print!("{input}");
+            let input = input.trim().to_string();
+
+            match check_vault_name(&input) {
+                Err(_) => {
+                    println!("Invalid name.");
+                    println!("Suggestion: Vault name should be less than 64 characters long");
+                    println!("Suggestion: Vault name is allowed to contain only letters, numbers, \"_\" and \"-\" \n");
+                    continue 'define_vault_name
+                }
+                Ok(()) => break 'define_vault_name input
+            }
+        };
+    };
+    /*
     let vault_name = if let Some(name) = option_name {
         name
     } else {
@@ -167,6 +199,7 @@ pub fn handle_command_init(option_name: Option<String>) -> Result<(), VaultError
         print!("{input}");
         input.trim().to_string()
     };
+ */
 
     
     let path = Path::new("vaults").join(format!("{vault_name}.psdb"));
@@ -181,17 +214,6 @@ pub fn handle_command_init(option_name: Option<String>) -> Result<(), VaultError
         io::stdout().flush().unwrap();
 
         let password: SecretString = rpassword::prompt_password("Master-Password: ")?.into();
-/*
-        if password.expose_secret().is_empty() {
-            println!("The Master-Password may not be empty! Try again.");
-            println!();
-            continue 'define_mw;
-        } else if password.expose_secret().len() < 10 {
-            println!("The Password is too short! (minimum length is 3) Try again.");
-            println!();
-            continue 'define_mw;
-        }
-         */
 
         match check_password_strength(&password) {
             Err(_) => continue 'define_mw,
@@ -208,18 +230,6 @@ pub fn handle_command_init(option_name: Option<String>) -> Result<(), VaultError
                 break 'define_mw password;
             }
         }
-/*
-        let password_confirm: SecretString =
-            rpassword::prompt_password("Please confirm the Master-Password: ")?.into();
-
-        if password.expose_secret() != password_confirm.expose_secret() {
-            println!("The passwords do not match, please try again.");
-            println!();
-            continue 'define_mw;
-        }
-
-        break 'define_mw password;
-         */
     };
 
     let spinner = spinner();
@@ -1283,6 +1293,20 @@ fn check_password_strength(password: &SecretString) -> Result<(), VaultError>{
     
     Ok(())
 
+}
+
+fn check_vault_name(vault_name: &str) -> Result<(), VaultError> {
+    if vault_name.len() > 64 {
+        return Err(VaultError::InvalidVaultName);
+    }
+    if vault_name.is_empty() {
+        return Err(VaultError::InvalidVaultName);
+    }
+    if !vault_name.chars().all(|c| c.is_ascii_alphanumeric() || c == '_' || c == '-') {
+        return Err(VaultError::InvalidVaultName);
+    }
+    
+    Ok(())
 }
 // tests
 
