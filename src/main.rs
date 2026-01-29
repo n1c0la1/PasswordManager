@@ -258,14 +258,14 @@ fn main() {
                         }
                         Err(SessionError::VaultError(VaultError::AnyhowError(ref e)))
                             if e.to_string() == "Cancelled." =>
-                        {
-                            println!("\nDeletion cancelled.");
-                        }
+                            {
+                                println!("\nDeletion cancelled.");
+                            }
                         Err(SessionError::VaultError(VaultError::AnyhowError(ref e)))
                             if e.to_string() == "exit" =>
-                        {
-                            println!("Exiting...");
-                        }
+                            {
+                                println!("Exiting...");
+                            }
                         Err(e) => {
                             println!("Error: {}", e);
                         }
