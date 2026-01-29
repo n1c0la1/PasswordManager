@@ -980,6 +980,10 @@ pub fn handle_command_open(
                 spinner.finish_and_clear();
                 println!("Vault '{}' closed successfully.", old_name);
             }
+            Err(SessionError::SessionInactive) => {
+                spinner.finish_and_clear();
+                // Session was already inactive, just verify it's cleared
+            }
             Err(_) => {
                 spinner.finish_and_clear();
                 return Err(SessionError::VaultError(VaultError::CouldNotClose));
