@@ -134,7 +134,7 @@ impl Session {
     }
 }
 
-/*
+
 #[cfg(test)]
 mod tests {
     use super::*;
@@ -211,7 +211,7 @@ mod tests {
         };
         new_session.start_session(master_pw.clone()).unwrap();
         let (vault, _master) = new_session.session_state().unwrap();
-        let found = vault.get_entry_by_name("Email".to_string());
+        let found = vault.get_entry_by_name(&"Email".to_owned());
         assert!(found.is_some(), "Saved entry was not persisted");
 
         // Clean up
@@ -242,4 +242,3 @@ mod tests {
         let _ = std::fs::remove_file(format!("vaults/{}.psdb", vault_name));
     }
 }
-     */

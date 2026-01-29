@@ -1,9 +1,6 @@
 use crate::errors::*;
-//use password_manager::*;
 use crate::session::*;
 use crate::vault_entry_manager::*;
-//use crate::vault_file_manager::initialize_vault;
-//use crate::test::*;
 
 use anyhow::anyhow;
 use arboard::Clipboard;
@@ -248,154 +245,155 @@ pub fn handle_command_add(
     notes: Option<String>,
     password: Option<String>,
 ) -> Result<(), SessionError> {
-    if let Some(session) = option_session {
-        if let Some(ref mut opened_vault) = session.opened_vault {
-            // Entry Name (REQUIRED)
+    let session = option_session
+        .as_mut()
+        .ok_or(SessionError::SessionInactive)?;
 
-            // Collect all existing entrynames
-            let existing_names: Vec<String> = opened_vault
-                .get_entries()
-                .iter()
-                .map(|e| e.get_entry_name().clone())
-                .collect();
+    let vault = session
+        .opened_vault
+        .as_mut()
+        .ok_or(SessionError::VaultError(VaultError::NoVaultOpen))?;
 
-            let final_name = if let Some(n) = name {
-                if existing_names.contains(&n) {
-                    return Err(SessionError::VaultError(VaultError::NameExists));
-                } else {
-                    n
-                }
-            } else {
-                let input_name;
-                'input: loop {
-                    println!("\n=== Adding new entry ===");
-                    println!("Entry name (required): ");
-                    print!("> ");
-                    io::stdout().flush().unwrap();
+    // Entry Name (REQUIRED)
 
-                    let mut input = String::new();
-                    io::stdin().read_line(&mut input)?;
+    // Collect all existing entrynames
+    let existing_names: Vec<String> = vault
+        .get_entries()
+        .iter()
+        .map(|e| e.get_entry_name().clone())
+        .collect();
 
-                    let trimmed_name: String = input.trim().to_string();
-                    if trimmed_name.is_empty() {
-                        println!("Error: Entry name cannot be empty!");
-                        continue 'input;
-                    } else if trimmed_name.eq("-EXIT-") {
-                        return Ok(());
-                    }
-
-                    if existing_names.contains(&trimmed_name) {
-                        println!(
-                            "Error: the name '{}' already exists! Try again or type '-EXIT-'.",
-                            trimmed_name
-                        );
-                        continue 'input;
-                    }
-
-                    input_name = trimmed_name;
-                    break 'input;
-                }
-                input_name
-            };
-
-            println!("\n(Press Enter to skip optional fields)");
-
-            // Username
-            let final_username = if let Some(u) = username {
-                Some(u)
-            } else {
-                println!("Username: ");
-                print!("> ");
-                io::stdout().flush().unwrap();
-
-                let mut input_username = String::new();
-                io::stdin().read_line(&mut input_username)?;
-                let trimmed_username = input_username.trim().to_string();
-                if trimmed_username.is_empty() {
-                    None
-                } else {
-                    println!();
-                    Some(trimmed_username)
-                }
-            };
-
-            // URL
-            let final_url = if let Some(url) = url {
-                Some(url)
-            } else {
-                println!("URL: ");
-                print!("> ");
-                io::stdout().flush().unwrap();
-
-                let mut input_url = String::new();
-                io::stdin().read_line(&mut input_url)?;
-                let trimmed_url = input_url.trim().to_string();
-                if trimmed_url.is_empty() {
-                    None
-                } else {
-                    println!();
-                    Some(trimmed_url)
-                }
-            };
-
-            // Notes
-            let final_notes = if let Some(n) = notes {
-                Some(n)
-            } else {
-                println!("Type additional notes, if needed (enter submits it): ");
-                print!("> ");
-                io::stdout().flush().unwrap();
-
-                let mut input_url = String::new();
-                io::stdin().read_line(&mut input_url)?;
-                let trimmed_notes = input_url.trim().to_string();
-                if trimmed_notes.is_empty() {
-                    None
-                } else {
-                    println!();
-                    Some(trimmed_notes)
-                }
-            };
-
-            // Password
-            let final_pw = if let Some(p) = password {
-                Some(p)
-            } else {
-                add_password_to_entry()?
-            };
-
-            let entry = Entry::new(
-                final_name.clone(),
-                final_username,
-                final_pw,
-                final_url,
-                final_notes,
-            );
-
-            let spinner = spinner();
-            spinner.enable_steady_tick(Duration::from_millis(80));
-            spinner.set_message("Adding PasswordEntry...");
-
-            match opened_vault.add_entry(entry) {
-                Ok(_) => {
-                    spinner.finish_and_clear();
-
-                    println!();
-                    println!("Entry '{}' added successfully!", final_name);
-                    println!();
-
-                    Ok(())
-                }
-                Err(e) => {
-                    spinner.finish_and_clear();
-                    Err(SessionError::VaultError(e))
-                }
-            }
+    let final_name = if let Some(n) = name {
+        if existing_names.contains(&n) {
+            return Err(SessionError::VaultError(VaultError::NameExists));
         } else {
-            Err(SessionError::VaultError(VaultError::NoVaultOpen))
+            n
         }
     } else {
-        Err(SessionError::SessionInactive)
+        let input_name;
+        'input: loop {
+            println!("\n=== Adding new entry ===");
+            println!("Entry name (required): ");
+            print!("> ");
+            io::stdout().flush().unwrap();
+
+            let mut input = String::new();
+            io::stdin().read_line(&mut input)?;
+
+            let trimmed_name: String = input.trim().to_string();
+            if trimmed_name.is_empty() {
+                println!("Error: Entry name cannot be empty!");
+                continue 'input;
+            } else if trimmed_name.eq("-EXIT-") {
+                return Ok(());
+            }
+
+            if existing_names.contains(&trimmed_name) {
+                println!(
+                    "Error: the name '{}' already exists! Try again or type '-EXIT-'.",
+                    trimmed_name
+                );
+                continue 'input;
+            }
+
+            input_name = trimmed_name;
+            break 'input;
+        }
+        input_name
+    };
+
+    println!("\n(Press Enter to skip optional fields)");
+
+    // Username
+    let final_username = if let Some(u) = username {
+        Some(u)
+    } else {
+        println!("Username: ");
+        print!("> ");
+        io::stdout().flush().unwrap();
+
+        let mut input_username = String::new();
+        io::stdin().read_line(&mut input_username)?;
+        let trimmed_username = input_username.trim().to_string();
+        if trimmed_username.is_empty() {
+            None
+        } else {
+            println!();
+            Some(trimmed_username)
+        }
+    };
+
+    // URL
+    let final_url = if let Some(url) = url {
+        Some(url)
+    } else {
+        println!("URL: ");
+        print!("> ");
+        io::stdout().flush().unwrap();
+
+        let mut input_url = String::new();
+        io::stdin().read_line(&mut input_url)?;
+        let trimmed_url = input_url.trim().to_string();
+        if trimmed_url.is_empty() {
+            None
+        } else {
+            println!();
+            Some(trimmed_url)
+        }
+    };
+
+    // Notes
+    let final_notes = if let Some(n) = notes {
+        Some(n)
+    } else {
+        println!("Type additional notes, if needed (enter submits it): ");
+        print!("> ");
+        io::stdout().flush().unwrap();
+
+        let mut input_url = String::new();
+        io::stdin().read_line(&mut input_url)?;
+        let trimmed_notes = input_url.trim().to_string();
+        if trimmed_notes.is_empty() {
+            None
+        } else {
+            println!();
+            Some(trimmed_notes)
+        }
+    };
+
+    // Password
+    let final_pw = if let Some(p) = password {
+        Some(p)
+    } else {
+        add_password_to_entry()?
+    };
+
+    let entry = Entry::new(
+        final_name.clone(),
+        final_username,
+        final_pw,
+        final_url,
+        final_notes,
+    );
+
+    let spinner = spinner();
+    spinner.enable_steady_tick(Duration::from_millis(80));
+    spinner.set_message("Adding PasswordEntry...");
+
+    match vault.add_entry(entry) {
+        Ok(_) => {
+            spinner.finish_and_clear();
+
+            println!();
+            println!("Entry '{}' added successfully!", final_name);
+            println!();
+
+            Ok(())
+        }
+        Err(e) => {
+            spinner.finish_and_clear();
+            Err(SessionError::VaultError(e))
+        }
     }
 }
 
@@ -404,167 +402,169 @@ pub fn handle_command_get(
     entry_name: String,
     show: bool,
 ) -> Result<(), SessionError> {
-    if let Some(session) = option_session {
-        // check Master-Password when show is passed.
-        if show {
-            let name_of_vault: &String = match &session.opened_vault {
-                Some(vault) => vault.get_name(),
-                None => {
-                    return Err(SessionError::VaultError(VaultError::NoVaultOpen));
-                }
-            };
-            let master_input: SecretString = rpassword::prompt_password(format!(
-                "Enter master password for '{}': ",
-                name_of_vault
-            ))?
-            .into();
-            session.verify_master_pw(master_input)?;
-        }
-        if let Some(ref mut opened_vault) = session.opened_vault {
-            if let Some(entry) = opened_vault.get_entry_by_name(&entry_name) {
-                println!("\n==== Entry: {} ====", entry_name);
-                println!(
-                    "Username: {}",
-                    entry.get_user_name().as_deref().unwrap_or("--EMPTY--")
-                );
-                println!(
-                    "URL:      {}",
-                    entry.get_url().as_deref().unwrap_or("--EMPTY--")
-                );
-                println!(
-                    "Notes:    {}",
-                    entry.get_notes().as_deref().unwrap_or("--EMPTY--")
-                );
+    let session = option_session
+        .as_mut()
+        .ok_or(SessionError::SessionInactive)?;
 
-                if show {
-                    println!(
-                        "Password: {}",
-                        entry.get_password().as_deref().unwrap_or("--EMPTY--")
-                    );
-                } else {
-                    println!("Password: *****");
-                }
-                println!();
-
-                return Ok(());
-            } else {
-                println!("Error: Entry {} not found", entry_name);
-                return Err(SessionError::VaultError(VaultError::EntryNotFound));
+    // check Master-Password when show is passed.
+    if show {
+        let name_of_vault: &String = match &session.opened_vault {
+            Some(vault) => vault.get_name(),
+            None => {
+                return Err(SessionError::VaultError(VaultError::NoVaultOpen));
             }
-        } else {
-            return Err(SessionError::VaultError(VaultError::NoVaultOpen));
-        }
+        };
+        let master_input: SecretString =
+            rpassword::prompt_password(format!("Enter master password for '{}': ", name_of_vault))?
+                .into();
+        session.verify_master_pw(master_input)?;
     }
-    return Err(SessionError::SessionInactive);
+
+    let vault = session
+        .opened_vault
+        .as_mut()
+        .ok_or(SessionError::VaultError(VaultError::NoVaultOpen))?;
+
+    let entry = vault.get_entry_by_name(&entry_name).ok_or(
+        SessionError::VaultError(VaultError::EntryNotFound))?;
+
+    println!("\n==== Entry: {} ====", entry_name);
+    println!(
+        "Username: {}",
+        entry.get_user_name().as_deref().unwrap_or("--EMPTY--")
+    );
+    println!(
+        "URL:      {}",
+        entry.get_url().as_deref().unwrap_or("--EMPTY--")
+    );
+    println!(
+        "Notes:    {}",
+        entry.get_notes().as_deref().unwrap_or("--EMPTY--")
+    );
+
+    if show {
+        println!(
+            "Password: {}",
+            entry.get_password().as_deref().unwrap_or("--EMPTY--")
+        );
+    } else {
+        println!("Password: *****");
+    }
+    println!();
+
+    Ok(())
 }
 
 pub fn handle_command_getall(
     option_session: &mut Option<Session>,
     show: bool,
 ) -> Result<(), SessionError> {
-    if let Some(session) = option_session {
-        // check Master-Password when show is passed.
-        if show {
-            let name_of_vault: &String = match &session.opened_vault {
-                Some(vault) => vault.get_name(),
-                None => {
-                    return Err(SessionError::VaultError(VaultError::NoVaultOpen));
-                }
-            };
-            let master_input: SecretString = rpassword::prompt_password(format!(
-                "Enter master password for '{}': ",
-                name_of_vault
-            ))?
-            .into();
-            session.verify_master_pw(master_input)?;
-        }
+    let session = option_session
+        .as_mut()
+        .ok_or(SessionError::SessionInactive)?;
 
-        if let Some(ref mut opened_vault) = session.opened_vault {
-            let entries = opened_vault.get_entries();
-
-            if entries.is_empty() {
-                return Err(SessionError::VaultError(VaultError::CouldNotGetEntry));
+    // check Master-Password when show is passed.
+    if show {
+        let name_of_vault: &String = match &session.opened_vault {
+            Some(vault) => vault.get_name(),
+            None => {
+                return Err(SessionError::VaultError(VaultError::NoVaultOpen));
             }
-
-            for entry in entries {
-                println!("\n==== Entry: {} ====", entry.get_entry_name());
-                println!(
-                    "Username: {}",
-                    entry.get_user_name().as_deref().unwrap_or("--EMPTY--")
-                );
-                println!(
-                    "URL:      {}",
-                    entry.get_url().as_deref().unwrap_or("--EMPTY--")
-                );
-                println!(
-                    "Notes:    {}",
-                    entry.get_notes().as_deref().unwrap_or("--EMPTY--")
-                );
-
-                if show {
-                    println!(
-                        "Password: {}",
-                        entry.get_password().as_deref().unwrap_or("--EMPTY--")
-                    );
-                } else {
-                    println!("Password: *****");
-                }
-                println!();
-            }
-            return Ok(());
-        }
+        };
+        let master_input: SecretString =
+            rpassword::prompt_password(format!("Enter master password for '{}': ", name_of_vault))?
+                .into();
+        session.verify_master_pw(master_input)?;
     }
-    return Err(SessionError::SessionInactive);
+
+    let vault = session
+        .opened_vault
+        .as_mut()
+        .ok_or(SessionError::VaultError(VaultError::NoVaultOpen))?;
+
+    let entries = vault.get_entries();
+
+    if entries.is_empty() {
+        return Err(SessionError::VaultError(VaultError::CouldNotGetEntry));
+    }
+
+    for entry in entries {
+        println!("\n==== Entry: {} ====", entry.get_entry_name());
+        println!(
+            "Username: {}",
+            entry.get_user_name().as_deref().unwrap_or("--EMPTY--")
+        );
+        println!(
+            "URL:      {}",
+            entry.get_url().as_deref().unwrap_or("--EMPTY--")
+        );
+        println!(
+            "Notes:    {}",
+            entry.get_notes().as_deref().unwrap_or("--EMPTY--")
+        );
+
+        if show {
+            println!(
+                "Password: {}",
+                entry.get_password().as_deref().unwrap_or("--EMPTY--")
+            );
+        } else {
+            println!("Password: *****");
+        }
+        println!();
+    }
+
+    Ok(())
 }
 
 pub fn handle_command_delete(
     option_session: &mut Option<Session>,
     entry_to_delete: String,
 ) -> Result<(), SessionError> {
-    if let Some(session) = option_session {
-        if let Some(ref mut opened_vault) = session.opened_vault {
-            let entry = if let Some(entry) = opened_vault.get_entry_by_name(&entry_to_delete) {
-                entry
-            } else {
-                println!();
-                println!(
-                    "'{}' not found in current vault \"{}\"!",
-                    entry_to_delete,
-                    opened_vault.get_name()
-                );
-                return Err(SessionError::VaultError(VaultError::EntryNotFound));
-            };
+    let session = option_session
+        .as_mut()
+        .ok_or(SessionError::SessionInactive)?;
+    let vault = session
+        .opened_vault
+        .as_mut()
+        .ok_or(SessionError::VaultError(VaultError::NoVaultOpen))?;
+    let entry = if let Some(entry) = vault.get_entry_by_name(&entry_to_delete) {
+        entry
+    } else {
+        println!();
+        println!(
+            "'{}' not found in current vault \"{}\"!",
+            entry_to_delete,
+            vault.get_name()
+        );
+        return Err(SessionError::VaultError(VaultError::EntryNotFound));
+    };
 
-            print!(
-                "Are you sure, you want to delete '{}'? (y/n): ",
-                entry.get_entry_name()
-            );
-            stdout().flush().unwrap();
+    print!(
+        "Are you sure, you want to delete '{}'? (y/n): ",
+        entry.get_entry_name()
+    );
+    stdout().flush().unwrap();
 
-            let mut confirm = String::new();
-            io::stdin().read_line(&mut confirm)?;
+    let mut confirm = String::new();
+    io::stdin().read_line(&mut confirm)?;
 
-            if confirm.trim().eq_ignore_ascii_case("y") {
-                // Master PW query maybe? TODO
-                let spinner = spinner();
-                spinner.enable_steady_tick(Duration::from_millis(80));
-                spinner.set_message("Removing entry ...");
+    if confirm.trim().eq_ignore_ascii_case("y") {
+        // Master PW query maybe? TODO
+        let spinner = spinner();
+        spinner.enable_steady_tick(Duration::from_millis(80));
+        spinner.set_message("Removing entry ...");
 
-                opened_vault.remove_entry_by_name(&entry_to_delete);
+        vault.remove_entry_by_name(&entry_to_delete);
 
-                spinner.finish_and_clear();
+        spinner.finish_and_clear();
 
-                println!();
-                println!("Entry '{}' successfully removed!", entry_to_delete);
-                return Ok(());
-            } else {
-                println!("Cancelled.\n");
-                return Ok(());
-            }
-        }
-        return Err(SessionError::VaultError(VaultError::NoVaultOpen));
+        println!();
+        println!("Entry '{}' successfully removed!", entry_to_delete);
+    } else {
+        println!("Cancelled.\n");
     }
-    return Err(SessionError::SessionInactive);
+    Ok(())
 }
 
 pub fn handle_command_deletevault(
@@ -573,83 +573,83 @@ pub fn handle_command_deletevault(
     println!();
 
     //deleting vault only acceptible, if a vault is currently open (-> session is active)
-    if active_session(option_session) {
-        let session = option_session.as_mut().unwrap();
-        let vault_name = session.vault_name.clone();
-        println!(
-            "WARNING: You are about to PERMANENTLY delete vault '{}'!",
-            vault_name
-        );
-        print!("Do you wish to continue? (y/n): ");
-
-        stdout().flush().unwrap();
-        let mut input = String::new();
-        io::stdin().read_line(&mut input)?;
-
-        if input.trim().eq_ignore_ascii_case("n") {
-            return Err(SessionError::VaultError(VaultError::AnyhowError(anyhow!(
-                "Cancelled."
-            ))));
-        }
-
-        println!();
-        print!("Enter master password for {}: ", vault_name);
-        stdout().flush().unwrap();
-        let master_input: SecretString = rpassword::read_password()?.into();
-
-        session.verify_master_pw(master_input)?;
-
-        println!();
-        println!("Password verified.");
-        println!();
-
-        println!("FINAL WARNING: This action CANNOT be undone!");
-
-        'input: loop {
-            println!("Type 'DELETE {}' to confirm: ", vault_name);
-
-            let mut input = String::new();
-            stdout().flush().unwrap();
-            io::stdin().read_line(&mut input)?;
-            let trimmed = input.trim();
-
-            let expected = format!("DELETE {}", vault_name);
-            let expected_low_case = format!("delete {}", vault_name);
-            if trimmed == expected_low_case {
-                println!();
-                println!("You have to use capital letters! Try again or type exit.");
-                continue 'input;
-            } else if trimmed == expected {
-                break 'input;
-            } else if trimmed == "exit" {
-                return Err(SessionError::VaultError(VaultError::AnyhowError(anyhow!(
-                    "exit"
-                ))));
-            } else {
-                println!();
-                println!("Wrong input! Try again or type exit.");
-                continue 'input;
-            }
-        }
-
-        let spinner = spinner();
-        spinner.set_message(format!("Permanently deleting '{}' ...", vault_name));
-        spinner.enable_steady_tick(Duration::from_millis(80));
-        let path = Path::new("vaults").join(format!("{vault_name}.psdb"));
-
-        session.end_session()?;
-
-        fs::remove_file(path)?;
-        spinner.finish_and_clear();
-        println!();
-        println!("Vault '{}' deleted permanently.", vault_name);
-
-        Ok(())
-    } else {
+    if !active_session(option_session) {
         return Err(SessionError::VaultError(VaultError::AnyhowError(anyhow!(
             "Due to RustPass' logic, you have to open the vault you want to delete first!"
         ))));
     }
+
+    let session = option_session.as_mut().unwrap();
+    let vault_name = session.vault_name.clone();
+    println!(
+        "WARNING: You are about to PERMANENTLY delete vault '{}'!",
+        vault_name
+    );
+    print!("Do you wish to continue? (y/n): ");
+
+    stdout().flush().unwrap();
+    let mut input = String::new();
+    io::stdin().read_line(&mut input)?;
+
+    if input.trim().eq_ignore_ascii_case("n") {
+        return Err(SessionError::VaultError(VaultError::AnyhowError(anyhow!(
+            "Cancelled."
+        ))));
+    }
+
+    println!();
+    print!("Enter master password for {}: ", vault_name);
+    stdout().flush().unwrap();
+    let master_input: SecretString = rpassword::read_password()?.into();
+
+    session.verify_master_pw(master_input)?;
+
+    println!();
+    println!("Password verified.");
+    println!();
+
+    println!("FINAL WARNING: This action CANNOT be undone!");
+
+    'input: loop {
+        println!("Type 'DELETE {}' to confirm: ", vault_name);
+
+        let mut input = String::new();
+        stdout().flush().unwrap();
+        io::stdin().read_line(&mut input)?;
+        let trimmed = input.trim();
+
+        let expected = format!("DELETE {}", vault_name);
+        let expected_low_case = format!("delete {}", vault_name);
+        if trimmed == expected_low_case {
+            println!();
+            println!("You have to use capital letters! Try again or type exit.");
+            continue 'input;
+        } else if trimmed == expected {
+            break 'input;
+        } else if trimmed == "exit" {
+            return Err(SessionError::VaultError(VaultError::AnyhowError(anyhow!(
+                "exit"
+            ))));
+        } else {
+            println!();
+            println!("Wrong input! Try again or type exit.");
+            continue 'input;
+        }
+    }
+
+    let spinner = spinner();
+    spinner.set_message(format!("Permanently deleting '{}' ...", vault_name));
+    spinner.enable_steady_tick(Duration::from_millis(80));
+    let path = Path::new("vaults").join(format!("{vault_name}.psdb"));
+
+    session.end_session()?;
+
+    fs::remove_file(path)?;
+    spinner.finish_and_clear();
+    println!();
+    println!("Vault '{}' deleted permanently.", vault_name);
+
+    Ok(())
 }
 
 pub fn handle_command_generate(length: i32, no_symbols: bool) -> Result<String, SessionError> {
@@ -759,182 +759,186 @@ pub fn handle_command_change_master(
     println!();
     spinner.finish_and_clear();
 
-    return Ok(());
+    Ok(())
 }
 
 pub fn handle_command_edit(
     option_session: &mut Option<Session>,
     entry_name: String,
 ) -> Result<(), SessionError> {
-    if let Some(session) = option_session {
-        if let Some(ref mut vault) = session.opened_vault {
-            if !vault.entryname_exists(&entry_name) {
-                return Err(SessionError::VaultError(VaultError::EntryNotFound));
-            }
+    let session = option_session
+        .as_mut()
+        .ok_or(SessionError::SessionInactive)?;
 
-            // collecting current data, to avoid borrow checker
-            let current_entry = vault
-                .get_entries()
-                .iter()
-                .find(|e| *e.get_entry_name() == entry_name)
-                .ok_or(SessionError::VaultError(VaultError::EntryNotFound))?;
+    let vault = session
+        .opened_vault
+        .as_mut()
+        .ok_or(SessionError::VaultError(VaultError::NoVaultOpen))?;
 
-            let current_username = current_entry.get_user_name().clone();
-            let current_url = current_entry.get_url().clone();
-            let current_notes = current_entry.get_notes().clone();
-            let current_password = current_entry.get_password().clone();
-            let has_password = current_password.is_some();
-
-            // Collect all existing entrynames except the own one
-            let existing_names: Vec<String> = vault
-                .get_entries()
-                .iter()
-                .filter_map(|e| {
-                    if *e.get_entry_name() != entry_name {
-                        Some(e.get_entry_name().clone())
-                    } else {
-                        None
-                    }
-                })
-                .collect();
-
-            // Collecting user inputs
-            println!("\n==== Editing entry: '{}' ====", entry_name);
-            println!("Hint: (Press enter to keep current value)\n");
-
-            // Entryname
-            let new_entryname = loop {
-                print!("New entry name [current: {}]: ", entry_name);
-                stdout().flush().unwrap();
-
-                let mut input_entryname = String::new();
-                io::stdin().read_line(&mut input_entryname)?;
-                let trimmed_input = input_entryname.trim().to_string();
-
-                if trimmed_input.is_empty() || trimmed_input == entry_name {
-                    // Keep current name
-                    break None;
-                } else if existing_names.contains(&trimmed_input) {
-                    println!(
-                        "Error: An entry with the name '{}' already exists! Try a different name.",
-                        trimmed_input
-                    );
-                    continue;
-                } else {
-                    break Some(trimmed_input);
-                }
-            };
-
-            // Username
-            print!(
-                "New username [current: {}]: ",
-                current_username.as_deref().unwrap_or("--EMPTY--")
-            );
-            stdout().flush().unwrap();
-            let mut input_username = String::new();
-            io::stdin().read_line(&mut input_username)?;
-            let new_username = if input_username.trim().is_empty() {
-                None
-            } else {
-                Some(input_username.trim().to_string())
-            };
-
-            // URL
-            print!(
-                "New URL [current: {}]: ",
-                current_url.as_deref().unwrap_or("--EMPTY--")
-            );
-            stdout().flush().unwrap();
-            let mut input_url = String::new();
-            io::stdin().read_line(&mut input_url)?;
-            let new_url = if input_url.trim().is_empty() {
-                None
-            } else {
-                Some(input_url.trim().to_string())
-            };
-
-            // Notes sammeln
-            print!(
-                "New notes [current: {}]: ",
-                current_notes.as_deref().unwrap_or("--EMPTY--")
-            );
-            stdout().flush().unwrap();
-            let mut input_notes = String::new();
-            io::stdin().read_line(&mut input_notes)?;
-            let new_notes = if input_notes.trim().is_empty() {
-                None
-            } else {
-                Some(input_notes.trim().to_string())
-            };
-
-            // Password
-            let new_password = if has_password {
-                'input_new_pw: loop {
-                    print!("New password (press Enter to keep current, type 'clear' to remove): ");
-                    stdout().flush().unwrap();
-                    let input_password = rpassword::read_password()?;
-
-                    if input_password.is_empty() {
-                        // Keep current password
-                        break 'input_new_pw None;
-                    } else if input_password == "clear" {
-                        break 'input_new_pw Some("".to_string());
-                    } else {
-                        // Confirm new password
-                        print!("Confirm new password: ");
-                        stdout().flush().unwrap();
-                        let confirm = rpassword::read_password()?;
-
-                        if input_password != confirm {
-                            println!("Passwords do not match! Try again.");
-                            continue 'input_new_pw;
-                        } else {
-                            break 'input_new_pw Some(input_password);
-                        }
-                    }
-                }
-            } else {
-                add_password_to_entry()?
-            };
-
-            // Write changes to Entry
-            //let vault = option_vault.as_mut().unwrap();
-            let entry = vault
-                .get_entry_by_name(&entry_name)
-                .ok_or(SessionError::VaultError(VaultError::EntryNotFound))?;
-
-            if let Some(new_name) = new_entryname {
-                entry.entryname = new_name;
-            }
-            if let Some(username) = new_username {
-                entry.set_username(username);
-            }
-            if let Some(url) = new_url {
-                entry.set_url(url);
-            }
-            if let Some(notes) = new_notes {
-                entry.set_notes(notes);
-            }
-            if let Some(password) = new_password {
-                entry.set_password(password);
-            }
-
-            // Get final name for printing
-            let final_entry_name = entry.get_entry_name().clone();
-
-            // Saving vault
-            let spinner = spinner();
-            spinner.enable_steady_tick(Duration::from_millis(80));
-            spinner.set_message("Saving changes...");
-
-            spinner.finish_and_clear();
-            println!();
-            println!("Entry '{}' updated successfully!", final_entry_name);
-
-            return Ok(());
-        }
+    if !vault.entryname_exists(&entry_name) {
+        return Err(SessionError::VaultError(VaultError::EntryNotFound));
     }
-    return Err(SessionError::SessionInactive);
+
+    // collecting current data, to avoid borrow checker
+    let current_entry = vault
+        .get_entries()
+        .iter()
+        .find(|e| *e.get_entry_name() == entry_name)
+        .ok_or(SessionError::VaultError(VaultError::EntryNotFound))?;
+
+    let current_username = current_entry.get_user_name().clone();
+    let current_url = current_entry.get_url().clone();
+    let current_notes = current_entry.get_notes().clone();
+    let current_password = current_entry.get_password().clone();
+    let has_password = current_password.is_some();
+
+    // Collect all existing entrynames except the own one
+    let existing_names: Vec<String> = vault
+        .get_entries()
+        .iter()
+        .filter_map(|e| {
+            if *e.get_entry_name() != entry_name {
+                Some(e.get_entry_name().clone())
+            } else {
+                None
+            }
+        })
+        .collect();
+
+    // Collecting user inputs
+    println!("\n==== Editing entry: '{}' ====", entry_name);
+    println!("Hint: (Press enter to keep current value)\n");
+
+    // Entryname
+    let new_entryname = loop {
+        print!("New entry name [current: {}]: ", entry_name);
+        stdout().flush().unwrap();
+
+        let mut input_entryname = String::new();
+        io::stdin().read_line(&mut input_entryname)?;
+        let trimmed_input = input_entryname.trim().to_string();
+
+        if trimmed_input.is_empty() || trimmed_input == entry_name {
+            // Keep current name
+            break None;
+        } else if existing_names.contains(&trimmed_input) {
+            println!(
+                "Error: An entry with the name '{}' already exists! Try a different name.",
+                trimmed_input
+            );
+            continue;
+        } else {
+            break Some(trimmed_input);
+        }
+    };
+
+    // Username
+    print!(
+        "New username [current: {}]: ",
+        current_username.as_deref().unwrap_or("--EMPTY--")
+    );
+    stdout().flush().unwrap();
+    let mut input_username = String::new();
+    io::stdin().read_line(&mut input_username)?;
+    let new_username = if input_username.trim().is_empty() {
+        None
+    } else {
+        Some(input_username.trim().to_string())
+    };
+
+    // URL
+    print!(
+        "New URL [current: {}]: ",
+        current_url.as_deref().unwrap_or("--EMPTY--")
+    );
+    stdout().flush().unwrap();
+    let mut input_url = String::new();
+    io::stdin().read_line(&mut input_url)?;
+    let new_url = if input_url.trim().is_empty() {
+        None
+    } else {
+        Some(input_url.trim().to_string())
+    };
+
+    // Notes sammeln
+    print!(
+        "New notes [current: {}]: ",
+        current_notes.as_deref().unwrap_or("--EMPTY--")
+    );
+    stdout().flush().unwrap();
+    let mut input_notes = String::new();
+    io::stdin().read_line(&mut input_notes)?;
+    let new_notes = if input_notes.trim().is_empty() {
+        None
+    } else {
+        Some(input_notes.trim().to_string())
+    };
+
+    // Password
+    let new_password = if has_password {
+        'input_new_pw: loop {
+            print!("New password (press Enter to keep current, type 'clear' to remove): ");
+            stdout().flush().unwrap();
+            let input_password = rpassword::read_password()?;
+
+            if input_password.is_empty() {
+                // Keep current password
+                break 'input_new_pw None;
+            } else if input_password == "clear" {
+                break 'input_new_pw Some("".to_string());
+            } else {
+                // Confirm new password
+                print!("Confirm new password: ");
+                stdout().flush().unwrap();
+                let confirm = rpassword::read_password()?;
+
+                if input_password != confirm {
+                    println!("Passwords do not match! Try again.");
+                    continue 'input_new_pw;
+                } else {
+                    break 'input_new_pw Some(input_password);
+                }
+            }
+        }
+    } else {
+        add_password_to_entry()?
+    };
+
+    // Write changes to Entry
+    //let vault = option_vault.as_mut().unwrap();
+    let entry = vault
+        .get_entry_by_name(&entry_name)
+        .ok_or(SessionError::VaultError(VaultError::EntryNotFound))?;
+
+    if let Some(new_name) = new_entryname {
+        entry.entryname = new_name;
+    }
+    if let Some(username) = new_username {
+        entry.set_username(username);
+    }
+    if let Some(url) = new_url {
+        entry.set_url(url);
+    }
+    if let Some(notes) = new_notes {
+        entry.set_notes(notes);
+    }
+    if let Some(password) = new_password {
+        entry.set_password(password);
+    }
+
+    // Get final name for printing
+    let final_entry_name = entry.get_entry_name().clone();
+
+    // Saving vault
+    let spinner = spinner();
+    spinner.enable_steady_tick(Duration::from_millis(80));
+    spinner.set_message("Saving changes...");
+
+    spinner.finish_and_clear();
+    println!();
+    println!("Entry '{}' updated successfully!", final_entry_name);
+
+    Ok(())
 }
 
 pub fn handle_command_open(
@@ -1057,35 +1061,15 @@ pub fn handle_command_close(
     option_session: &mut Option<Session>,
     force: bool,
 ) -> Result<LoopCommand, SessionError> {
-    if let Some(session) = option_session {
-        let open_vault_name = session.vault_name.clone();
+    let session = option_session
+        .as_mut()
+        .ok_or(SessionError::SessionInactive)?;
 
-        let spinner = spinner();
+    let open_vault_name = session.vault_name.clone();
 
-        if force {
-            spinner.set_message("Closing current vault and session ...");
-            spinner.enable_steady_tick(Duration::from_millis(80));
+    let spinner = spinner();
 
-            session.end_session()?;
-
-            spinner.finish_and_clear();
-            println!("Successfully closed '{}'!", open_vault_name);
-
-            return Ok(LoopCommand::Continue);
-        }
-
-        print!("Do you really want to close the current session and vault? (y/n): ");
-        stdout().flush().unwrap();
-
-        let mut input = String::new();
-        io::stdin().read_line(&mut input)?;
-
-        if input.trim().eq_ignore_ascii_case("n") {
-            println!();
-            println!("Cancelled.");
-            return Ok(LoopCommand::Cancel);
-        }
-
+    if force {
         spinner.set_message("Closing current vault and session ...");
         spinner.enable_steady_tick(Duration::from_millis(80));
 
@@ -1096,7 +1080,28 @@ pub fn handle_command_close(
 
         return Ok(LoopCommand::Continue);
     }
-    return Err(SessionError::SessionInactive);
+
+    print!("Do you really want to close the current session and vault? (y/n): ");
+    stdout().flush().unwrap();
+
+    let mut input = String::new();
+    io::stdin().read_line(&mut input)?;
+
+    if input.trim().eq_ignore_ascii_case("n") {
+        println!();
+        println!("Cancelled.");
+        return Ok(LoopCommand::Cancel);
+    }
+
+    spinner.set_message("Closing current vault and session ...");
+    spinner.enable_steady_tick(Duration::from_millis(80));
+
+    session.end_session()?;
+
+    spinner.finish_and_clear();
+    println!("Successfully closed '{}'!", open_vault_name);
+
+    return Ok(LoopCommand::Continue);
 }
 
 pub fn handle_command_vaults(current_session: &Option<Session>) {
@@ -1182,7 +1187,7 @@ pub fn handle_command_quit(force: bool) -> Result<LoopCommand, VaultError> {
     }
 }
 
-pub fn copy_to_clipboard(content: &str) -> Result<(), SessionError> {
+fn copy_to_clipboard(content: &str) -> Result<(), SessionError> {
     let mut clipboard =
         Clipboard::new().map_err(|_| SessionError::VaultError(VaultError::ClipboardError))?;
     clipboard
@@ -1210,8 +1215,8 @@ fn add_password_to_entry() -> Result<Option<String>, SessionError> {
                 let mut length_input = String::new();
                 io::stdout().flush().unwrap();
                 io::stdin().read_line(&mut length_input)?;
-                if length_input.trim().parse::<i32>().is_ok() {
-                    length = length_input.parse::<i32>().unwrap();
+                if let Ok(len) = length_input.trim().parse::<i32>() {
+                    length = len;
                     break 'input_length;
                 }
             }
@@ -1298,275 +1303,241 @@ fn check_vault_name(vault_name: &str) -> Result<(), VaultError> {
 }
 // tests
 
-// #[cfg(test)]
-// mod tests {
-//     use super::*;
-//     use std::fs;
-//     use std::path::Path;
+#[cfg(test)]
+mod tests {
+    use super::*;
+    use std::fs;
+    use std::path::Path;
+    // Helper-function to delete testvault-file
+    fn cleanup_test_vault(vault_name: &str) {
+        let path = format!("vaults/{}.psdb", vault_name);
+        if Path::new(&path).exists() {
+            fs::remove_file(&path).ok();
+        }
+    }
 
-//     // Helper-function to delete testvault-file
-//     fn cleanup_test_vault(vault_name: &str) {
-//         let path = format!("vaults/{}.psdb", vault_name);
-//         if Path::new(&path).exists() {
-//             fs::remove_file(&path).ok();
-//         }
-//     }
+    fn create_test_session(name: &str) -> Session {
+        let pw: SecretString = "pw".into();
+        let _ = create_new_vault(name.into(), pw.clone());
+        let mut session = Session::new(name.into());
+        let _ = &session.start_session(pw);
+        session
+    }
 
-//     // ================== QUIT TESTS ==================
+    // ================== QUIT TESTS ==================
 
-//     #[test]
-//     fn test_handle_command_quit_with_force() {
-//         let result = handle_command_quit(true);
-//         assert!(result.is_ok());
-//         match result.unwrap() {
-//             LoopCommand::Break => assert!(true),
-//             LoopCommand::Continue => panic!("Expected Break, got Continue"),
-//         }
-//     }
+    #[test]
+    fn test_handle_command_quit_with_force() {
+        let result = handle_command_quit(true);
+        assert!(result.is_ok());
+        match result.unwrap() {
+            LoopCommand::Continue => assert!(true),
+            LoopCommand::Cancel => panic!("Expected Break, got Continue"),
+        }
+    }
 
-//     #[test]
-//     fn test_loop_command_variants() {
-//         let continue_cmd = LoopCommand::Continue;
-//         let break_cmd = LoopCommand::Break;
+    #[test]
+    fn test_loop_command_variants() {
+        let continue_cmd = LoopCommand::Continue;
+        let break_cmd = LoopCommand::Cancel;
+        match continue_cmd {
+            LoopCommand::Continue => assert!(true),
+            LoopCommand::Cancel => panic!("Wrong variant for Continue"),
+        }
+        match break_cmd {
+            LoopCommand::Cancel => assert!(true),
+            LoopCommand::Continue => panic!("Wrong variant for Break"),
+        }
+    }
 
-//         match continue_cmd {
-//             LoopCommand::Continue => assert!(true),
-//             LoopCommand::Break => panic!("Wrong variant for Continue"),
-//         }
+    // ================== CLEAR TESTS ==================
 
-//         match break_cmd {
-//             LoopCommand::Break => assert!(true),
-//             LoopCommand::Continue => panic!("Wrong variant for Break"),
-//         }
-//     }
+    #[test]
+    fn test_handle_command_clear() {
+        // test whether no panic
+        handle_command_clear();
+    }
+    // ================== EDIT TESTS ==================
 
-//     // ================== CLEAR TESTS ==================
+    #[test]
+    fn test_edit_without_vault() {
+        let session = Session::new("name".into());
+        let mut option_session: Option<Session> = Some(session);
+        let result = handle_command_edit(&mut option_session, "test_entry".to_string());
+        assert!(result.is_err());
+        match result {
+            Err(SessionError::VaultError(VaultError::NoVaultOpen)) => assert!(true),
+            _ => panic!("Expected NoVaultOpen error"),
+        }
+    }
 
-//     #[test]
-//     fn test_handle_command_clear() {
-//         // test whether no panic
-//         handle_command_clear();
-//     }
+    #[test]
+    fn test_edit_nonexistent_entry() {
+        let vault_name = "test_vault_edit_nonexistent";
+        let session = create_test_session(vault_name);
+        let result = handle_command_edit(&mut Some(session), "nonexistent".to_string());
+        assert!(result.is_err());
+        match result {
+            Err(SessionError::VaultError(VaultError::EntryNotFound)) => assert!(true),
+            _ => panic!("Expected EntryNotFound error"),
+        }
+        cleanup_test_vault(vault_name);
+    }
 
-//     // ================== EDIT TESTS ==================
+    #[test]
+    fn test_edit_entry_exists() {
+        let vault_name = "test_vault_edit_exists";
+        let session = create_test_session(vault_name);
+        let entry = Entry::new(
+            "test_entry".to_string(),
+            Some("testuser".to_string()),
+            Some("testpass123".to_string()),
+            Some("https://example.com".to_string()),
+            Some("test notes".to_string()),
+        );
+        let mut vault = session.opened_vault.unwrap();
+        vault.add_entry(entry).unwrap();
+        assert!(vault.entryname_exists("test_entry"));
+        cleanup_test_vault(vault_name);
+    }
 
-//     #[test]
-//     fn test_edit_without_vault() {
-//         let mut option_vault: Option<Vault> = None;
-//         let result = handle_command_edit(&mut option_vault, "test_entry".to_string());
+    #[test]
+    fn test_edit_entry_verification() {
+        let vault_name = "test_vault_edit_verification";
+        let mut session = create_test_session(vault_name);
+        let entry = Entry::new(
+            "test_entry".to_string(),
+            Some("original_user".to_string()),
+            Some("original_pass".to_string()),
+            Some("https://original.com".to_string()),
+            Some("original notes".to_string()),
+        );
+        let vault = session.opened_vault.as_mut().unwrap();
+        vault.add_entry(entry).unwrap();
+        // close vault and open again
+        session.save().unwrap();
+        session.opened_vault = None;
+        session.start_session("pw".into()).unwrap();
+        let vault = session.opened_vault.as_mut().unwrap();
+        // handle edit needs user input -> simulating what happens in handle
+        let entry = vault.get_entry_by_name(&"test_entry".to_string()).unwrap();
+        entry.set_username("modified_user".to_string());
+        entry.set_url("https://modified.com".to_string());
+        session.save().unwrap();
+        session.opened_vault = None;
+        session.start_session("pw".into()).unwrap();
+        let mut vault = session.opened_vault.unwrap();
+        // check
+        let entry = vault.get_entry_by_name(&"test_entry".to_string()).unwrap();
+        assert_eq!(*entry.get_user_name(), Some("modified_user".to_string()));
+        assert_eq!(*entry.get_url(), Some("https://modified.com".to_string()));
+        cleanup_test_vault(vault_name);
+    }
 
-//         assert!(result.is_err());
-//         match result {
-//             Err(VaultError::NoVaultOpen) => assert!(true),
-//             _ => panic!("Expected NoVaultOpen error"),
-//         }
-//     }
+    // Tests for getall, generate and delete
+    #[test]
+    fn test_handle_command_getall_no_vault() {
+        let vault_name = "test_vault";
+        let session = create_test_session(vault_name);
+        let res = handle_command_getall(&mut Some(session), false);
+        assert!(res.is_err());
+        match res {
+            Err(SessionError::VaultError(VaultError::CouldNotGetEntry)) => {}
+            _ => panic!("Expected No Entry"),
+        }
+        cleanup_test_vault(vault_name);
+    }
 
-//     #[test]
-//     fn test_edit_nonexistent_entry() {
-//         let vault_name = "test_vault_edit_nonexistent";
+    #[test]
+    fn test_getall_success() {
+        let vault_name = "test_vault";
+        let mut session = create_test_session(vault_name);
+        let entry = Entry::new(
+            "test_entry".to_string(),
+            Some("testuser".to_string()),
+            Some("testpass123".to_string()),
+            Some("https://example.com".to_string()),
+            Some("test notes".to_string()),
+        );
+        let vault = session.opened_vault.as_mut().unwrap();
+        vault.add_entry(entry).unwrap();
+        let res = handle_command_getall(&mut Some(session), false);
+        assert!(res.is_ok());
+        cleanup_test_vault(vault_name);
+    }
 
-//         let vault = initialize_vault(vault_name.to_string()).unwrap();
-//         vault.save().unwrap();
+    #[test]
+    fn test_generate_invalid_length() {
+        let res = handle_command_generate(0, true);
+        assert!(res.is_err());
+        match res {
+            Err(SessionError::VaultError(VaultError::InvalidLength)) => {}
+            _ => panic!("Expected InvalidLength for length 0"),
+        }
+    }
 
-//         let mut option_vault = Some(vault);
+    #[test]
+    fn test_generate_success() {
+        let length = 12;
+        let res = handle_command_generate(length, false);
+        assert!(res.is_ok());
+        let password = res.unwrap();
+        assert_eq!(password.len(), length as usize);
+    }
 
-//         let result = handle_command_edit(&mut option_vault, "nonexistent".to_string());
+    #[test]
+    fn test_generate_correct_characters() {
+        let length = 20;
+        let res = handle_command_generate(length, true);
+        assert!(res.is_ok());
+        let password = res.unwrap();
+        assert_eq!(password.len(), length as usize);
+        for c in password.chars() {
+            assert!(
+                c.is_ascii_alphanumeric(),
+                "Password contains non-alphanumeric character: {}",
+                c
+            );
+        }
+    }
 
-//         assert!(result.is_err());
-//         match result {
-//             Err(VaultError::EntryNotFound) => assert!(true),
-//             _ => panic!("Expected EntryNotFound error"),
-//         }
+    #[test]
+    fn test_delete_entry_not_found() {
+        let vault_name = "test_vault_delete_not_found";
+        let session = create_test_session(vault_name);
+        let res = handle_command_delete(&mut Some(session), "does_not_exist".to_string());
+        assert!(res.is_err());
+        match res {
+            Err(SessionError::VaultError(VaultError::EntryNotFound)) => {}
+            _ => panic!("Expected EntryNotFound"),
+        }
+        cleanup_test_vault(vault_name);
+    }
 
-//         cleanup_test_vault(vault_name);
-//     }
+    #[test]
+    fn test_delete_success() {
+        let vault_name = "test_vault_delete_success";
+        let mut session = create_test_session(vault_name);
+        let entry = Entry::new(
+            "test_entry".to_string(),
+            Some("testuser".to_string()),
+            Some("testpass123".to_string()),
+            Some("https://example.com".to_string()),
+            Some("test notes".to_string()),
+        );
+        let vault = session.opened_vault.as_mut().unwrap();
+        vault.add_entry(entry).unwrap();
+        match handle_command_delete(&mut Some(session), "test_entry".to_string()) {
+            Ok(()) => assert!(true),
+            Err(e) => panic!("Expected successful deletion, got error: {}", e),
+        }
+        cleanup_test_vault(vault_name);
+    }
 
-//     #[test]
-//     fn test_edit_entry_exists() {
-//         let vault_name = "test_vault_edit_exists";
-
-//         let mut vault = initialize_vault(vault_name.to_string()).unwrap();
-
-//         let entry = Entry::new(
-//             "test_entry".to_string(),
-//             Some("testuser".to_string()),
-//             Some("testpass123".to_string()),
-//             Some("https://example.com".to_string()),
-//             Some("test notes".to_string()),
-//         );
-
-//         vault.add_entry(entry).unwrap();
-//         vault.save().unwrap();
-
-//         let option_vault = Some(vault);
-
-//         // check, if test entry is there
-//         let vault = option_vault.as_ref().unwrap();
-//         assert!(vault.entryname_exists("test_entry"));
-
-//         cleanup_test_vault(vault_name);
-//     }
-
-//     #[test]
-//     fn test_edit_entry_verification() {
-//         let vault_name = "test_vault_edit_verification";
-
-//         let mut vault = initialize_vault(vault_name.to_string()).unwrap();
-
-//         let entry = Entry::new(
-//             "test_entry".to_string(),
-//             Some("original_user".to_string()),
-//             Some("original_pass".to_string()),
-//             Some("https://original.com".to_string()),
-//             Some("original notes".to_string()),
-//         );
-
-//         vault.add_entry(entry).unwrap();
-//         vault.save().unwrap();
-
-//         // close vault and open again
-//         vault.close().unwrap();
-//         let mut vault = open_vault(vault_name.to_string(), "testkey123".to_string().into()).unwrap();
-
-//         // handle edit needs user input -> simulating what happens in handle
-//         let entry = vault.get_entry_by_name(&"test_entry".to_string()).unwrap();
-//         entry.set_username("modified_user".to_string());
-//         entry.set_url("https://modified.com".to_string());
-
-//         vault.save().unwrap();
-//         vault.close().unwrap();
-
-//         // check
-//         let mut vault = open_vault(vault_name.to_string(), "testkey123".to_string().into()).unwrap();
-//         let entry = vault.get_entry_by_name(&"test_entry".to_string()).unwrap();
-
-//         assert_eq!(*entry.get_user_name(), Some("modified_user".to_string()));
-//         assert_eq!(*entry.get_url(), Some("https://modified.com".to_string()));
-
-//         cleanup_test_vault(vault_name);
-//     }
-
-//     // Tests for getall, generate and delete
-//     #[test]
-//     fn test_handle_command_getall_no_vault() {
-//         let mut opt_vault: Option<Vault> = None;
-//         let res = handle_command_getall(&mut opt_vault, false);
-//         assert!(res.is_err());
-//         match res {
-//             Err(VaultError::NoVaultOpen) => {}
-//             _ => panic!("Expected NoVaultOpen"),
-//         }
-//     }
-
-//     #[test]
-//     fn test_getall_empty_vault() {
-//         let name = "test_vault_getall_empty";
-//         let vault = initialize_vault(name.to_string()).unwrap();
-//         let mut opt = Some(vault);
-
-//         let res = handle_command_getall(&mut opt, false);
-//         assert!(res.is_err());
-//         match res {
-//             Err(VaultError::CouldNotGetEntry) => {}
-//             _ => panic!("Expected CouldNotGetEntry for empty vault"),
-//         }
-
-//         cleanup_test_vault(name);
-//     }
-
-//     #[test]
-//     fn test_getall_success() {
-//         let name = "test_vault_getall_success";
-//         let mut vault = initialize_vault(name.to_string()).unwrap();
-//         let entry = Entry::new(
-//             "test_entry".to_string(),
-//             Some("testuser".to_string()),
-//             Some("testpass123".to_string()),
-//             Some("https://example.com".to_string()),
-//             Some("test notes".to_string()),
-//         );
-//         vault.add_entry(entry).unwrap();
-//         vault.save().unwrap();
-//         let mut opt = Some(vault);
-//         let res = handle_command_getall(&mut opt, false);
-//         assert!(res.is_ok());
-
-//         cleanup_test_vault(name);
-//     }
-
-//     #[test]
-//     fn test_generate_invalid_length() {
-//         let res = handle_command_generate(0, true);
-//         assert!(res.is_err());
-//         match res {
-//             Err(VaultError::InvalidLength) => {}
-//             _ => panic!("Expected InvalidLength for length 0"),
-//         }
-//     }
-
-//     #[test]
-//     fn test_generate_success() {
-//         let length = 12;
-//         let res = handle_command_generate(length, false);
-//         assert!(res.is_ok());
-//         let password = res.unwrap();
-//         assert_eq!(password.len(), length as usize);
-//     }
-
-//     #[test]
-//     fn test_generate_correct_characters() {
-//         let length = 20;
-//         let res = handle_command_generate(length, true);
-//         assert!(res.is_ok());
-//         let password = res.unwrap();
-//         assert_eq!(password.len(), length as usize);
-//         for c in password.chars() {
-//             assert!(c.is_ascii_alphanumeric(), "Password contains non-alphanumeric character: {}", c);
-//         }
-//     }
-
-//     #[test]
-//     fn test_delete_entry_not_found() {
-//         let name = "test_vault_delete_not_found";
-//         let vault = initialize_vault(name.to_string()).unwrap();
-//         let mut opt = Some(vault);
-
-//         let res = handle_command_delete(&mut opt, "does_not_exist".to_string());
-//         assert!(res.is_err());
-//         match res {
-//             Err(VaultError::EntryNotFound) => {}
-//             _ => panic!("Expected EntryNotFound"),
-//         }
-
-//         cleanup_test_vault(name);
-//     }
-
-//     #[test]
-//     fn test_delete_success() {
-//         let name = "test_vault_delete_success";
-//         let mut vault = initialize_vault(name.to_string()).unwrap();
-//         let entry = Entry::new(
-//             "test_entry".to_string(),
-//             Some("testuser".to_string()),
-//             Some("testpass123".to_string()),
-//             Some("https://example.com".to_string()),
-//             Some("test notes".to_string()),
-//         );
-//         vault.add_entry(entry).unwrap();
-//         vault.save().unwrap();
-//         let mut opt = Some(vault);
-//         match handle_command_delete(&mut opt, "test_entry".to_string()) {
-//             Ok(()) => assert!(true),
-//             Err(e) => panic!("Expected successful deletion, got error: {}", e),
-//         }
-//         cleanup_test_vault(name);
-//     }
-
-//     // Testing format of custom VaultErrors
-//     #[test]
-//     fn test_vault_error_display_strings() {
-//         assert_eq!(format!("{}", VaultError::NameExists), "NAME ALREADY EXISTS");
-//         assert_eq!(format!("{}", VaultError::NoVaultOpen), "NO VAULT IS OPEN");
-//     }
-// }
+    // Testing format of custom VaultErrors
+    #[test]
+    fn test_vault_error_display_strings() {
+        assert_eq!(format!("{}", VaultError::NameExists), "NAME ALREADY EXISTS");
+        assert_eq!(format!("{}", VaultError::NoVaultOpen), "NO VAULT IS OPEN");
+    }
+}
