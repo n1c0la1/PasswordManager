@@ -187,20 +187,6 @@ pub fn handle_command_init(option_name: Option<String>) -> Result<(), VaultError
             }
         };
     };
-    /*
-    let vault_name = if let Some(name) = option_name {
-        name
-    } else {
-        println!("What should be the name of your new vault?");
-        print!("> ");
-        io::stdout().flush().unwrap();
-        let mut input = String::new();
-        io::stdin().read_line(&mut input)?;
-        print!("{input}");
-        input.trim().to_string()
-    };
- */
-
     
     let path = Path::new("vaults").join(format!("{vault_name}.psdb"));
     if path.exists() {
@@ -737,21 +723,23 @@ pub fn handle_command_change_master(
         ))?
         .into();
 
-        if input.expose_secret().is_empty() {
-            println!("New password cannot be empty!");
-            continue 'input_new_master;
-        }
+        match check_password_strength(&input) {
+            Err(_) => {
+                continue 'input_new_master
+            }
+            Ok(()) => {
+                io::stdout().flush().unwrap();
+                let confirm_new_passwd: SecretString =
+                    rpassword::prompt_password("Confirm the new master password")?.into();
 
-        io::stdout().flush().unwrap();
-        let confirm_new_passwd: SecretString =
-            rpassword::prompt_password("Confirm the new master password")?.into();
-
-        if input.expose_secret() != confirm_new_passwd.expose_secret() {
-            println!("Passwords do not match! Try again.");
-            continue 'input_new_master;
+                if input.expose_secret() != confirm_new_passwd.expose_secret() {
+                    println!("Passwords do not match! Try again.");
+                    continue 'input_new_master;
+                }
+                //new_password = input;
+                break 'input_new_master input;
+            }
         }
-        //new_password = input;
-        break 'input_new_master input;
     };
 
     session.change_master_pw(new_password)?;
