@@ -173,7 +173,7 @@ mod tests {
             vault_name: vault_name.clone(),
             opened_vault: None,
             master_password: None,
-            last_activity: Instant::now()
+            last_activity: Instant::now(),
         };
 
         let result = session.start_session(master_pw.clone());
@@ -199,7 +199,7 @@ mod tests {
             vault_name: vault_name.clone(),
             opened_vault: None,
             master_password: None,
-            last_activity: Instant::now()
+            last_activity: Instant::now(),
         };
         session.start_session(master_pw.clone()).unwrap();
 
@@ -226,7 +226,7 @@ mod tests {
             vault_name: vault_name.clone(),
             opened_vault: None,
             master_password: None,
-            last_activity: Instant::now()
+            last_activity: Instant::now(),
         };
         new_session.start_session(master_pw.clone()).unwrap();
         let (vault, _master) = new_session.session_state().unwrap();
@@ -249,7 +249,7 @@ mod tests {
             vault_name: vault_name.clone(),
             opened_vault: None,
             master_password: None,
-            last_activity: Instant::now()
+            last_activity: Instant::now(),
         };
         session.start_session(master_pw.clone()).unwrap();
 
