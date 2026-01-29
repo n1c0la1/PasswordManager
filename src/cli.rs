@@ -159,10 +159,12 @@ pub fn handle_command_init(option_name: Option<String>) -> Result<(), VaultError
                 Err(_) => {
                     println!("Invalid name.");
                     println!("Suggestion: Vault name should be less than 64 characters long");
-                    println!("Suggestion: Vault name is allowed to contain only letters, numbers, \"_\" and \"-\" \n");
-                    continue 'define_vault_name
+                    println!(
+                        "Suggestion: Vault name is allowed to contain only letters, numbers, \"_\" and \"-\" \n"
+                    );
+                    continue 'define_vault_name;
                 }
-                Ok(()) => break 'define_vault_name option_vault_name
+                Ok(()) => break 'define_vault_name option_vault_name,
             }
         } else {
             println!("What should be the name of your new vault?");
@@ -177,14 +179,16 @@ pub fn handle_command_init(option_name: Option<String>) -> Result<(), VaultError
                 Err(_) => {
                     println!("Invalid name.");
                     println!("Suggestion: Vault name should be less than 64 characters long");
-                    println!("Suggestion: Vault name is allowed to contain only letters, numbers, \"_\" and \"-\" \n");
-                    continue 'define_vault_name
+                    println!(
+                        "Suggestion: Vault name is allowed to contain only letters, numbers, \"_\" and \"-\" \n"
+                    );
+                    continue 'define_vault_name;
                 }
-                Ok(()) => break 'define_vault_name input
+                Ok(()) => break 'define_vault_name input,
             }
         };
     };
-    
+
     let path = Path::new("vaults").join(format!("{vault_name}.psdb"));
     if path.exists() {
         return Err(VaultError::NameExists);
@@ -202,7 +206,7 @@ pub fn handle_command_init(option_name: Option<String>) -> Result<(), VaultError
             Err(_) => continue 'define_mw,
             Ok(()) => {
                 let password_confirm: SecretString =
-                rpassword::prompt_password("Please confirm the Master-Password: ")?.into();
+                    rpassword::prompt_password("Please confirm the Master-Password: ")?.into();
 
                 if password.expose_secret() != password_confirm.expose_secret() {
                     println!("The passwords do not match, please try again.");
@@ -425,8 +429,9 @@ pub fn handle_command_get(
         .as_mut()
         .ok_or(SessionError::VaultError(VaultError::NoVaultOpen))?;
 
-    let entry = vault.get_entry_by_name(&entry_name).ok_or(
-        SessionError::VaultError(VaultError::EntryNotFound))?;
+    let entry = vault
+        .get_entry_by_name(&entry_name)
+        .ok_or(SessionError::VaultError(VaultError::EntryNotFound))?;
 
     println!("\n==== Entry: {} ====", entry_name);
     println!(
@@ -724,9 +729,7 @@ pub fn handle_command_change_master(
         .into();
 
         match check_password_strength(&input) {
-            Err(_) => {
-                continue 'input_new_master
-            }
+            Err(_) => continue 'input_new_master,
             Ok(()) => {
                 io::stdout().flush().unwrap();
                 let confirm_new_passwd: SecretString =
@@ -1267,7 +1270,7 @@ fn add_password_to_entry() -> Result<Option<String>, SessionError> {
     }
 }
 
-fn check_password_strength(password: &SecretString) -> Result<(), VaultError>{
+fn check_password_strength(password: &SecretString) -> Result<(), VaultError> {
     if password.expose_secret().is_empty() {
         println!("The Master-Password may not be empty! Try again.");
         println!();
@@ -1283,13 +1286,14 @@ fn check_password_strength(password: &SecretString) -> Result<(), VaultError>{
     let estimate = zxcvbn(&password.expose_secret(), &[])?;
     if estimate.guesses() < min_number_of_guesses {
         println!("Estimated guesses: {}", estimate.guesses());
-        println!("The password is too weak, do not use common passwords. Try combining unrelated words.");
+        println!(
+            "The password is too weak, do not use common passwords. Try combining unrelated words."
+        );
         return Err(VaultError::WeakPassword);
     }
     //println!("Estimated guesses: {}", estimate.guesses());
-    
-    Ok(())
 
+    Ok(())
 }
 
 fn check_vault_name(vault_name: &str) -> Result<(), VaultError> {
@@ -1299,10 +1303,13 @@ fn check_vault_name(vault_name: &str) -> Result<(), VaultError> {
     if vault_name.is_empty() {
         return Err(VaultError::InvalidVaultName);
     }
-    if !vault_name.chars().all(|c| c.is_ascii_alphanumeric() || c == '_' || c == '-') {
+    if !vault_name
+        .chars()
+        .all(|c| c.is_ascii_alphanumeric() || c == '_' || c == '-')
+    {
         return Err(VaultError::InvalidVaultName);
     }
-    
+
     Ok(())
 }
 // tests
