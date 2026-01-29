@@ -294,7 +294,7 @@ fn main() {
                     }
                     match handle_command_change_master(&mut *session_guard) {
                         Ok(()) => {
-                            try_save(&mut *session_guard);
+                            *session_guard = None;
                         }
                         Err(e) => {
                             println!("Error: {}", e);
