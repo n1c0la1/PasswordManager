@@ -4,11 +4,9 @@ on:
   push:
     branches: 
       - "main"
-      - "json"
   pull_request:
     branches: 
       - "main"
-      - "json"
 
 env:
   CARGO_TERM_COLOR: always
@@ -45,6 +43,7 @@ jobs:
         git config user.name "github-actions[bot]"
         git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
         if [ -n "$(git status --porcelain)" ]; then
+          git pull
           git add -A
           git commit -m "chore: apply rustfmt via CI" || echo "No changes to commit"
           git push origin HEAD:main
