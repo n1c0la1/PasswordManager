@@ -1551,4 +1551,35 @@ mod tests {
         assert_eq!(format!("{}", VaultError::NameExists), "NAME ALREADY EXISTS");
         assert_eq!(format!("{}", VaultError::NoVaultOpen), "NO VAULT IS OPEN");
     }
+
+    // ================== PASSWORD STRENGTH TESTS ==================
+    
+    //create a valid password
+    #[test]
+    fn test_valid_password(){
+        let password: SecretString = "rustSEPtest".into();
+        let result = check_password_strength(&password);
+        assert!(result.is_ok());
+    }
+
+    #[test]
+    fn test_empty_passsword() {
+        let password: SecretString = "".into();
+        let result = check_password_strength(&password);
+        assert!(result.is_err())
+    }
+
+    #[test]
+    fn test_short_password() {
+        let password: SecretString = "too_short".into();
+        let result = check_password_strength(&password);
+        assert!(result.is_err());
+    }
+
+    #[test]
+    fn test_weak_password() {
+        let password: SecretString = "weakpassword".into();
+        let result = check_password_strength(&password);
+        assert!(result.is_err());
+    }
 }
