@@ -1554,7 +1554,6 @@ mod tests {
 
     // ================== PASSWORD STRENGTH TESTS ==================
     
-    //create a valid password
     #[test]
     fn test_valid_password(){
         let password: SecretString = "rustSEPtest".into();
@@ -1566,20 +1565,57 @@ mod tests {
     fn test_empty_passsword() {
         let password: SecretString = "".into();
         let result = check_password_strength(&password);
-        assert!(result.is_err())
+        assert!(matches!(result, Err(VaultError::WeakPassword)));
     }
 
     #[test]
     fn test_short_password() {
         let password: SecretString = "too_short".into();
         let result = check_password_strength(&password);
-        assert!(result.is_err());
+        assert!(matches!(result, Err(VaultError::WeakPassword)));
     }
 
     #[test]
     fn test_weak_password() {
         let password: SecretString = "weakpassword".into();
         let result = check_password_strength(&password);
-        assert!(result.is_err());
+        assert!(matches!(result, Err(VaultError::WeakPassword)));
+    }
+
+    // ================== VAULT NAME TESTS ==================
+    #[test]
+    fn test_valid_vault_name(){
+        let name = "valid_-Name1";
+        let result = check_vault_name(name);
+        assert!(result.is_ok());
+    }
+
+    #[test]
+    fn test_empty_vault_name() {
+        let name = "";
+        let result = check_vault_name(name);
+        assert!(matches!(result, Err(VaultError::InvalidVaultName)));
+    }
+
+    #[test]
+    fn test_long_vault_name() {
+        let name = "a".repeat(65);
+        let result= check_vault_name(&name);
+        assert!(matches!(result, Err(VaultError::InvalidVaultName)));
+    }
+
+    #[test]
+    fn test_invalid_name() {
+        let name = "/";
+        let result = check_vault_name(name);
+        assert!(matches!(result, Err(VaultError::InvalidVaultName)));
+
+        let name2 = "\\";
+        let result2 = check_vault_name(name2);
+        assert!(matches!(result2, Err(VaultError::InvalidVaultName)));
+
+        let name3 = ".";
+        let result3 = check_vault_name(name3);
+        assert!(matches!(result3, Err(VaultError::InvalidVaultName)));
     }
 }
