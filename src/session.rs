@@ -9,11 +9,14 @@ use crate::vault_file_manager::open_vault;
 use secrecy::ExposeSecret;
 use secrecy::SecretString;
 
+use std::time::{Duration, Instant};
+
 #[derive(Debug)]
 pub struct Session {
     pub vault_name: String,
     pub opened_vault: Option<Vault>,
     master_password: Option<SecretString>,
+    pub last_activity: Instant,
 }
 
 //a session is active when: opened_vault and master_password = Some(_)
@@ -44,7 +47,16 @@ impl Session {
             vault_name: vault_name,
             opened_vault: None,
             master_password: None,
+            last_activity: Instant::now(),
         }
+    }
+
+    pub fn update_activity(&mut self) {
+        self.last_activity = Instant::now();
+    }
+
+    pub fn check_timeout(&self, timeout: Duration) -> bool {
+        self.last_activity.elapsed() >= timeout
     }
 
     //assumption: vault already exists in memory
@@ -62,7 +74,7 @@ impl Session {
             Ok(vault) => {
                 self.master_password = Some(master_for_session);
                 self.opened_vault = Some(vault);
-                //later start timer here or last activity
+                self.last_activity = Instant::now();
                 Ok(())
             }
             Err(_) => Err(SessionError::VaultError(VaultError::InvalidKey)),
@@ -134,7 +146,6 @@ impl Session {
     }
 }
 
-/*
 #[cfg(test)]
 mod tests {
     use super::*;
@@ -162,12 +173,16 @@ mod tests {
             vault_name: vault_name.clone(),
             opened_vault: None,
             master_password: None,
+            last_activity: Instant::now(),
         };
 
         let result = session.start_session(master_pw.clone());
         assert!(result.is_ok(), "Failed to start session");
         assert!(session.opened_vault.is_some(), "Vault should be opened");
-        assert!(session.master_password.is_some(), "Master password should be stored");
+        assert!(
+            session.master_password.is_some(),
+            "Master password should be stored"
+        );
 
         // Clean up
         let _ = std::fs::remove_file(format!("vaults/{}.psdb", vault_name));
@@ -184,18 +199,21 @@ mod tests {
             vault_name: vault_name.clone(),
             opened_vault: None,
             master_password: None,
+            last_activity: Instant::now(),
         };
         session.start_session(master_pw.clone()).unwrap();
 
         // Add an entry
         let (vault, _master) = session.session_state().unwrap();
-        vault.add_entry(Entry::new(
-            "Email".to_string(),
-            Some("user@example.com".to_string()),
-            Some("password123".to_string()),
-            None,
-            None,
-        )).unwrap();
+        vault
+            .add_entry(Entry::new(
+                "Email".to_string(),
+                Some("user@example.com".to_string()),
+                Some("password123".to_string()),
+                None,
+                None,
+            ))
+            .unwrap();
 
         // Save
         session.save().unwrap();
@@ -208,10 +226,11 @@ mod tests {
             vault_name: vault_name.clone(),
             opened_vault: None,
             master_password: None,
+            last_activity: Instant::now(),
         };
         new_session.start_session(master_pw.clone()).unwrap();
         let (vault, _master) = new_session.session_state().unwrap();
-        let found = vault.get_entry_by_name("Email".to_string());
+        let found = vault.get_entry_by_name(&"Email".to_owned());
         assert!(found.is_some(), "Saved entry was not persisted");
 
         // Clean up
@@ -230,16 +249,22 @@ mod tests {
             vault_name: vault_name.clone(),
             opened_vault: None,
             master_password: None,
+            last_activity: Instant::now(),
         };
         session.start_session(master_pw.clone()).unwrap();
 
         let result = session.end_session();
         assert!(result.is_ok(), "Failed to end session");
-        assert!(session.opened_vault.is_none(), "Vault should be None after ending session");
-        assert!(session.master_password.is_none(), "Master password should be None after ending session");
+        assert!(
+            session.opened_vault.is_none(),
+            "Vault should be None after ending session"
+        );
+        assert!(
+            session.master_password.is_none(),
+            "Master password should be None after ending session"
+        );
 
         // Clean up
         let _ = std::fs::remove_file(format!("vaults/{}.psdb", vault_name));
     }
 }
-     */
