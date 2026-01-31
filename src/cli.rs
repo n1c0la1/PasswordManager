@@ -208,6 +208,10 @@ pub fn handle_command_init(option_name: Option<String>) -> Result<(), VaultError
 
         let password: SecretString = rpassword::prompt_password("Master-Password: ")?.into();
 
+        if password.expose_secret() == CANCEL_ARG {
+            return Err(VaultError::ActionCancelled);
+        }
+
         match check_password_strength(&password) {
             Err(_) => continue 'define_mw,
             Ok(()) => {
@@ -731,6 +735,10 @@ pub fn handle_command_change_master(
             session_vault_name
         ))?
         .into();
+
+        if input.expose_secret() == CANCEL_ARG {
+            return Err(SessionError::VaultError(VaultError::ActionCancelled));
+        }
 
         match check_password_strength(&input) {
             Err(_) => continue 'input_new_master,
