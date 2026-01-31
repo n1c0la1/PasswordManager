@@ -1,19 +1,30 @@
 use std::io::{self, Read, Write};
+use std::sync::{Arc, Mutex};
 use serde_json::json;
 use url::Url;
 
-// Reads a message from stdin and parse it as JSON
+use crate::errors::SessionError;
+use crate::session::Session;
+use crate::cli::handle_command_get_by_url;
+
+const MAX_MESSAGE_SIZE: usize = 1024 * 1024; // 1MB max message size to prevent abuse
+
 fn read_message() -> Option<serde_json::Value> {
     let mut len_buf = [0u8; 4];
     io::stdin().read_exact(&mut len_buf).ok()?;
     let len = u32::from_ne_bytes(len_buf) as usize;
+
+    // Validate message size to prevent OOM attacks
+    if len > MAX_MESSAGE_SIZE {
+        eprintln!("Warning: Message size {} exceeds maximum allowed {}", len, MAX_MESSAGE_SIZE);
+        return None;
+    }
 
     let mut buf = vec![0u8; len];
     io::stdin().read_exact(&mut buf).ok()?;
     serde_json::from_slice(&buf).ok()
 }
 
-// Sends a JSON message to stdout
 fn send_message(value: &serde_json::Value) -> io::Result<()> {
     let s = serde_json::to_string(value)?;
     let len = (s.len() as u32).to_ne_bytes();
@@ -24,34 +35,19 @@ fn send_message(value: &serde_json::Value) -> io::Result<()> {
     Ok(())
 }
 
-// Normalizes the origin URL to a standard format (e.g. from "https://example.com/path" to "https://example.com")
 fn normalize_origin(input: &str) -> Option<String> {
     let url = Url::parse(input).ok()?;
-
-    // Only support http(s) pages
     match url.scheme() {
         "http" | "https" => {}
         _ => return None,
     }
-
     let host = url.host_str()?;
     Some(format!("{}://{}", url.scheme(), host))
 }
 
-// Test credentials (for demonstration purposes)
-fn get_test_credentials(origin: &str) -> Option<(String, String)> {
-    match origin {
-        "https://github.com" => Some(("octocat".to_string(), "github_token_123".to_string())),
-        "https://example.com" => Some(("testuser".to_string(), "testpass123".to_string())),
-        _ => None,
-    }
-}
+pub fn run(session_arc: Arc<Mutex<Option<Session>>>) {
+    eprintln!("Native host thread started");
 
-// for testing purposes I added simple cmd handling like we do in the main script but it was simplified for my testing project, needs actual implementation and communication with the cli script
-fn main() {
-    eprintln!("Native host started");
-
-    // Main message loop
     while let Some(msg) = read_message() {
         eprintln!("Received message: {}", msg);
 
@@ -60,19 +56,63 @@ fn main() {
             .and_then(|v| v.as_str())
             .and_then(normalize_origin);
 
-        // simplified response handling for testing with console output
         let response = match origin {
             Some(o) => {
-                if let Some((username, password)) = get_test_credentials(&o) {
-                    eprintln!("Found test credentials for {}", o);
-                    json!({
-                        "found": true,
-                        "username": username,
-                        "password": password
-                    })
-                } else {
-                    eprintln!("No credentials found for {}", o);
-                    json!({ "found": false })
+                eprintln!("Looking up entries for: {}", o);
+
+                // Lock and read the session
+                // Handle mutex poison gracefully to prevent thread panic
+                let session_guard = match session_arc.lock() {
+                    Ok(guard) => guard,
+                    Err(poisoned) => {
+                        eprintln!("Warning: Session mutex was poisoned, attempting recovery");
+                        poisoned.into_inner()
+                    }
+                };
+                
+                match &*session_guard {
+                    Some(session) => {
+                        eprintln!("Session is active, searching for entries");
+                        // Use CLI's command handler to get entries by URL
+                        match handle_command_get_by_url(session, &o) {
+                            Ok(entries) => {
+                                eprintln!("Found {} entries", entries.len());
+
+                                if entries.is_empty() {
+                                    json!({ "found": false })
+                                } else if entries.len() == 1 {
+                                    let entry = &entries[0];
+                                    json!({
+                                        "found": true,
+                                        "entryname": entry.get_entry_name(),
+                                        "username": entry.get_user_name(),
+                                        "password": entry.get_password()
+                                    })
+                                } else {
+                                    // Multiple entries: return all for selection
+                                    let entry_list: Vec<_> = entries
+                                        .iter()
+                                        .map(|e| {
+                                            json!({
+                                                "entryname": e.get_entry_name(),
+                                                "username": e.get_user_name(),
+                                                "password": e.get_password()
+                                            })
+                                        })
+                                        .collect();
+                                    json!({ "entries": entry_list })
+                                }
+                            }
+                            Err(e) => {
+                                eprintln!("Error getting entries: {:?}", e);
+                                json!({ "error": format!("Failed to get entries: {:?}", e) })
+                            }
+                        }
+                    }
+                    None => {
+                        eprintln!("No active session");
+                        json!({ "error": "no session active" })
+                    }
                 }
             }
             None => {

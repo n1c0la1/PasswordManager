@@ -1111,6 +1111,50 @@ pub fn handle_command_close(
     return Ok(LoopCommand::Continue);
 }
 
+pub fn handle_command_get_by_url(
+    session: &Session,
+    url: &str,
+) -> Result<Vec<Entry>, SessionError> {
+    // Check if vault is open
+    let vault = session
+        .opened_vault
+        .as_ref()
+        .ok_or(SessionError::VaultError(VaultError::NoVaultOpen))?;
+
+    // Find entries with matching URL
+    let matching: Vec<Entry> = vault
+        .get_entries()
+        .iter()
+        .filter(|entry| {
+            entry
+                .get_url()
+                .as_ref()
+                .map(|entry_url| url_matches(entry_url, url))
+                .unwrap_or(false)
+        })
+        .cloned()
+        .collect();
+
+    Ok(matching)
+}
+
+fn url_matches(entry_url: &str, target_url: &str) -> bool {
+    // Extract domain from URLs for matching
+    // e.g., "https://github.com" matches "https://github.com/login"
+    let entry_domain = extract_domain(entry_url);
+    let target_domain = extract_domain(target_url);
+    entry_domain == target_domain
+}
+
+fn extract_domain(url: &str) -> String {
+    if let Ok(parsed) = url::Url::parse(url) {
+        if let Some(host) = parsed.host_str() {
+            return format!("{}://{}", parsed.scheme(), host);
+        }
+    }
+    url.to_string()
+}
+
 pub fn handle_command_vaults(current_session: &Option<Session>) {
     println!("\n=== Available Vaults ===");
 

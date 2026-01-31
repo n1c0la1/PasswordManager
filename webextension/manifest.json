@@ -1,10 +1,14 @@
 {
-  "manifest_version": 2,
-  "name": "Rust Password Manager Fill Test",
+  "manifest_version": 3,
+  "name": "Password Manager",
   "version": "0.1",
-  "description": "Detect login fields and fill them (test)",
-  "permissions": ["nativeMessaging", "tabs", "<all_urls>", "activeTab"],
-  "background": { "scripts": ["background.js"] },
+  "description": "Auto-fill login forms from your password manager vault",
+  "permissions": ["nativeMessaging", "tabs"],
+  "host_permissions": ["<all_urls>"],
+  "background": {
+    "scripts": ["background.js"],
+    "type": "module"
+  },
   "content_scripts": [
     {
       "matches": ["<all_urls>"],
@@ -12,10 +16,13 @@
     }
   ],
   "browser_specific_settings": {
-    "gecko": { "id": "fill_test@example.org", "strict_min_version": "60.0" }
+    "gecko": {
+      "id": "fill_test@example.org",
+      "strict_min_version": "109.0"
+    }
   },
-  "browser_action": {
+  "action": {
     "default_popup": "popup.html",
-    "default_title": "Manage Passwords"
+    "default_title": "Password Manager - Click to fill"
   }
 }
