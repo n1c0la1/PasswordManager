@@ -124,6 +124,8 @@ pub enum CommandCLI {
     },
 }
 
+static CANCEL_ARG: &'static str = "/CANCEL";
+
 pub fn clear_terminal() {
     print!("{esc}[2J{esc}[1;1H", esc = 27 as char);
 }
@@ -288,14 +290,14 @@ pub fn handle_command_add(
             if trimmed_name.is_empty() {
                 println!("Error: Entry name cannot be empty!");
                 continue 'input;
-            } else if trimmed_name.eq("-EXIT-") {
+            } else if trimmed_name.eq(CANCEL_ARG) {
                 return Ok(());
             }
 
             if existing_names.contains(&trimmed_name) {
                 println!(
-                    "Error: the name '{}' already exists! Try again or type '-EXIT-'.",
-                    trimmed_name
+                    "Error: the name '{}' already exists! Try again or type '{}'.",
+                    trimmed_name, CANCEL_ARG
                 );
                 continue 'input;
             }
@@ -627,17 +629,17 @@ pub fn handle_command_deletevault(
         let expected_low_case = format!("delete {}", vault_name);
         if trimmed == expected_low_case {
             println!();
-            println!("You have to use capital letters! Try again or type exit.");
+            println!("You have to use capital letters! Try again or type '{}'.", CANCEL_ARG);
             continue 'input;
         } else if trimmed == expected {
             break 'input;
-        } else if trimmed == "exit" {
+        } else if trimmed == CANCEL_ARG {
             return Err(SessionError::VaultError(VaultError::AnyhowError(anyhow!(
                 "exit"
             ))));
         } else {
             println!();
-            println!("Wrong input! Try again or type exit.");
+            println!("Wrong input! Try again or type '{}'.", CANCEL_ARG);
             continue 'input;
         }
     }
