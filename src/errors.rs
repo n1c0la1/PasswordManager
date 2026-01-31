@@ -32,7 +32,7 @@ impl fmt::Display for SessionError {
         match self {
             SessionError::SessionInactive => write!(f, "SESSION IS INACTIVE"),
             SessionError::SessionActive => write!(f, "SESSION IS ALREADY ACTIVE"),
-            SessionError::VaultError(e) => write!(f, "VAULT ERROR: {}", e),
+            SessionError::VaultError(e) => write!(f, "{}", e),
         }
     }
 }
