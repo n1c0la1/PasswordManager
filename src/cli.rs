@@ -177,6 +177,10 @@ pub fn handle_command_init(option_name: Option<String>) -> Result<(), VaultError
             print!("{input}");
             let input = input.trim().to_string();
 
+            if input.eq(CANCEL_ARG) {
+                return Err(VaultError::ActionCancelled);
+            }
+
             match check_vault_name(&input) {
                 Err(_) => {
                     println!("Invalid name.");
@@ -291,7 +295,7 @@ pub fn handle_command_add(
                 println!("Error: Entry name cannot be empty!");
                 continue 'input;
             } else if trimmed_name.eq(CANCEL_ARG) {
-                return Ok(());
+                return Err(SessionError::VaultError(VaultError::ActionCancelled));
             }
 
             if existing_names.contains(&trimmed_name) {
@@ -634,9 +638,7 @@ pub fn handle_command_deletevault(
         } else if trimmed == expected {
             break 'input;
         } else if trimmed == CANCEL_ARG {
-            return Err(SessionError::VaultError(VaultError::AnyhowError(anyhow!(
-                "exit"
-            ))));
+            return Err(SessionError::VaultError(VaultError::ActionCancelled));
         } else {
             println!();
             println!("Wrong input! Try again or type '{}'.", CANCEL_ARG);
@@ -1224,7 +1226,13 @@ fn add_password_to_entry() -> Result<Option<String>, SessionError> {
                 let mut length_input = String::new();
                 io::stdout().flush().unwrap();
                 io::stdin().read_line(&mut length_input)?;
-                if let Ok(len) = length_input.trim().parse::<i32>() {
+                let trimmed_input = length_input.trim();
+
+                if trimmed_input.eq(CANCEL_ARG) {
+                    return Ok(None);
+                }
+
+                if let Ok(len) = trimmed_input.parse::<i32>() {
                     length = len;
                     break 'input_length;
                 }
