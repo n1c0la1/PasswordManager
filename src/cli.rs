@@ -607,9 +607,7 @@ pub fn handle_command_deletevault(
     io::stdin().read_line(&mut input)?;
 
     if input.trim().eq_ignore_ascii_case("n") {
-        return Err(SessionError::VaultError(VaultError::AnyhowError(anyhow!(
-            "Cancelled."
-        ))));
+        return Err(SessionError::VaultError(VaultError::ActionCancelled));
     }
 
     println!();
