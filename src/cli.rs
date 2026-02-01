@@ -53,15 +53,18 @@ pub enum CommandCLI {
     },
 
     /// Get an Entry of the Database.
-    // maybe implement parameter: with or without the password visible
+    // Accepts entry name or URL
     Get {
-        //name of the Element to be shown
+        //name of the Element to be shown, or a URL to search for
         name: String,
 
         // Specifies whether the password should be shown in the command line.
         #[arg(short = 's', long)]
         show: bool,
-        // Maybe an Option to directly copy the password to clipboard without showing it.
+
+        // Copy credentials to clipboard instead of displaying
+        #[arg(short = 'c', long)]
+        copy: bool,
     },
 
     /// Gets all Entries from the current vault.
@@ -403,8 +406,9 @@ pub fn handle_command_add(
 
 pub fn handle_command_get(
     option_session: &mut Option<Session>,
-    entry_name: String,
+    entry_name_or_url: String,
     show: bool,
+    copy: bool,
 ) -> Result<(), SessionError> {
     let session = option_session
         .as_mut()
@@ -429,11 +433,93 @@ pub fn handle_command_get(
         .as_mut()
         .ok_or(SessionError::VaultError(VaultError::NoVaultOpen))?;
 
-    let entry = vault
-        .get_entry_by_name(&entry_name)
-        .ok_or(SessionError::VaultError(VaultError::EntryNotFound))?;
+    // First, try to find by exact entry name
+    let entry_opt = vault.get_entry_by_name(&entry_name_or_url);
+    
+    let entry = if let Some(e) = entry_opt {
+        // Found by name
+        e
+    } else {
+        // Not found by name, try URL-based lookup
+        let target_domain = extract_domain(&entry_name_or_url);
+        
+        let matches: Vec<&crate::vault_entry_manager::Entry> = vault.entries.iter()
+            .filter(|entry| {
+                if let Some(entry_url) = entry.get_url() {
+                    let entry_domain = extract_domain(entry_url);
+                    entry_domain == target_domain
+                } else {
+                    false
+                }
+            })
+            .collect();
+        
+        match matches.len() {
+            0 => {
+                println!("Entry '{}' not found (tried name and URL lookup)", entry_name_or_url);
+                return Err(SessionError::VaultError(VaultError::EntryNotFound));
+            }
+            1 => matches[0],
+            _ => {
+                // Multiple matches found
+                println!("\nMultiple entries found for '{}':", entry_name_or_url);
+                for (i, e) in matches.iter().enumerate() {
+                    println!("  {}. {} ({})", 
+                        i + 1, 
+                        e.get_entry_name(),
+                        e.get_url().as_deref().unwrap_or("no URL")
+                    );
+                }
+                println!("\nPlease use the exact entry name to select one.");
+                return Ok(());
+            }
+        }
+    };
 
-    println!("\n==== Entry: {} ====", entry_name);
+    // Handle --copy flag
+    if copy {
+        use arboard::Clipboard;
+        let username = entry.get_user_name().as_deref().unwrap_or("");
+        let password = entry.get_password().as_deref().unwrap_or("");
+        
+        if username.is_empty() && password.is_empty() {
+            println!("Entry has no username or password to copy");
+            return Ok(());
+        }
+
+        // Format: username\npassword
+        let clipboard_content = format!("{}\n{}", username, password);
+        
+        match Clipboard::new() {
+            Ok(mut clipboard) => {
+                match clipboard.set_text(clipboard_content) {
+                    Ok(_) => {
+                        println!("✓ Credentials copied to clipboard for '{}'", entry.get_entry_name());
+                        println!("  (Clipboard will be cleared in 30 seconds)");
+                        
+                        // Spawn background thread to clear clipboard after 30 seconds
+                        std::thread::spawn(|| {
+                            std::thread::sleep(std::time::Duration::from_secs(30));
+                            if let Ok(mut clip) = Clipboard::new() {
+                                let _ = clip.set_text("".to_string());
+                            }
+                        });
+                    }
+                    Err(e) => {
+                        println!("Failed to copy to clipboard: {}", e);
+                    }
+                }
+            }
+            Err(e) => {
+                println!("Failed to access clipboard: {}", e);
+            }
+        }
+        
+        return Ok(());
+    }
+
+    // Display entry (normal behavior)
+    println!("\n==== Entry: {} ====", entry.get_entry_name());
     println!(
         "Username: {}",
         entry.get_user_name().as_deref().unwrap_or("--EMPTY--")
@@ -1138,7 +1224,7 @@ pub fn handle_command_get_by_url(
     Ok(matching)
 }
 
-fn url_matches(entry_url: &str, target_url: &str) -> bool {
+pub fn url_matches(entry_url: &str, target_url: &str) -> bool {
     // Extract domain from URLs for matching
     // e.g., "https://github.com" matches "https://github.com/login"
     let entry_domain = extract_domain(entry_url);
@@ -1146,7 +1232,7 @@ fn url_matches(entry_url: &str, target_url: &str) -> bool {
     entry_domain == target_domain
 }
 
-fn extract_domain(url: &str) -> String {
+pub fn extract_domain(url: &str) -> String {
     if let Ok(parsed) = url::Url::parse(url) {
         if let Some(host) = parsed.host_str() {
             return format!("{}://{}", parsed.scheme(), host);

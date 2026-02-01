@@ -181,14 +181,14 @@ fn main() {
                     continue 'interactive_shell;
                 }
 
-                CommandCLI::Get { name, show } => {
+                CommandCLI::Get { name, show, copy } => {
                     if !active_session(&*session_guard) {
                         println!(
                             "There is no session active right now, consider using open <vault-name>!"
                         );
                         continue 'interactive_shell;
                     }
-                    match handle_command_get(&mut *session_guard, name, show) {
+                    match handle_command_get(&mut *session_guard, name, show, copy) {
                         Ok(()) => { /* Do nothing */ }
                         Err(SessionError::VaultError(VaultError::NoVaultOpen)) => {
                             println!("No vault is active! Use init or open <vault-name>!");

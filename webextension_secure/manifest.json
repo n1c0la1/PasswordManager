@@ -1,0 +1,27 @@
+{
+    "manifest_version": 3,
+    "name": "Password Manager (Secure/Clipboard)",
+    "version": "0.1",
+    "description": "Fill login forms from clipboard (no network, no popup)",
+    "permissions": ["activeTab", "clipboardRead"],
+
+    "content_scripts": [
+        {
+            "matches": ["<all_urls>"],
+            "js": ["content_script.js"]
+        }
+    ],
+    "background": {
+        "scripts": ["background.js"],
+        "type": "module"
+    },
+    "browser_specific_settings": {
+        "gecko": {
+            "id": "pm_secure@example.org",
+            "strict_min_version": "109.0"
+        }
+    },
+    "action": {
+        "default_title": "Fill login from clipboard"
+    }
+}
