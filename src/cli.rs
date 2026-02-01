@@ -1233,7 +1233,14 @@ pub fn url_matches(entry_url: &str, target_url: &str) -> bool {
 }
 
 pub fn extract_domain(url: &str) -> String {
-    if let Ok(parsed) = url::Url::parse(url) {
+    // Add scheme if missing
+    let url_with_scheme = if !url.contains("://") {
+        format!("https://{}", url)
+    } else {
+        url.to_string()
+    };
+    
+    if let Ok(parsed) = url::Url::parse(&url_with_scheme) {
         if let Some(host) = parsed.host_str() {
             return format!("{}://{}", parsed.scheme(), host);
         }

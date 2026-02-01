@@ -23,11 +23,12 @@ fn main() {
     // let mut current_session: Option<Session> = None;
     let current_session = Arc::new(Mutex::new(None::<Session>));
 
-    // Spawn native host thread for web extension communication
-    let native_host_session = current_session.clone();
-    thread::spawn(move || {
-        native_host::run(native_host_session);
-    });
+    // NOTE: Native host thread disabled - using clipboard extension instead
+    // Uncomment if you want to use the localhost server extension
+    // let native_host_session = current_session.clone();
+    // thread::spawn(move || {
+    //     native_host::run(native_host_session);
+    // });
 
     // Background thread for AutoLock
     // just clones the Arc (which is a pointer), not the entire session!
