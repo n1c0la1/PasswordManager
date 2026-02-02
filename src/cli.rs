@@ -2,6 +2,7 @@ use crate::errors::*;
 //use password_manager::*;
 use crate::session::*;
 use crate::vault_entry_manager::*;
+use crate::vault_file_manager::{list_vaults, vault_exists};
 //use crate::vault_file_manager::initialize_vault;
 //use crate::test::*;
 
@@ -12,10 +13,8 @@ use indicatif::{self, ProgressBar, ProgressStyle};
 use rpassword;
 use secrecy::ExposeSecret;
 use secrecy::SecretString;
-use std::fs;
 use std::io::stdout;
 use std::io::{self, Write};
-use std::path::Path;
 use std::time::Duration;
 
 #[derive(Parser)]
@@ -921,9 +920,10 @@ pub fn handle_command_open(
     current_session: &mut Option<Session>,
 ) -> Result<Session, SessionError> {
     // Check if vault file exists
-    let path = Path::new("vaults").join(format!("{vault_to_open}.psdb"));
-    if !path.exists() {
-        return Err(SessionError::VaultError(VaultError::VaultDoesNotExist));
+    match vault_exists(&vault_to_open) {
+        Ok(true) => {}
+        Ok(false) => return Err(SessionError::VaultError(VaultError::VaultDoesNotExist)),
+        Err(e) => return Err(SessionError::VaultError(e)),
     }
 
     //check if the same vault is already open
@@ -1085,25 +1085,8 @@ pub fn handle_command_close(
 pub fn handle_command_vaults(current_session: &Option<Session>) {
     println!("\n=== Available Vaults ===");
 
-    match fs::read_dir("vaults") {
-        Ok(entries) => {
-            let mut vault_files: Vec<String> = entries
-                .filter_map(|e| e.ok())
-                .filter(|e| {
-                    e.path()
-                        .extension()
-                        .and_then(|ext| ext.to_str())
-                        .map(|ext| ext == "psdb")
-                        .unwrap_or(false)
-                })
-                .filter_map(|e| {
-                    e.path()
-                        .file_stem()
-                        .and_then(|s| s.to_str())
-                        .map(|s| s.to_string())
-                })
-                .collect();
-
+    match list_vaults() {
+        Ok(mut vault_files) => {
             if vault_files.is_empty() {
                 println!("  (no vaults found)");
                 println!("\nCreate a new vault with: init <vault_name>");

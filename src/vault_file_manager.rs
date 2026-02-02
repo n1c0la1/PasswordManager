@@ -29,7 +29,6 @@ pub fn initialize_vault(name: String) -> Result<Vault, VaultError> {
     //    return Err(VaultError::PasswordTooLong);
     // }
 
-    //IMPORTANT: password length should be checked at input (cli.rs)
     let path = get_vaults_dir()?.join(format!("{name}.psdb"));
     if path.exists() {
         return Err(VaultError::FileExists);
