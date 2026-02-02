@@ -104,9 +104,17 @@ pub fn list_vaults() -> Result<Vec<String>, VaultError> {
         let unwraped_entry = entry?;
         let entry_path = unwraped_entry.path();
 
-        if let Some(file_name) = entry_path.file_name().and_then(|s| s.to_str()) {
-            let string_entry = file_name.to_string();
-            vector.push(string_entry);
+        let is_psdb = entry_path
+            .extension()
+            .and_then(|ext| ext.to_str())
+            .map(|ext| ext == "psdb")
+            .unwrap_or(false);
+
+        if is_psdb {
+            if let Some(file_name) = entry_path.file_stem().and_then(|s| s.to_str()) {
+                let string_entry = file_name.to_string();
+                vector.push(string_entry);
+            }
         }
     }
     Ok(vector)
