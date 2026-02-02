@@ -454,7 +454,7 @@ pub fn handle_command_getall(
                 }
             };
             let master_input: SecretString = rpassword::prompt_password(format!(
-                "Enter master password for '{}': ",
+                "\nEnter master password for '{}': ",
                 name_of_vault
             ))?
             .into();

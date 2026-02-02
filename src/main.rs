@@ -39,7 +39,7 @@ fn main() {
                             Ok(_) => {
                                 handle_command_clear();
                                 println!(
-                                    "\n\nYou have been logged out. Last used vault was : {} Use open to open it again",
+                                    "\n\nYou have been logged out. Last used vault was: '{}'.",
                                     name
                                 );
                                 io::stdout().flush().unwrap();
