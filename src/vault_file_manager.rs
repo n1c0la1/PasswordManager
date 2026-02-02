@@ -100,8 +100,8 @@ pub fn list_vaults() -> Result<Vec<String>, VaultError> {
     let entries = fs::read_dir(vaults_dir)?;
 
     for entry in entries {
-        let unwraped_entry = entry?;
-        let entry_path = unwraped_entry.path();
+        let unwrapped_entry = entry?;
+        let entry_path = unwrapped_entry.path();
 
         let is_psdb = entry_path
             .extension()

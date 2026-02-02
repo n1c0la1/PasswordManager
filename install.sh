@@ -18,7 +18,8 @@ fi
 
 # Install
 echo "Installing to $INSTALL_DIR..."
-cp target/release/password_manager "$INSTALL_DIR/pw"
+SCRIPT_DIR="$(cd "$(dirname "$0")" && pwd)"
+cp "$SCRIPT_DIR/target/release/password_manager" "$INSTALL_DIR/pw"
 
 if [ $? -eq 0 ]; then
     echo "Installation successful! You can now use 'pw' from the terminal."
