@@ -1,12 +1,27 @@
 #!/bin/bash
 
-# Build the project
-echo "Building password_manager..."
-cargo build --release
-
-if [ $? -ne 0 ]; then
-    echo "Build failed. Please check your Rust installation."
-    exit 1
+# Check if pre-built binary exists (for USB/offline install)
+if [ -f "./password_manager" ]; then
+    echo "Found pre-built binary 'password_manager'. Skipping build."
+    BINARY_SOURCE="./password_manager"
+elif [ -f "./pw" ]; then
+    echo "Found pre-built binary 'pw'. Skipping build."
+    BINARY_SOURCE="./pw"
+else
+    # Build the project
+    if command -v cargo &> /dev/null; then
+        echo "Building password_manager..."
+        cargo build --release
+        if [ $? -ne 0 ]; then
+            echo "Build failed. Please check your Rust installation."
+            exit 1
+        fi
+        BINARY_SOURCE="target/release/password_manager"
+    else
+        echo "Error: 'cargo' not found and no pre-built binary found."
+        echo "For offline installation, please place the 'password_manager' binary in this folder."
+        exit 1
+    fi
 fi
 
 # Determine install location - prefer local bin to avoid sudo
@@ -18,8 +33,7 @@ fi
 
 # Install
 echo "Installing to $INSTALL_DIR..."
-SCRIPT_DIR="$(cd "$(dirname "$0")" && pwd)"
-cp "$SCRIPT_DIR/target/release/password_manager" "$INSTALL_DIR/pw"
+cp "$BINARY_SOURCE" "$INSTALL_DIR/pw"
 
 if [ $? -eq 0 ]; then
     echo "Installation successful! You can now use 'pw' from the terminal."

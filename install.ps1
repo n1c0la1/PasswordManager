@@ -1,9 +1,24 @@
-Write-Host "Building password_manager..."
-cargo build --release
+if (Test-Path -Path ".\password_manager.exe") {
+    Write-Host "Found pre-built binary 'password_manager.exe'. Skipping build."
+    $BinarySource = ".\password_manager.exe"
+} elseif (Test-Path -Path ".\pw.exe") {
+    Write-Host "Found pre-built binary 'pw.exe'. Skipping build."
+    $BinarySource = ".\pw.exe"
+} else {
+    if (Get-Command "cargo" -ErrorAction SilentlyContinue) {
+        Write-Host "Building password_manager..."
+        cargo build --release
 
-if ($LASTEXITCODE -ne 0) {
-    Write-Error "Build failed. Please check your Rust installation."
-    exit 1
+        if ($LASTEXITCODE -ne 0) {
+            Write-Error "Build failed. Please check your Rust installation."
+            exit 1
+        }
+        $BinarySource = "target\release\password_manager.exe"
+    } else {
+        Write-Error "Error: 'cargo' not found and no pre-built binary found."
+        Write-Error "For offline installation, please place 'password_manager.exe' or 'pw.exe' in this directory."
+        exit 1
+    }
 }
 
 $InstallDir = "$env:USERPROFILE\.local\bin"
@@ -13,13 +28,16 @@ if (-not (Test-Path -Path $InstallDir)) {
 }
 
 Write-Host "Installing to $InstallDir..."
-Copy-Item -Path "target\release\password_manager.exe" -Destination "$InstallDir\pw.exe" -Force
+Copy-Item -Path $BinarySource -Destination "$InstallDir\pw.exe" -Force
 
-Write-Host "Installation successful! You can now use 'pw' from PowerShell."
-Write-Host ""
-Write-Host "Make sure $InstallDir is in your PATH."
-Write-Host "To add it temporarily for this session:"
-Write-Host "    `$env:PATH += `";$InstallDir`""
-Write-Host ""
-Write-Host "To add it permanently (Current User):"
-Write-Host "    [System.Environment]::SetEnvironmentVariable('Path', [System.Environment]::GetEnvironmentVariable('Path', 'User') + ';$InstallDir', 'User')"
+Write-Host "Installation successful!"
+
+# Check if directory is already in PATH
+$UserPath = [System.Environment]::GetEnvironmentVariable('Path', 'User')
+if ($UserPath -notlike "*$InstallDir*") {
+    Write-Host "Adding $InstallDir to PATH..."
+    [System.Environment]::SetEnvironmentVariable('Path', "$UserPath;$InstallDir", 'User')
+    Write-Host "PATH updated. Please restart your terminal to use 'pw'."
+} else {
+    Write-Host "$InstallDir is already in PATH. You can now use 'pw' from PowerShell."
+}
