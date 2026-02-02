@@ -152,11 +152,14 @@ fn get_vaults_dir() -> Result<PathBuf, VaultError> {
 
     let vaults_dir = proj_dirs.data_dir().join("vaults");
 
-    if !vaults_dir.exists() {
-        fs::create_dir_all(&vaults_dir)?;
+    // ensure, dir exists
+    match fs::create_dir_all(&vaults_dir) {
+        Ok(_) => Ok(vaults_dir),
+        Err(e) => {
+            eprintln!("Error creating vaults directory at {:?}: {}", vaults_dir, e);
+            Err(VaultError::IoError(e))
+        }
     }
-
-    Ok(vaults_dir)
 }
 
 fn read_file_to_bytes(path: &Path) -> Result<Vec<u8>, VaultError> {
