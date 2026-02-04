@@ -6,7 +6,10 @@ use anyhow::anyhow;
 use arboard::Clipboard;
 use clap::{Parser, Subcommand, command};
 use indicatif::{self, ProgressBar, ProgressStyle};
+use passgenr::charsets;
+use passgenr::random_password;
 use rpassword;
+use password_manager;
 use secrecy::ExposeSecret;
 use secrecy::SecretString;
 use std::fs;
@@ -667,28 +670,20 @@ pub fn handle_command_deletevault(
 }
 
 pub fn handle_command_generate(length: i32, no_symbols: bool) -> Result<String, SessionError> {
-    use rand::Rng;
 
     // Validierung der Länge
-    if length <= 0 || length > 200 {
+    if length <= 1 || length > 200 {
         return Err(SessionError::VaultError(VaultError::InvalidLength));
     }
 
     // Zeichensatz basierend auf no_symbols Flag
     let charset = if no_symbols {
-        "ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789"
+        charsets::ALPHANUMERIC
     } else {
-        "ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789!@#$%^&*()_+-=[]{}|;:,.<>?"
+        charsets::ASCII
     };
 
-    let chars: Vec<char> = charset.chars().collect();
-    // Generiere Passwort durch zufällige Auswahl aus charset
-    let password: String = (0..length)
-        .map(|_| {
-            let idx = rand::rng().random_range(0..charset.len());
-            chars[idx]
-        })
-        .collect();
+    let password = random_password(charset, length as usize, "")?;
 
     println!("\n┌─────────────────────────────────────────┐");
     println!("│ Generated Password                      │");

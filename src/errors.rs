@@ -73,7 +73,7 @@ impl fmt::Display for VaultError {
             VaultError::NameExists => write!(f, "NAME ALREADY EXISTS"),
             VaultError::FileExists => write!(f, "FILENAME ALREADY EXISTS"),
             VaultError::PasswordTooLong => write!(f, "PASSWORD TOO LONG"),
-            VaultError::InvalidLength => write!(f, "LENGTH MUST BE BETWEEN 0 AND 200"),
+            VaultError::InvalidLength => write!(f, "LENGTH MUST BE BETWEEN 2 AND 200"),
             VaultError::EntryNotFound => write!(f, "ENTRY NOT FOUND"),
             VaultError::CouldNotSave => write!(f, "COULD NOT SAVE VAULT"),
             VaultError::CouldNotClose => write!(f, "COULD NOT CLOSE VAULT"),
