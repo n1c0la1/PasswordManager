@@ -7,7 +7,6 @@ mod vault_file_manager;
 
 use crate::errors::*;
 use crate::session::Session;
-// use crate::vault_entry_manager::*;
 use crate::session::*;
 use crate::vault_file_manager::*;
 use clap::Parser;
@@ -19,7 +18,6 @@ use std::time::Duration;
 
 fn main() {
     intro_animation();
-    // let mut current_session: Option<Session> = None;
     let current_session = Arc::new(Mutex::new(None::<Session>));
 
     // Background thread for AutoLock
@@ -32,7 +30,7 @@ fn main() {
             if let Some(session) = session_guard.as_mut() {
                 if session.opened_vault.is_some() {
                     // Check for timeout (5 minutes)
-                    if session.check_timeout(Duration::from_secs(10)) {
+                    if session.check_timeout(Duration::from_secs(20)) {
                         let name = session.vault_name.clone();
                         // Attempt to end session
                         match session.end_session() {

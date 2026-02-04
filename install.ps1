@@ -1,3 +1,10 @@
+# PowerShell Execution Policy Handler
+$currentPolicy = Get-ExecutionPolicy -Scope Process
+if ($currentPolicy -eq "Restricted") {
+    Write-Host "Adjusting PowerShell execution policy for installation..."
+    Set-ExecutionPolicy -ExecutionPolicy RemoteSigned -Scope Process -Force
+}
+
 if (Test-Path -Path ".\password_manager.exe") {
     Write-Host "Found pre-built binary 'password_manager.exe'. Skipping build."
     $BinarySource = ".\password_manager.exe"
