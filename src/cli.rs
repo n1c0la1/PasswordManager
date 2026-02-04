@@ -8,8 +8,8 @@ use clap::{Parser, Subcommand, command};
 use indicatif::{self, ProgressBar, ProgressStyle};
 use passgenr::charsets;
 use passgenr::random_password;
-use rpassword;
 use password_manager;
+use rpassword;
 use secrecy::ExposeSecret;
 use secrecy::SecretString;
 use std::fs;
@@ -670,7 +670,6 @@ pub fn handle_command_deletevault(
 }
 
 pub fn handle_command_generate(length: i32, no_symbols: bool) -> Result<String, SessionError> {
-
     // Validierung der Länge
     if length <= 1 || length > 200 {
         return Err(SessionError::VaultError(VaultError::InvalidLength));
