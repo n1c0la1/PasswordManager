@@ -2,6 +2,13 @@ $BinaryName = "pw.exe"
 $InstallDir = "$env:USERPROFILE\.local\bin"
 $BinaryPath = "$InstallDir\$BinaryName"
 
+$currentPolicy = Get-ExecutionPolicy -Scope Process
+if ($currentPolicy -eq "Restricted") {
+    Write-Host "Adjusting PowerShell execution policy for installation..."
+    Set-ExecutionPolicy -ExecutionPolicy RemoteSigned -Scope Process -Force
+}
+
+
 Write-Host "Uninstalling $BinaryName..."
 
 if (Test-Path -Path $BinaryPath) {
