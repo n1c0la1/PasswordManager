@@ -124,6 +124,8 @@ pub enum CommandCLI {
     },
 }
 
+static CANCEL_ARG: &'static str = "--CANCEL";
+
 pub fn clear_terminal() {
     print!("{esc}[2J{esc}[1;1H", esc = 27 as char);
 }
@@ -175,6 +177,10 @@ pub fn handle_command_init(option_name: Option<String>) -> Result<(), VaultError
             print!("{input}");
             let input = input.trim().to_string();
 
+            if input.eq(CANCEL_ARG) {
+                return Err(VaultError::ActionCancelled);
+            }
+
             match check_vault_name(&input) {
                 Err(_) => {
                     println!("Invalid name.");
@@ -201,6 +207,10 @@ pub fn handle_command_init(option_name: Option<String>) -> Result<(), VaultError
         io::stdout().flush().unwrap();
 
         let password: SecretString = rpassword::prompt_password("Master-Password: ")?.into();
+
+        if password.expose_secret() == CANCEL_ARG {
+            return Err(VaultError::ActionCancelled);
+        }
 
         match check_password_strength(&password) {
             Err(_) => continue 'define_mw,
@@ -288,14 +298,14 @@ pub fn handle_command_add(
             if trimmed_name.is_empty() {
                 println!("Error: Entry name cannot be empty!");
                 continue 'input;
-            } else if trimmed_name.eq("-EXIT-") {
-                return Ok(());
+            } else if trimmed_name.eq(CANCEL_ARG) {
+                return Err(SessionError::VaultError(VaultError::ActionCancelled));
             }
 
             if existing_names.contains(&trimmed_name) {
                 println!(
-                    "Error: the name '{}' already exists! Try again or type '-EXIT-'.",
-                    trimmed_name
+                    "Error: the name '{}' already exists! Try again or type '{}'.",
+                    trimmed_name, CANCEL_ARG
                 );
                 continue 'input;
             }
@@ -597,9 +607,7 @@ pub fn handle_command_deletevault(
     io::stdin().read_line(&mut input)?;
 
     if input.trim().eq_ignore_ascii_case("n") {
-        return Err(SessionError::VaultError(VaultError::AnyhowError(anyhow!(
-            "Cancelled."
-        ))));
+        return Err(SessionError::VaultError(VaultError::ActionCancelled));
     }
 
     println!();
@@ -627,17 +635,15 @@ pub fn handle_command_deletevault(
         let expected_low_case = format!("delete {}", vault_name);
         if trimmed == expected_low_case {
             println!();
-            println!("You have to use capital letters! Try again or type exit.");
+            println!("You have to use capital letters! Try again or type '{}'.", CANCEL_ARG);
             continue 'input;
         } else if trimmed == expected {
             break 'input;
-        } else if trimmed == "exit" {
-            return Err(SessionError::VaultError(VaultError::AnyhowError(anyhow!(
-                "exit"
-            ))));
+        } else if trimmed == CANCEL_ARG {
+            return Err(SessionError::VaultError(VaultError::ActionCancelled));
         } else {
             println!();
-            println!("Wrong input! Try again or type exit.");
+            println!("Wrong input! Try again or type '{}'.", CANCEL_ARG);
             continue 'input;
         }
     }
@@ -727,6 +733,10 @@ pub fn handle_command_change_master(
             session_vault_name
         ))?
         .into();
+
+        if input.expose_secret() == CANCEL_ARG {
+            return Err(SessionError::VaultError(VaultError::ActionCancelled));
+        }
 
         match check_password_strength(&input) {
             Err(_) => continue 'input_new_master,
@@ -1222,7 +1232,13 @@ fn add_password_to_entry() -> Result<Option<String>, SessionError> {
                 let mut length_input = String::new();
                 io::stdout().flush().unwrap();
                 io::stdin().read_line(&mut length_input)?;
-                if let Ok(len) = length_input.trim().parse::<i32>() {
+                let trimmed_input = length_input.trim();
+
+                if trimmed_input.eq(CANCEL_ARG) {
+                    return Ok(None);
+                }
+
+                if let Ok(len) = trimmed_input.parse::<i32>() {
                     length = len;
                     break 'input_length;
                 }
