@@ -1,27 +1,92 @@
+// Cross-browser compatibility
+const browserAPI = (typeof browser !== 'undefined') ? browser : chrome;
+
 let selectedEntry = null;
 
 document.addEventListener('DOMContentLoaded', async () => {
+  console.log('Popup loaded');
+  
   const fillBtn = document.getElementById('fillBtn');
+  const settingsBtn = document.getElementById('settingsBtn');
   const closeErrorBtn = document.getElementById('closeErrorBtn');
   const closeSelectionBtn = document.getElementById('closeSelectionBtn');
+  const cancelSettingsBtn = document.getElementById('cancelSettingsBtn');
+  const saveSettingsBtn = document.getElementById('saveSettingsBtn');
+  const tokenInput = document.getElementById('tokenInput');
+  
+  console.log('Elements found:', {
+    fillBtn: !!fillBtn,
+    settingsBtn: !!settingsBtn,
+    closeErrorBtn: !!closeErrorBtn,
+    closeSelectionBtn: !!closeSelectionBtn,
+    cancelSettingsBtn: !!cancelSettingsBtn,
+    saveSettingsBtn: !!saveSettingsBtn,
+    tokenInput: !!tokenInput
+  });
   
   // Add event listeners
-  fillBtn.addEventListener('click', handleFillClick);
-  closeErrorBtn.addEventListener('click', closeErrorModal);
-  closeSelectionBtn.addEventListener('click', closeSelectionModal);
+  if (fillBtn) fillBtn.addEventListener('click', handleFillClick);
+  if (settingsBtn) settingsBtn.addEventListener('click', openSettingsModal);
+  if (closeErrorBtn) closeErrorBtn.addEventListener('click', closeErrorModal);
+  if (closeSelectionBtn) closeSelectionBtn.addEventListener('click', closeSelectionModal);
+  if (cancelSettingsBtn) cancelSettingsBtn.addEventListener('click', closeSettingsModal);
+  if (saveSettingsBtn) saveSettingsBtn.addEventListener('click', saveToken);
+
+  // Load token from storage
+  try {
+    const result = await browserAPI.storage.local.get('authToken');
+    if (result.authToken) {
+      tokenInput.value = result.authToken;
+    }
+  } catch (error) {
+    console.error('Failed to load token:', error);
+  }
 });
+
+function openSettingsModal() {
+  console.log('openSettingsModal called');
+  const modal = document.getElementById('settingsModal');
+  console.log('Settings modal element:', modal);
+  if (modal) {
+    modal.classList.add('show');
+    console.log('Modal classes after add:', modal.className);
+  } else {
+    console.error('Settings modal not found!');
+  }
+}
+
+function closeSettingsModal() {
+  document.getElementById('settingsModal').classList.remove('show');
+}
+
+async function saveToken() {
+  const token = document.getElementById('tokenInput').value.trim();
+  if (!token) {
+    showError('Error', 'Token cannot be empty');
+    return;
+  }
+  try {
+    await browserAPI.runtime.sendMessage({ action: 'setToken', token: token });
+    await browserAPI.storage.local.set({ authToken: token });
+    closeSettingsModal();
+    showError('Success', 'Token saved successfully');
+  } catch (error) {
+    console.error('Failed to save token:', error);
+    showError('Error', 'Failed to save token: ' + error.message);
+  }
+}
 
 async function handleFillClick() {
   // Get current tab
-  const [tab] = await browser.tabs.query({ active: true, currentWindow: true });
+  const [tab] = await browserAPI.tabs.query({ active: true, currentWindow: true });
   if (!tab || !tab.url) {
     showError('Error', 'Could not determine current page');
     return;
   }
 
-  // Request credentials from native host
+  // Request credentials from password manager
   try {
-    const response = await browser.runtime.sendMessage({
+    const response = await browserAPI.runtime.sendMessage({
       action: 'fill',
       url: tab.url
     });
@@ -37,21 +102,27 @@ async function handleFillClick() {
       return;
     }
 
-    // Handle "not found" response
-    if (response.found === false) {
+    // Handle "not_found" response
+    if (response.status === 'not_found') {
       showError('No Credentials', `No credentials found for ${getDomain(tab.url)}`);
       return;
     }
 
+    // Handle "error" status
+    if (response.status === 'error') {
+      showError('Error', response.message || 'Unknown error');
+      return;
+    }
+
     // Single entry found - fill and close
-    if (response.found === true) {
+    if (response.status === 'ok' && response.mode === 'single') {
       await fillPage(tab.id, response);
       window.close();
       return;
     }
 
     // Multiple entries - show selection modal
-    if (response.entries && Array.isArray(response.entries)) {
+    if (response.status === 'ok' && response.mode === 'multiple' && response.entries) {
       showSelectionModal(response.entries, tab.id);
       return;
     }
@@ -88,8 +159,8 @@ function showSelectionModal(entries, tabId) {
     const div = document.createElement('div');
     div.className = 'entry-item';
     div.innerHTML = `
-      <div class="entry-name">${entry.entryname || 'Unnamed'}</div>
-      <div class="entry-user">${entry.username || '(no username)'}</div>
+      <div class="entry-name">${entry.url || 'Unnamed'}</div>
+      <div class="entry-user">${entry.username || 'No username'}</div>
     `;
     div.addEventListener('click', async () => {
       await fillPage(tabId, entry);
@@ -107,7 +178,7 @@ function closeSelectionModal() {
 
 async function fillPage(tabId, credentials) {
   try {
-    await browser.tabs.sendMessage(tabId, {
+    await browserAPI.tabs.sendMessage(tabId, {
       action: 'fill',
       username: credentials.username,
       password: credentials.password

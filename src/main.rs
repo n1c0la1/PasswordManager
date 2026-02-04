@@ -1,6 +1,7 @@
 mod cli;
 mod crypto;
 mod errors;
+mod extension_server;
 mod native_host;
 mod session;
 mod vault_entry_manager;
@@ -13,6 +14,7 @@ use crate::session::*;
 use crate::vault_file_manager::*;
 use clap::Parser;
 use cli::*;
+use rand::Rng;
 use std::io::{self, Write};
 use std::sync::{Arc, Mutex};
 use std::thread;
@@ -23,8 +25,22 @@ fn main() {
     // let mut current_session: Option<Session> = None;
     let current_session = Arc::new(Mutex::new(None::<Session>));
 
-    // NOTE: Native host thread disabled - using clipboard extension instead
-    // Uncomment if you want to use the localhost server extension
+    // Localhost extension server (token-based)
+    let mut rng = rand::rng();
+    let token: String = (0..32)
+        .map(|_| {
+            let idx = rng.random_range(0..16);
+            format!("{:x}", idx)
+        })
+        .collect();
+    println!("\n🔒 Extension Token (store in extension settings): {}\n", token);
+    let server_session = current_session.clone();
+    let server_token = token.clone();
+    thread::spawn(move || {
+        extension_server::run(server_session, server_token);
+    });
+
+    // NOTE: Native host thread disabled - use localhost server instead
     // let native_host_session = current_session.clone();
     // thread::spawn(move || {
     //     native_host::run(native_host_session);

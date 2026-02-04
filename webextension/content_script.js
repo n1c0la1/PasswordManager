@@ -1,3 +1,6 @@
+// Cross-browser compatibility
+const browserAPI = (typeof browser !== 'undefined') ? browser : chrome;
+
 function findLoginFields() {
   const pass = document.querySelector('input[type="password"]');
   if (pass) {
@@ -19,6 +22,6 @@ function fillFields(username, password) {
   if (passField && password) { passField.value = password; passField.dispatchEvent(new Event('input', { bubbles: true })); }
 }
 
-browser.runtime.onMessage.addListener((msg) => {
+browserAPI.runtime.onMessage.addListener((msg) => {
   if (msg && msg.action === 'fill') fillFields(msg.username, msg.password);
 });

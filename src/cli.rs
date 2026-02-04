@@ -1242,7 +1242,7 @@ pub fn extract_domain(url: &str) -> String {
     
     if let Ok(parsed) = url::Url::parse(&url_with_scheme) {
         if let Some(host) = parsed.host_str() {
-            return format!("{}://{}", parsed.scheme(), host);
+            return host.to_string();
         }
     }
     url.to_string()

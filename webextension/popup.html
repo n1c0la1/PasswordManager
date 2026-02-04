@@ -5,7 +5,11 @@
   <style>
     * { margin: 0; padding: 0; box-sizing: border-box; }
     body { 
-      width: 350px; 
+      min-width: 350px;
+      max-width: 700px;
+      min-height: 150px;
+      max-height: 600px;
+      width: auto;
       font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
       background: #f5f5f5;
     }
@@ -13,7 +17,7 @@
     .button {
       width: 100%;
       padding: 12px;
-      font-size: 16px;
+      font-size: 12px;
       border: none;
       border-radius: 6px;
       cursor: pointer;
@@ -45,17 +49,22 @@
       padding: 20px;
       border-radius: 8px;
       box-shadow: 0 2px 10px rgba(0,0,0,0.2);
-      max-width: 400px;
+      max-width: 450px;
       width: 90%;
+      max-height: 100vh;
+      overflow-y: auto;
     }
     .modal h3 {
       margin-bottom: 10px;
       color: #333;
+      font-size: 18px;
     }
     .modal p {
       margin-bottom: 15px;
       color: #666;
       font-size: 14px;
+      line-height: 1.5;
+      word-wrap: break-word;
     }
     
     /* Error modal */
@@ -76,13 +85,24 @@
       border-radius: 4px;
       cursor: pointer;
       transition: all 0.2s;
+      word-wrap: break-word;
+      overflow-wrap: break-word;
     }
     .entry-item:hover {
       background: #e3f2fd;
       border-color: #0078d4;
     }
-    .entry-name { font-weight: 500; color: #333; }
-    .entry-user { font-size: 12px; color: #666; }
+    .entry-name { 
+      font-weight: 500; 
+      color: #333; 
+      margin-bottom: 4px;
+      word-wrap: break-word;
+    }
+    .entry-user { 
+      font-size: 12px; 
+      color: #666;
+      word-wrap: break-word;
+    }
     
     .modal-buttons {
       display: flex;
@@ -106,6 +126,23 @@
 <body>
   <div class="container">
     <button id="fillBtn" class="button fill-btn">🔐 Fill Login</button>
+    <div style="margin-top: 10px; padding-top: 10px; border-top: 1px solid #ddd;">
+      <button id="settingsBtn" class="button" style="background: #666; color: white; font-size: 12px;">⚙ Settings</button>
+    </div>
+  </div>
+
+  <!-- Settings Modal -->
+  <div id="settingsModal" class="modal-overlay">
+    <div class="modal">
+      <h3>Extension Settings</h3>
+      <p>Paste the auth token from the CLI password manager:</p>
+      <input type="text" id="tokenInput" placeholder="Token (displayed in CLI startup)" 
+             style="width: 100%; padding: 8px; margin: 10px 0; border: 1px solid #ddd; border-radius: 4px; font-size: 12px; font-family: monospace; word-break: break-all;">
+      <div class="modal-buttons">
+        <button id="cancelSettingsBtn" class="btn btn-secondary">Cancel</button>
+        <button id="saveSettingsBtn" class="btn btn-primary">Save</button>
+      </div>
+    </div>
   </div>
 
   <!-- Error Modal -->

@@ -3,7 +3,7 @@
   "name": "Password Manager",
   "version": "0.1",
   "description": "Auto-fill login forms from your password manager vault",
-  "permissions": ["nativeMessaging", "tabs"],
+  "permissions": ["storage", "tabs"],
   "host_permissions": ["<all_urls>"],
   "background": {
     "scripts": ["background.js"],

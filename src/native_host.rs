@@ -1,13 +1,16 @@
+#![allow(dead_code)]
+// dead code allowed because this is only used in native host mode
+
 use std::io::{self, Read, Write};
 use std::sync::{Arc, Mutex};
 use serde_json::json;
 use url::Url;
 
-use crate::errors::SessionError;
 use crate::session::Session;
 use crate::cli::handle_command_get_by_url;
 
 const MAX_MESSAGE_SIZE: usize = 1024 * 1024; // 1MB max message size to prevent abuse
+// The message is the JSON object received from the extension
 
 fn read_message() -> Option<serde_json::Value> {
     let mut len_buf = [0u8; 4];
@@ -17,6 +20,7 @@ fn read_message() -> Option<serde_json::Value> {
     // Validate message size to prevent OOM attacks
     if len > MAX_MESSAGE_SIZE {
         eprintln!("Warning: Message size {} exceeds maximum allowed {}", len, MAX_MESSAGE_SIZE);
+        // eprint can be read from the extension console for debugging in the browser
         return None;
     }
 
@@ -62,6 +66,7 @@ pub fn run(session_arc: Arc<Mutex<Option<Session>>>) {
 
                 // Lock and read the session
                 // Handle mutex poison gracefully to prevent thread panic
+                // mutex poisoning can occur if another thread panics while holding the lock (other thread might be autolock)
                 let session_guard = match session_arc.lock() {
                     Ok(guard) => guard,
                     Err(poisoned) => {
@@ -73,7 +78,6 @@ pub fn run(session_arc: Arc<Mutex<Option<Session>>>) {
                 match &*session_guard {
                     Some(session) => {
                         eprintln!("Session is active, searching for entries");
-                        // Use CLI's command handler to get entries by URL
                         match handle_command_get_by_url(session, &o) {
                             Ok(entries) => {
                                 eprintln!("Found {} entries", entries.len());
@@ -81,6 +85,7 @@ pub fn run(session_arc: Arc<Mutex<Option<Session>>>) {
                                 if entries.is_empty() {
                                     json!({ "found": false })
                                 } else if entries.len() == 1 {
+                                    // single entry found: return directly
                                     let entry = &entries[0];
                                     json!({
                                         "found": true,
