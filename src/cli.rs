@@ -635,7 +635,10 @@ pub fn handle_command_deletevault(
         let expected_low_case = format!("delete {}", vault_name);
         if trimmed == expected_low_case {
             println!();
-            println!("You have to use capital letters! Try again or type '{}'.", CANCEL_ARG);
+            println!(
+                "You have to use capital letters! Try again or type '{}'.",
+                CANCEL_ARG
+            );
             continue 'input;
         } else if trimmed == expected {
             break 'input;
@@ -1569,9 +1572,9 @@ mod tests {
     }
 
     // ================== PASSWORD STRENGTH TESTS ==================
-    
+
     #[test]
-    fn test_valid_password(){
+    fn test_valid_password() {
         let password: SecretString = "rustSEPtest".into();
         let result = check_password_strength(&password);
         assert!(result.is_ok());
@@ -1600,7 +1603,7 @@ mod tests {
 
     // ================== VAULT NAME TESTS ==================
     #[test]
-    fn test_valid_vault_name(){
+    fn test_valid_vault_name() {
         let name = "valid_-Name1";
         let result = check_vault_name(name);
         assert!(result.is_ok());
@@ -1616,7 +1619,7 @@ mod tests {
     #[test]
     fn test_long_vault_name() {
         let name = "a".repeat(65);
-        let result= check_vault_name(&name);
+        let result = check_vault_name(&name);
         assert!(matches!(result, Err(VaultError::InvalidVaultName)));
     }
 
