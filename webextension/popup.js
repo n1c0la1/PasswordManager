@@ -1,6 +1,9 @@
 // Cross-browser compatibility
 const browserAPI = (typeof browser !== 'undefined') ? browser : chrome;
 
+const DEFAULT_POPUP_HEIGHT = 260;
+const MAX_POPUP_HEIGHT = 600;
+
 let selectedEntry = null;
 
 document.addEventListener('DOMContentLoaded', async () => {
@@ -49,6 +52,13 @@ function openSettingsModal() {
   console.log('Settings modal element:', modal);
   if (modal) {
     modal.classList.add('show');
+    requestAnimationFrame(() => {
+      const modalContent = modal.querySelector('.modal');
+      const desiredHeight = modalContent
+        ? modalContent.scrollHeight + 80
+        : DEFAULT_POPUP_HEIGHT;
+      setPopupHeight(desiredHeight);
+    });
     console.log('Modal classes after add:', modal.className);
   } else {
     console.error('Settings modal not found!');
@@ -57,6 +67,7 @@ function openSettingsModal() {
 
 function closeSettingsModal() {
   document.getElementById('settingsModal').classList.remove('show');
+  resetPopupHeight();
 }
 
 async function saveToken() {
@@ -186,5 +197,28 @@ async function fillPage(tabId, credentials) {
   } catch (error) {
     console.error('Failed to fill page:', error);
     showError('Fill Failed', 'Could not fill the login form');
+  }
+}
+
+function setPopupHeight(targetHeight) {
+  const height = Math.min(MAX_POPUP_HEIGHT, Math.max(DEFAULT_POPUP_HEIGHT, targetHeight));
+  document.documentElement.style.height = `${height}px`;
+  document.body.style.height = `${height}px`;
+  document.body.style.minHeight = `${height}px`;
+  try {
+    window.resizeTo(window.outerWidth, height);
+  } catch (error) {
+    console.debug('Popup resize not supported:', error);
+  }
+}
+
+function resetPopupHeight() {
+  document.documentElement.style.height = '';
+  document.body.style.height = '';
+  document.body.style.minHeight = '';
+  try {
+    window.resizeTo(window.outerWidth, DEFAULT_POPUP_HEIGHT);
+  } catch (error) {
+    console.debug('Popup resize not supported:', error);
   }
 }
