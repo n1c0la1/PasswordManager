@@ -126,7 +126,7 @@ fn main() {
                 CommandCLI::Init { name } => {
                     match handle_command_init(name) {
                         Ok(()) => {
-                            // nothing needed to do, vault gets created and closed immidiatly
+                            // nothing needed to do, vault gets created and closed immediately
                             /* Do nothing */
                         }
                         Err(VaultError::NameExists) => {
