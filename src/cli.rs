@@ -921,7 +921,7 @@ pub fn handle_command_open(
 ) -> Result<Session, SessionError> {
     // Check if vault file exists
     match vault_exists(&vault_to_open) {
-        Ok(true) => {}
+        Ok(true) => { /* Do nothing */ }
         Ok(false) => return Err(SessionError::VaultError(VaultError::VaultDoesNotExist)),
         Err(e) => return Err(SessionError::VaultError(e)),
     }
@@ -1172,12 +1172,12 @@ fn add_password_to_entry() -> Result<Option<String>, SessionError> {
             let no_symbols: bool;
 
             'input_length: loop {
-                println!("Enter desired password-length: ");
+                print!("Enter desired password-length: ");
                 let mut length_input = String::new();
                 io::stdout().flush().unwrap();
                 io::stdin().read_line(&mut length_input)?;
                 if length_input.trim().parse::<i32>().is_ok() {
-                    length = length_input.parse::<i32>().unwrap();
+                    length = length_input.trim().parse::<i32>().unwrap();
                     break 'input_length;
                 }
             }

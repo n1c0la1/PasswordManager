@@ -46,10 +46,14 @@ fn main() {
                                 eprintln!("\nError in AutoLock: Could not end session: {}", e);
                             }
                         }
+                    } else {
+                        /* Do nothing */
                     }
                 } else {
                     /* Do nothing */
                 }
+            } else {
+                /* Do nothing */
             }
         }
     });
