@@ -194,7 +194,6 @@ fn main() {
                         }
                     }
                     // continue happens below after updating activity
-
                 }
 
                 CommandCLI::Getall { show } => {
