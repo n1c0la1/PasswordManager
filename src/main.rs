@@ -136,7 +136,7 @@ fn main() {
                             println!("Error: {e}");
                         }
                     }
-                    continue 'interactive_shell;
+                    // continue happens below after updating activity
                 }
 
                 CommandCLI::Add {
@@ -150,7 +150,6 @@ fn main() {
                         println!(
                             "There is no session active right now, consider using open <vault-name>!"
                         );
-                        continue 'interactive_shell;
                     }
                     match handle_command_add(
                         &mut *session_guard,
@@ -171,7 +170,7 @@ fn main() {
                             println!("Error: {}", e);
                         }
                     }
-                    continue 'interactive_shell;
+                    // continue happens below after updating activity
                 }
 
                 CommandCLI::Get { name, show } => {
@@ -179,7 +178,7 @@ fn main() {
                         println!(
                             "There is no session active right now, consider using open <vault-name>!"
                         );
-                        continue 'interactive_shell;
+                        // continue happens below after updating activity
                     }
                     match handle_command_get(&mut *session_guard, name, show) {
                         Ok(()) => { /* Do nothing */ }
@@ -194,7 +193,8 @@ fn main() {
                             println!("Error: {}", e);
                         }
                     }
-                    continue 'interactive_shell;
+                    // continue happens below after updating activity
+
                 }
 
                 CommandCLI::Getall { show } => {
@@ -202,7 +202,7 @@ fn main() {
                         println!(
                             "There is no session active right now, consider using open <vault-name>!"
                         );
-                        continue 'interactive_shell;
+                        // continue happens below after updating activity
                     }
                     match handle_command_getall(&mut *session_guard, show) {
                         Ok(()) => { /* Do nothing */ }
@@ -218,7 +218,7 @@ fn main() {
                             println!("Error: {}", e);
                         }
                     }
-                    continue 'interactive_shell;
+                    // continue happens below after updating activity
                 }
 
                 CommandCLI::Delete { name } => {
@@ -226,7 +226,7 @@ fn main() {
                         println!(
                             "There is no session active right now, consider using open <vault-name>!"
                         );
-                        continue 'interactive_shell;
+                        // continue happens below after updating activity
                     }
                     match handle_command_delete(&mut *session_guard, name) {
                         Ok(()) => {
@@ -243,14 +243,14 @@ fn main() {
                             println!("Error: {}", e);
                         }
                     }
-                    continue 'interactive_shell;
+                    // continue happens below after updating activity
                 }
 
                 CommandCLI::Deletevault {} => {
                     if !active_session(&*session_guard) {
                         println!("Due to RustPass's logic, you have to open your vault first!");
                         println!("Hint: Consider using open <vault-name>!");
-                        continue 'interactive_shell;
+                        // continue happens below after updating activity
                     }
                     match handle_command_deletevault(&mut *session_guard) {
                         Ok(()) => {
@@ -260,7 +260,7 @@ fn main() {
                             println!("Error: {}", e);
                         }
                     }
-                    continue 'interactive_shell;
+                    // continue happens below after updating activity
                 }
 
                 CommandCLI::Generate { length, no_symbols } => {
@@ -272,7 +272,7 @@ fn main() {
                             println!("Error: {}", e)
                         }
                     }
-                    continue 'interactive_shell;
+                    // continue happens below after updating activity
                 }
 
                 CommandCLI::ChangeMaster {} => {
@@ -280,7 +280,7 @@ fn main() {
                         println!(
                             "There is no session active right now, consider using open <vault-name>!"
                         );
-                        continue 'interactive_shell;
+                        // continue happens below after updating activity
                     }
                     match handle_command_change_master(&mut *session_guard) {
                         Ok(()) => {
@@ -290,7 +290,7 @@ fn main() {
                             println!("Error: {}", e);
                         }
                     }
-                    continue 'interactive_shell;
+                    // continue happens below after updating activity
                 }
 
                 CommandCLI::Edit { name } => {
@@ -298,7 +298,7 @@ fn main() {
                         println!(
                             "There is no session active right now, consider using open <vault-name>!"
                         );
-                        continue 'interactive_shell;
+                        // continue happens below after updating activity
                     }
                     match handle_command_edit(&mut *session_guard, name) {
                         Ok(()) => {
@@ -309,7 +309,7 @@ fn main() {
                             println!("Error: {}", e)
                         }
                     }
-                    continue 'interactive_shell;
+                    // continue happens below after updating activity
                 }
 
                 CommandCLI::Open { name } => {
@@ -317,7 +317,7 @@ fn main() {
                         Ok(session) => {
                             if session.opened_vault.is_none() {
                                 println!("Something went wrong!");
-                                continue 'interactive_shell;
+                                // continue happens below after updating activity
                             }
                             *session_guard = Some(session);
                         }
@@ -328,14 +328,14 @@ fn main() {
                             println!("Error opening vault: {}", e);
                         }
                     }
-                    continue 'interactive_shell;
+                    // continue happens below after updating activity
                 }
                 CommandCLI::Close { force } => {
                     if !active_session(&*session_guard) {
                         println!(
                             "There is no session active right now, consider using open <vault-name>!"
                         );
-                        continue 'interactive_shell;
+                        // continue happens below after updating activity
                     }
                     match handle_command_close(&mut *session_guard, force) {
                         Ok(LoopCommand::Continue) => {
@@ -350,7 +350,7 @@ fn main() {
                             println!("Error: {}", e);
                         }
                     }
-                    continue 'interactive_shell;
+                    // continue happens below after updating activity
                 }
 
                 CommandCLI::Vaults {} => {
@@ -370,6 +370,12 @@ fn main() {
                                     Err(SessionError::SessionInactive) => { /* Ignore */ }
                                     Err(e) => {
                                         println!("Error: {}", e);
+
+                                        // Continue needs to be called exactly here -> updating activity here
+                                        if let Some(session) = session_guard.as_mut() {
+                                            session.update_activity();
+                                        }
+
                                         continue 'interactive_shell;
                                     }
                                 }
@@ -378,11 +384,11 @@ fn main() {
                         }
                         Ok(LoopCommand::Cancel) => {
                             thread::sleep(Duration::from_millis(500));
-                            continue 'interactive_shell;
+                            // continue happens below after updating activity
                         }
                         Err(e) => {
                             println!("Error: {}", e);
-                            continue 'interactive_shell;
+                            // continue happens below after updating activity
                         }
                     }
                 }
@@ -392,6 +398,8 @@ fn main() {
             if let Some(session) = session_guard.as_mut() {
                 session.update_activity();
             }
+
+            continue 'interactive_shell;
         } // End of session_guard scope
     }
 }
