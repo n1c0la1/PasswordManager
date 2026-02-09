@@ -64,6 +64,14 @@ browserAPI.runtime.onMessage.addListener((msg, sender, sendResponse) => {
           .then((response) => response.json())
           .then((data) => {
             console.log("Response from server:", data);
+            if (data && data.status === "error" && data.message) {
+              const message =
+                data.message === "No session open" || data.message === "No vault open"
+                  ? "No session active. Open a vault first."
+                  : data.message;
+              sendResponse({ error: message });
+              return;
+            }
             sendResponse(data);
           })
           .catch((error) => {

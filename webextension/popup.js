@@ -175,16 +175,25 @@ function showSelectionModal(entries, tabId) {
     `;
     div.addEventListener('click', async () => {
       await fillPage(tabId, entry);
+      resetPopupHeight();
       window.close();
     });
     entryList.appendChild(div);
   });
 
   document.getElementById('selectionModal').classList.add('show');
+  requestAnimationFrame(() => {
+    const modalContent = document.querySelector('#selectionModal .modal');
+    const desiredHeight = modalContent
+      ? modalContent.scrollHeight + 80
+      : DEFAULT_POPUP_HEIGHT;
+    setPopupHeight(desiredHeight);
+  });
 }
 
 function closeSelectionModal() {
   document.getElementById('selectionModal').classList.remove('show');
+  resetPopupHeight();
 }
 
 async function fillPage(tabId, credentials) {
