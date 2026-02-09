@@ -1245,24 +1245,30 @@ pub fn handle_command_get_by_url(session: &Session, url: &str) -> Result<Vec<Ent
 pub fn url_matches(entry_url: &str, target_url: &str) -> bool {
     // Extract domain from URLs for matching
     // e.g., "https://github.com" matches "https://github.com/login"
-    let entry_domain = extract_domain(entry_url);
-    let target_domain = extract_domain(target_url);
+    let entry_domain = extract_domain(entry_url)
+        .trim_start_matches("www.")
+        .to_string();
+    let target_domain = extract_domain(target_url)
+        .trim_start_matches("www.")
+        .to_string();
     entry_domain == target_domain
 }
 
 pub fn extract_domain(url: &str) -> String {
-    // Add scheme if missing
-    let url_with_scheme = if !url.contains("://") {
-        format!("https://{}", url)
-    } else {
+    let url = url.trim();
+    let url_with_scheme = if url.contains("://") {
         url.to_string()
+    } else {
+        format!("https://{}", url)
     };
 
     if let Ok(parsed) = url::Url::parse(&url_with_scheme) {
         if let Some(host) = parsed.host_str() {
+            let host = host.strip_prefix("www.").unwrap_or(host);
             return host.to_string();
         }
     }
+
     url.to_string()
 }
 
@@ -1778,5 +1784,69 @@ mod tests {
         let name3 = ".";
         let result3 = check_vault_name(name3);
         assert!(matches!(result3, Err(VaultError::InvalidVaultName)));
+    }
+}
+    // Testing functionality for the extension
+    #[test]
+    fn test_extract_domain_1() {
+        assert_eq!(extract_domain("example.com"), "example.com");
+    }
+
+    #[test]
+    fn test_extract_domain_2_login() {
+        assert_eq!(extract_domain("https://www.example.com/login"), "example.com");
+    }
+
+    #[test]
+    fn test_extract_domain_3_port() {
+        assert_eq!(extract_domain("https://www.example.com:8080"), "example.com");
+    }
+
+    #[test]
+    fn test_extract_domain_4_port_and_path() {
+        assert_eq!(extract_domain("https://www.example.com:8080/path"), "example.com");
+    }
+
+    #[test]
+    fn test_extract_domain_5_invalid_url() {
+        assert_eq!(extract_domain("invalid_url"), "invalid_url");
+    }
+
+    #[test]
+    fn test_extract_domain_6() {
+        assert_eq!(extract_domain("https://subdomain.example.com"), "subdomain.example.com");
+    }
+
+    #[test]
+    fn test_url_comparision() {
+        assert!(url_matches("www.example.com", "example.com"));
+    }
+
+    #[test]
+    fn test_url_comparison_2_login() {
+        assert!(url_matches("www.github.com/login", "github.com"));
+    }
+
+    #[test]
+    fn test_url_comparison_3_http() {
+        assert!(url_matches("http://github.com", "github.com"));
+    }
+
+    #[test]
+    fn test_url_comparison_4_different() {
+        assert!(!url_matches("https://www.example.com", "different.com"));
+    }
+
+    #[test]
+    fn test_url_comparison_5_subdomain() {
+        assert!(!url_matches("mail.example.com", "example.com"));
+    }
+
+    #[test]
+    fn test_extract_and_compare() {
+        assert!(url_matches(&extract_domain("https://www.example.com/login"), &extract_domain("example.com")));
+        assert!(url_matches(&extract_domain("http://github.com"), &extract_domain("github.com")));
+        assert!(url_matches("www.example.com", "example.com"));
+        assert!(!url_matches(&extract_domain("https://www.example.com"), &extract_domain("different.com")));
     }
 }
