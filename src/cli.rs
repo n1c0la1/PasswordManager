@@ -1296,7 +1296,6 @@ fn copy_to_clipboard(content: &str) -> Result<(), SessionError> {
     println!("Password copied to clipboard!");
 
     let duration = 30;
-    println!("✓ Credentials copied to clipboard for '{}'", entry.get_entry_name());
     println!("  (Clipboard will be cleared in {} seconds)", &duration);
     
     clear_clipboard_after(duration);
@@ -1450,7 +1449,7 @@ pub fn extract_domain(url: &str) -> String {
 
 pub fn clear_clipboard_after(duration: u64){
     use arboard::Clipboard;
-    std::thread::spawn(|| {
+    std::thread::spawn(move || {
         std::thread::sleep(std::time::Duration::from_secs(duration));
         if let Ok(mut clip) = Clipboard::new() {
             let _ = clip.set_text("".to_string());
