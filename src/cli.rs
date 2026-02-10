@@ -787,13 +787,6 @@ pub fn handle_command_generate(length: i32, no_symbols: bool) -> Result<String, 
     println!("└─────────────────────────────────────────┘\n");
 
     copy_to_clipboard(&password)?;
-
-    let duration = 30;
-    println!("✓ Credentials copied to clipboard for '{}'", entry.get_entry_name());
-    println!("  (Clipboard will be cleared in {} seconds)", &duration);
-    
-    clear_clipboard_after(duration);
-
     Ok(password)
 }
 
@@ -1300,7 +1293,13 @@ fn copy_to_clipboard(content: &str) -> Result<(), SessionError> {
     clipboard
         .set_text(content.to_string())
         .map_err(|_| SessionError::VaultError(VaultError::ClipboardError))?;
-    println!("Passwort wurde in die Zwischenablage kopiert!");
+    println!("Password copied to clipboard!");
+
+    let duration = 30;
+    println!("✓ Credentials copied to clipboard for '{}'", entry.get_entry_name());
+    println!("  (Clipboard will be cleared in {} seconds)", &duration);
+    
+    clear_clipboard_after(duration);
     Ok(())
 }
 
