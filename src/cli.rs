@@ -457,15 +457,10 @@ pub fn handle_command_get(
         e
     } else {
         // Not found by name, try URL-based lookup
-        let target_domain = extract_domain(&entry_name_or_url);
-
-        let matches: Vec<&crate::vault_entry_manager::Entry> = vault
-            .entries
-            .iter()
+        let matches: Vec<&crate::vault_entry_manager::Entry> = vault.entries.iter()
             .filter(|entry| {
                 if let Some(entry_url) = entry.get_url() {
-                    let entry_domain = extract_domain(entry_url);
-                    entry_domain == target_domain
+                    url_matches(entry_url, &entry_name_or_url)
                 } else {
                     false
                 }
@@ -516,19 +511,11 @@ pub fn handle_command_get(
             Ok(mut clipboard) => {
                 match clipboard.set_text(clipboard_content) {
                     Ok(_) => {
-                        println!(
-                            "✓ Credentials copied to clipboard for '{}'",
-                            entry.get_entry_name()
-                        );
-                        println!("  (Clipboard will be cleared in 30 seconds)");
-
-                        // Spawn background thread to clear clipboard after 30 seconds
-                        std::thread::spawn(|| {
-                            std::thread::sleep(std::time::Duration::from_secs(30));
-                            if let Ok(mut clip) = Clipboard::new() {
-                                let _ = clip.set_text("".to_string());
-                            }
-                        });
+                        let duration = 30;
+                        println!("✓ Credentials copied to clipboard for '{}'", entry.get_entry_name());
+                        println!("  (Clipboard will be cleared in {} seconds)", &duration);
+                        
+                        clear_clipboard_after(duration);
                     }
                     Err(e) => {
                         println!("Failed to copy to clipboard: {}", e);
@@ -800,6 +787,12 @@ pub fn handle_command_generate(length: i32, no_symbols: bool) -> Result<String, 
     println!("└─────────────────────────────────────────┘\n");
 
     copy_to_clipboard(&password)?;
+
+    let duration = 30;
+    println!("✓ Credentials copied to clipboard for '{}'", entry.get_entry_name());
+    println!("  (Clipboard will be cleared in {} seconds)", &duration);
+    
+    clear_clipboard_after(duration);
 
     Ok(password)
 }
@@ -1218,60 +1211,6 @@ pub fn handle_command_close(
     return Ok(LoopCommand::Continue);
 }
 
-pub fn handle_command_get_by_url(session: &Session, url: &str) -> Result<Vec<Entry>, SessionError> {
-    // Check if vault is open
-    let vault = session
-        .opened_vault
-        .as_ref()
-        .ok_or(SessionError::VaultError(VaultError::NoVaultOpen))?;
-
-    // Find entries with matching URL
-    let matching: Vec<Entry> = vault
-        .get_entries()
-        .iter()
-        .filter(|entry| {
-            entry
-                .get_url()
-                .as_ref()
-                .map(|entry_url| url_matches(entry_url, url))
-                .unwrap_or(false)
-        })
-        .cloned()
-        .collect();
-
-    Ok(matching)
-}
-
-pub fn url_matches(entry_url: &str, target_url: &str) -> bool {
-    // Extract domain from URLs for matching
-    // e.g., "https://github.com" matches "https://github.com/login"
-    let entry_domain = extract_domain(entry_url)
-        .trim_start_matches("www.")
-        .to_string();
-    let target_domain = extract_domain(target_url)
-        .trim_start_matches("www.")
-        .to_string();
-    entry_domain == target_domain
-}
-
-pub fn extract_domain(url: &str) -> String {
-    let url = url.trim();
-    let url_with_scheme = if url.contains("://") {
-        url.to_string()
-    } else {
-        format!("https://{}", url)
-    };
-
-    if let Ok(parsed) = url::Url::parse(&url_with_scheme) {
-        if let Some(host) = parsed.host_str() {
-            let host = host.strip_prefix("www.").unwrap_or(host);
-            return host.to_string();
-        }
-    }
-
-    url.to_string()
-}
-
 pub fn handle_command_vaults(current_session: &Option<Session>) {
     println!("\n=== Available Vaults ===");
 
@@ -1478,6 +1417,47 @@ fn check_vault_name(vault_name: &str) -> Result<(), VaultError> {
     }
 
     Ok(())
+}
+
+pub fn url_matches(entry_url: &str, target_url: &str) -> bool {
+    // Extract domain from URLs for matching
+    // e.g., "https://github.com" matches "https://github.com/login"
+    let entry_domain = extract_domain(entry_url)
+        .trim_start_matches("www.")
+        .to_string();
+    let target_domain = extract_domain(target_url)
+        .trim_start_matches("www.")
+        .to_string();
+    entry_domain == target_domain
+}
+
+pub fn extract_domain(url: &str) -> String {
+    let url = url.trim();
+    let url_with_scheme = if url.contains("://") {
+        url.to_string()
+    } else {
+        format!("https://{}", url)
+    };
+
+    if let Ok(parsed) = url::Url::parse(&url_with_scheme) {
+        if let Some(host) = parsed.host_str() {
+            let host = host.strip_prefix("www.").unwrap_or(host);
+            return host.to_string();
+        }
+    }
+
+    url.to_string()
+}
+
+pub fn clear_clipboard_after(duration: u64){
+    use arboard::Clipboard;
+    std::thread::spawn(|| {
+        std::thread::sleep(std::time::Duration::from_secs(duration));
+        if let Ok(mut clip) = Clipboard::new() {
+            let _ = clip.set_text("".to_string());
+        }
+    });
+    
 }
 // tests
 
