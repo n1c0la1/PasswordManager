@@ -2,7 +2,6 @@ mod cli;
 mod crypto;
 mod errors;
 mod extension_server;
-mod native_host;
 mod session;
 mod vault_entry_manager;
 mod vault_file_manager;
@@ -42,11 +41,6 @@ fn main() {
         extension_server::run(server_session, server_token);
     });
 
-    // NOTE: Native host thread disabled - use localhost server instead
-    // let native_host_session = current_session.clone();
-    // thread::spawn(move || {
-    //     native_host::run(native_host_session);
-    // });
 
     // Background thread for AutoLock
     // just clones the Arc (which is a pointer), not the entire session!
