@@ -105,6 +105,9 @@ pub enum CommandCLI {
         name: String,
     },
 
+    /// Import passwords from a CSV file
+    Import {},
+
     /// Opens given vault.
     Open {
         name: String,
@@ -1030,6 +1033,104 @@ pub fn handle_command_edit(
     spinner.finish_and_clear();
     println!();
     println!("Entry '{}' updated successfully!", final_entry_name);
+
+    Ok(())
+}
+
+pub fn handle_command_import(current_session: &mut Option<Session>) -> Result<(), SessionError> {
+    if !active_session(current_session) {
+        return Err(SessionError::SessionInactive);
+    }
+
+    println!("\n=== Import Passwords from CSV ===");
+    println!("Opening file picker...");
+
+    // Open file dialog
+    let file_path = match rfd::FileDialog::new()
+        .add_filter("CSV Files", &["csv"])
+        .set_title("Select CSV file to import")
+        .pick_file()
+    {
+        Some(path) => path,
+        None => {
+            println!("No file selected.");
+            return Ok(());
+        }
+    };
+
+    println!("Selected file: {}", file_path.display());
+    println!("\nExpected CSV format: name,username,password,url,notes");
+    println!("(Header row optional, will be auto-detected)\n");
+
+    // Parse CSV
+    let mut reader = csv::ReaderBuilder::new()
+        .has_headers(true)
+        .flexible(true)
+        .from_path(&file_path)
+        .map_err(|e| SessionError::VaultError(VaultError::AnyhowError(anyhow!("Failed to read CSV: {}", e))))?;
+
+    let mut import_count = 0;
+    let mut error_count = 0;
+
+    for (line_num, result) in reader.records().enumerate() {
+        let record = match result {
+            Ok(r) => r,
+            Err(e) => {
+                eprintln!("Line {}: Error reading record - {}", line_num + 2, e);
+                error_count += 1;
+                continue;
+            }
+        };
+
+        // Parse fields (handle different column counts)
+        let name = record.get(0).unwrap_or("").trim();
+        let username = record.get(1).unwrap_or("").trim();
+        let password = record.get(2).unwrap_or("").trim();
+        let url = record.get(3).unwrap_or("").trim();
+        let notes = record.get(4).unwrap_or("").trim();
+
+        // Skip empty rows or header rows
+        if name.is_empty() || name.eq_ignore_ascii_case("name") || name.eq_ignore_ascii_case("title") {
+            continue;
+        }
+
+        // Create entry
+        let session = current_session.as_mut().ok_or(SessionError::SessionInactive)?;
+        let vault = session.opened_vault.as_mut().ok_or(SessionError::VaultError(VaultError::NoVaultOpen))?;
+
+        // Prepare Option<String> for non-empty fields
+        let username_opt = if username.is_empty() { None } else { Some(username.to_string()) };
+        let password_opt = if password.is_empty() { None } else { Some(password.to_string()) };
+        let url_opt = if url.is_empty() { None } else { Some(url.to_string()) };
+        let notes_opt = if notes.is_empty() { None } else { Some(notes.to_string()) };
+
+        let entry = Entry::new(
+            name.to_string(),
+            username_opt,
+            password_opt,
+            url_opt,
+            notes_opt
+        );
+
+        match vault.add_entry(entry) {
+            Ok(()) => {
+                println!("{} Entries imported.", {import_count+1})
+            }
+            Err(e) => {
+                println!("Error adding Entry '{}' with message: {}, \nContinuing.", name, e);
+            }
+        }
+        import_count += 1;
+        print!(".");
+        io::stdout().flush().unwrap();
+    }
+
+    println!("\n");
+    println!("Import completed!");
+    println!("✓ Imported: {} entries", import_count);
+    if error_count > 0 {
+        println!("⚠ Errors: {} lines", error_count);
+    }
 
     Ok(())
 }

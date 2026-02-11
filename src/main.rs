@@ -346,6 +346,24 @@ fn main() {
                     continue 'interactive_shell;
                 }
 
+                CommandCLI::Import {} => {
+                    if !active_session(&*session_guard) {
+                        println!(
+                            "There is no session active right now, consider using open <vault-name>!"
+                        );
+                        continue 'interactive_shell;
+                    }
+                    match handle_command_import(&mut *session_guard) {
+                        Ok(()) => {
+                            try_save(&mut *session_guard);
+                        }
+                        Err(e) => {
+                            println!("Error: {}", e)
+                        }
+                    }
+                    continue 'interactive_shell;
+                }
+
                 CommandCLI::Open { name, timeout } => {
                     match handle_command_open(name, &mut *session_guard, &timeout) {
                         Ok(session) => {
