@@ -9,7 +9,6 @@ mod vault_file_manager;
 
 use crate::errors::*;
 use crate::session::Session;
-// use crate::vault_entry_manager::*;
 use crate::session::*;
 use crate::vault_file_manager::*;
 use clap::Parser;
@@ -52,25 +51,29 @@ fn main() {
     thread::spawn(move || {
         loop {
             thread::sleep(Duration::from_secs(1));
-            let mut session_guard = session_clone.lock().unwrap();
-            if let Some(session) = session_guard.as_mut() {
-                if session.opened_vault.is_some() {
-                    // Check for timeout (wished_timeout minutes)
-                    if session.check_timeout(Duration::from_secs(session.wished_timeout)) {
-                        let name = session.vault_name.clone();
-                        // Attempt to end session
-                        if let Ok(_) = session.end_session() {
-                            handle_command_clear();
-                            println!(
-                                "\n\nYou have been logged out. Last used vault was: '{}'.",
-                                name
-                            );
-                            io::stdout().flush().unwrap();
+            if let Ok(mut session_guard) = session_clone.lock() {
+                if let Some(session) = session_guard.as_mut() {
+                    if session.opened_vault.is_some() {
+                        // Check for timeout (wished_timeout minutes)
+                        if session.check_timeout(Duration::from_secs(session.wished_timeout)) {
+                            let name = session.vault_name.clone();
+                            // Attempt to end session
+                            if let Ok(_) = session.end_session() {
+                                handle_command_clear();
+                                println!(
+                                    "\n\nYou have been logged out. Last used vault was: '{}'.",
+                                    name
+                                );
+                                io::stdout().flush().unwrap();
+                            }
                         }
+                    } else {
+                        /* Do nothing */
                     }
-                } else {
-                    /* Do nothing */
                 }
+            } else {
+                // try again
+                continue;
             }
         }
     });
@@ -79,8 +82,7 @@ fn main() {
         //println!("===================");
         println!("___________________");
 
-        {
-            let session_guard = current_session.lock().unwrap();
+        if let Ok(session_guard) = current_session.lock() {
             println!(
                 "Current vault: {}",
                 match &*session_guard {
@@ -96,8 +98,7 @@ fn main() {
         }
         println!("What action do you want to do? ");
 
-        {
-            let session_guard = current_session.lock().unwrap();
+        if let Ok(session_guard) = current_session.lock() {
             if !check_vaults_exist() {
                 eprintln!(
                     "\nHint: There are currently no vaults at all, consider using 'init' to create one!"
@@ -135,8 +136,7 @@ fn main() {
             }
         };
 
-        {
-            let mut session_guard = current_session.lock().unwrap();
+        if let Ok(mut session_guard) = current_session.lock() {
 
             // Update activity before command
             if let Some(session) = session_guard.as_mut() {
