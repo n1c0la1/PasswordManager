@@ -1127,9 +1127,9 @@ pub fn handle_command_import(current_session: &mut Option<Session>) -> Result<()
 
     println!("\n");
     println!("Import completed!");
-    println!("✓ Imported: {} entries", import_count);
+    println!("Imported: {} entries", import_count);
     if error_count > 0 {
-        println!("⚠ Errors: {} lines", error_count);
+        println!("Errors: {} lines", error_count);
     }
 
     Ok(())
@@ -1216,25 +1216,21 @@ pub fn handle_command_open(
             println!("╔═══════════════════════════════════════════╗");
             println!("║  Vault Opened Successfully                ║");
             println!("╠═══════════════════════════════════════════╣");
-            println!(
-                "║  Vault: {}{}",
-                vault_to_open,
-                " ".repeat(35 - vault_to_open.len().min(35))
-            );
-            println!(
-                "║  Entries: {}{}",
-                //new_session.opened_vault.as_ref().entries.len(),
-                opened_vault.entries.len(),
-                " ".repeat(33 - opened_vault.entries.len().to_string().len())
-            );
+            let vault_line = format!("  Vault: {}", vault_to_open);
+            println!("║{: <43}║", vault_line);
+            // the String line gets filled up until it has at least 43 chars
+
+            let entries_line = format!("  Entries: {}", opened_vault.entries.len());
+            println!("║{: <43}║", entries_line);
             println!("║                                           ║");
-            println!("║  Auto-close after {} min inactivity        ║", 
-                if timeout.is_some() {
-                    timeout.unwrap()
-                } else {
-                    5
-                }
+
+            let timeout_minutes = timeout.unwrap_or(5);
+            let digits = timeout_minutes.to_string().len();
+            println!("║  Auto-close after {} min inactivity       {}║", 
+                timeout_minutes,
+                " ".repeat(digits)
             );
+
             println!("╚═══════════════════════════════════════════╝");
             println!();
 
@@ -1289,7 +1285,7 @@ pub fn handle_command_close(
         return Ok(LoopCommand::Continue);
     }
 
-    print!("Do you really want to close the current session and vault? (y/n): ");
+    print!("Do you really want to close the current session and vault? (Y/n): ");
     stdout().flush().unwrap();
 
     let mut input = String::new();
