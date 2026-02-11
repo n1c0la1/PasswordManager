@@ -55,14 +55,14 @@ fn main() {
             let mut session_guard = session_clone.lock().unwrap();
             if let Some(session) = session_guard.as_mut() {
                 if session.opened_vault.is_some() {
-                    // Check for timeout (5 minutes)
-                    if session.check_timeout(Duration::from_secs(300)) {
+                    // Check for timeout (wished_timeout minutes)
+                    if session.check_timeout(Duration::from_secs(session.wished_timeout)) {
                         let name = session.vault_name.clone();
                         // Attempt to end session
                         if let Ok(_) = session.end_session() {
                             handle_command_clear();
                             println!(
-                                "\n\nYou have been logged out. Last used vault was : {} Use open to open it again",
+                                "\n\nYou have been logged out. Last used vault was: '{}'.",
                                 name
                             );
                             io::stdout().flush().unwrap();
@@ -346,8 +346,8 @@ fn main() {
                     continue 'interactive_shell;
                 }
 
-                CommandCLI::Open { name } => {
-                    match handle_command_open(name, &mut *session_guard) {
+                CommandCLI::Open { name, timeout } => {
+                    match handle_command_open(name, &mut *session_guard, &timeout) {
                         Ok(session) => {
                             if session.opened_vault.is_none() {
                                 println!("Something went wrong!");

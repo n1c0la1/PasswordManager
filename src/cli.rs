@@ -108,6 +108,10 @@ pub enum CommandCLI {
     /// Opens given vault.
     Open {
         name: String,
+
+        #[arg(short = 't', long = "timeout")]
+        timeout: Option<u64>,
+        // check timeout von dem Mutex in main erwartet u64
     },
 
     /// Closes the current vault and ends the session.
@@ -1033,6 +1037,7 @@ pub fn handle_command_edit(
 pub fn handle_command_open(
     vault_to_open: String,
     current_session: &mut Option<Session>,
+    timeout: &Option<u64>,
 ) -> Result<Session, SessionError> {
     // Check if vault file exists
     let path = Path::new("vaults").join(format!("{vault_to_open}.psdb"));
@@ -1094,6 +1099,9 @@ pub fn handle_command_open(
 
     //starting session for new vault
     let mut new_session = Session::new(vault_to_open.clone());
+    if timeout.is_some() {
+        new_session.wished_timeout = timeout.unwrap();
+    }
     match new_session.start_session(master) {
         Ok(()) => {
             spinner.finish_and_clear();
@@ -1119,7 +1127,13 @@ pub fn handle_command_open(
                 " ".repeat(33 - opened_vault.entries.len().to_string().len())
             );
             println!("║                                           ║");
-            println!("║  Auto-close after 5 min inactivity        ║");
+            println!("║  Auto-close after {} min inactivity        ║", 
+                if timeout.is_some() {
+                    timeout.unwrap() / 60
+                } else {
+                    5
+                }
+            );
             println!("╚═══════════════════════════════════════════╝");
             println!();
 

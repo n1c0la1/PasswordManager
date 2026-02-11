@@ -17,6 +17,7 @@ pub struct Session {
     pub opened_vault: Option<Vault>,
     master_password: Option<SecretString>,
     pub last_activity: Instant,
+    pub wished_timeout: u64,
 }
 
 //a session is active when: opened_vault and master_password = Some(_)
@@ -48,6 +49,7 @@ impl Session {
             opened_vault: None,
             master_password: None,
             last_activity: Instant::now(),
+            wished_timeout: 300,
         }
     }
 
@@ -174,6 +176,7 @@ mod tests {
             opened_vault: None,
             master_password: None,
             last_activity: Instant::now(),
+            wished_timeout: 300,
         };
 
         let result = session.start_session(master_pw.clone());
@@ -200,6 +203,7 @@ mod tests {
             opened_vault: None,
             master_password: None,
             last_activity: Instant::now(),
+            wished_timeout: 300,
         };
         session.start_session(master_pw.clone()).unwrap();
 
@@ -227,6 +231,7 @@ mod tests {
             opened_vault: None,
             master_password: None,
             last_activity: Instant::now(),
+            wished_timeout: 300,
         };
         new_session.start_session(master_pw.clone()).unwrap();
         let (vault, _master) = new_session.session_state().unwrap();
@@ -250,6 +255,7 @@ mod tests {
             opened_vault: None,
             master_password: None,
             last_activity: Instant::now(),
+            wished_timeout: 300,
         };
         session.start_session(master_pw.clone()).unwrap();
 
