@@ -1099,8 +1099,8 @@ pub fn handle_command_open(
 
     //starting session for new vault
     let mut new_session = Session::new(vault_to_open.clone());
-    if timeout.is_some() {
-        new_session.wished_timeout = timeout.unwrap();
+    if let Some(minutes) = timeout {
+        new_session.wished_timeout = minutes * 60; // Convert minutes to seconds
     }
     match new_session.start_session(master) {
         Ok(()) => {
@@ -1129,7 +1129,7 @@ pub fn handle_command_open(
             println!("║                                           ║");
             println!("║  Auto-close after {} min inactivity        ║", 
                 if timeout.is_some() {
-                    timeout.unwrap() / 60
+                    timeout.unwrap()
                 } else {
                     5
                 }
