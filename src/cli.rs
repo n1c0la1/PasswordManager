@@ -1115,25 +1115,17 @@ pub fn handle_command_open(
             println!("╔═══════════════════════════════════════════╗");
             println!("║  Vault Opened Successfully                ║");
             println!("╠═══════════════════════════════════════════╣");
-            println!(
-                "║  Vault: {}{}",
-                vault_to_open,
-                " ".repeat(35 - vault_to_open.len().min(35))
-            );
-            println!(
-                "║  Entries: {}{}",
-                //new_session.opened_vault.as_ref().entries.len(),
-                opened_vault.entries.len(),
-                " ".repeat(33 - opened_vault.entries.len().to_string().len())
-            );
+            let vault_line = format!("  Vault: {}", vault_to_open);
+            println!("║{: <43}║", vault_line);
+            // the String line gets filled up until it has at least 43 chars
+
+            let entries_line = format!("  Entries: {}", opened_vault.entries.len());
+            println!("║{: <43}║", entries_line);
             println!("║                                           ║");
-            println!("║  Auto-close after {} min inactivity        ║", 
-                if timeout.is_some() {
-                    timeout.unwrap()
-                } else {
-                    5
-                }
-            );
+
+            let timeout_minutes = timeout.unwrap_or(5);
+            let timeout_line = format!("  Auto-close after {} min inactivity", timeout_minutes);
+            println!("║{: <43}║", timeout_line);
             println!("╚═══════════════════════════════════════════╝");
             println!();
 
