@@ -1129,7 +1129,7 @@ pub fn handle_command_open(
             println!("║                                           ║");
             println!("║  Auto-close after {} min inactivity        ║", 
                 if timeout.is_some() {
-                    timeout.unwrap() / 60
+                    timeout.unwrap()
                 } else {
                     5
                 }
