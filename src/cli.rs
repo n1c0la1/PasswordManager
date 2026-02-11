@@ -1037,8 +1037,8 @@ pub fn handle_command_edit(
     Ok(())
 }
 
-pub fn handle_command_import(current_session: &mut Option<Session>) -> Result<(), SessionError> {
-    if !active_session(current_session) {
+pub fn handle_command_import(option_session: &mut Option<Session>) -> Result<(), SessionError> {
+    if !active_session(option_session) {
         return Err(SessionError::SessionInactive);
     }
 
@@ -1060,11 +1060,10 @@ pub fn handle_command_import(current_session: &mut Option<Session>) -> Result<()
 
     println!("Selected file: {}", file_path.display());
     println!("\nExpected CSV format: name,username,password,url,notes");
-    println!("(Header row optional, will be auto-detected)\n");
 
     // Parse CSV
     let mut reader = csv::ReaderBuilder::new()
-        .has_headers(true)
+        .has_headers(false)
         .flexible(true)
         .from_path(&file_path)
         .map_err(|e| SessionError::VaultError(VaultError::AnyhowError(anyhow!("Failed to read CSV: {}", e))))?;
@@ -1090,29 +1089,24 @@ pub fn handle_command_import(current_session: &mut Option<Session>) -> Result<()
         let url = record.get(3).unwrap_or("").trim();
         let notes = record.get(4).unwrap_or("").trim();
 
-        // Skip empty rows or header rows
-        if name.is_empty() || name.eq_ignore_ascii_case("name") || name.eq_ignore_ascii_case("title") {
-            continue;
-        }
-
+        
         // Show first entry and ask for confirmation
         if !first_entry_shown {
             first_entry_shown = true;
-            println!("\nFirst entry to be imported:");
+            println!("\n Header Line:");
             println!("  name:     {}", name);
             println!("  username: {}", username);
             println!("  password: {}", password);
             println!("  url:      {}", url);
             println!("  notes:    {}", notes);
-            println!("\nExpected format: name,username,password,url,notes");
             print!("\nContinue with import? (Y/n): ");
             io::stdout().flush().unwrap();
-
+            
             let mut input = String::new();
             io::stdin().read_line(&mut input).map_err(|e| 
                 SessionError::VaultError(VaultError::AnyhowError(anyhow!("Failed to read user input: {}", e)))
             )?;
-
+            
             let response = input.trim().to_lowercase();
             if !response.is_empty() && response != "y" && response != "yes" {
                 println!("Import cancelled.");
@@ -1121,8 +1115,13 @@ pub fn handle_command_import(current_session: &mut Option<Session>) -> Result<()
             println!();
         }
 
+        // Skip empty rows or header rows
+        if name.is_empty() || name.eq_ignore_ascii_case("name") || name.eq_ignore_ascii_case("title") {
+            continue;
+        }
+        
         // Create entry
-        let session = current_session.as_mut().ok_or(SessionError::SessionInactive)?;
+        let session =option_session.as_mut().ok_or(SessionError::SessionInactive)?;
         let vault = session.opened_vault.as_mut().ok_or(SessionError::VaultError(VaultError::NoVaultOpen))?;
 
         // Prepare Option<String> for non-empty fields
