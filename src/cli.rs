@@ -1048,7 +1048,7 @@ pub fn handle_command_import(current_session: &mut Option<Session>) -> Result<()
     // Open file dialog
     let file_path = match rfd::FileDialog::new()
         .add_filter("CSV Files", &["csv"])
-        .set_title("Select CSV file to import")
+        .set_title("Select the CSV file to import")
         .pick_file()
     {
         Some(path) => path,
@@ -1071,6 +1071,7 @@ pub fn handle_command_import(current_session: &mut Option<Session>) -> Result<()
 
     let mut import_count = 0;
     let mut error_count = 0;
+    let mut first_entry_shown = false;
 
     for (line_num, result) in reader.records().enumerate() {
         let record = match result {
@@ -1092,6 +1093,32 @@ pub fn handle_command_import(current_session: &mut Option<Session>) -> Result<()
         // Skip empty rows or header rows
         if name.is_empty() || name.eq_ignore_ascii_case("name") || name.eq_ignore_ascii_case("title") {
             continue;
+        }
+
+        // Show first entry and ask for confirmation
+        if !first_entry_shown {
+            first_entry_shown = true;
+            println!("\nFirst entry to be imported:");
+            println!("  name:     {}", name);
+            println!("  username: {}", username);
+            println!("  password: {}", password);
+            println!("  url:      {}", url);
+            println!("  notes:    {}", notes);
+            println!("\nExpected format: name,username,password,url,notes");
+            print!("\nContinue with import? (Y/n): ");
+            io::stdout().flush().unwrap();
+
+            let mut input = String::new();
+            io::stdin().read_line(&mut input).map_err(|e| 
+                SessionError::VaultError(VaultError::AnyhowError(anyhow!("Failed to read user input: {}", e)))
+            )?;
+
+            let response = input.trim().to_lowercase();
+            if !response.is_empty() && response != "y" && response != "yes" {
+                println!("Import cancelled.");
+                return Ok(());
+            }
+            println!();
         }
 
         // Create entry
