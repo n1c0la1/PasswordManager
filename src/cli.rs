@@ -1765,8 +1765,8 @@ mod tests {
         let result3 = check_vault_name(name3);
         assert!(matches!(result3, Err(VaultError::InvalidVaultName)));
     }
-}
-    // Testing functionality for the extension
+
+    // Tests for the extension: URL comparision and domain extraction
     #[test]
     fn test_extract_domain_1() {
         assert_eq!(extract_domain("example.com"), "example.com");
