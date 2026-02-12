@@ -6,6 +6,9 @@ use anyhow::anyhow;
 use arboard::Clipboard;
 use clap::{Parser, Subcommand, command};
 use indicatif::{self, ProgressBar, ProgressStyle};
+use passgenr::charsets;
+use passgenr::random_password;
+use password_manager;
 use rpassword;
 use secrecy::ExposeSecret;
 use secrecy::SecretString;
@@ -131,6 +134,8 @@ pub enum CommandCLI {
     },
 }
 
+static CANCEL_ARG: &'static str = "--CANCEL";
+
 pub fn clear_terminal() {
     print!("{esc}[2J{esc}[1;1H", esc = 27 as char);
 }
@@ -182,6 +187,10 @@ pub fn handle_command_init(option_name: Option<String>) -> Result<(), VaultError
             print!("{input}");
             let input = input.trim().to_string();
 
+            if input.eq(CANCEL_ARG) {
+                return Err(VaultError::ActionCancelled);
+            }
+
             match check_vault_name(&input) {
                 Err(_) => {
                     println!("Invalid name.");
@@ -208,6 +217,10 @@ pub fn handle_command_init(option_name: Option<String>) -> Result<(), VaultError
         io::stdout().flush().unwrap();
 
         let password: SecretString = rpassword::prompt_password("Master-Password: ")?.into();
+
+        if password.expose_secret() == CANCEL_ARG {
+            return Err(VaultError::ActionCancelled);
+        }
 
         match check_password_strength(&password) {
             Err(_) => continue 'define_mw,
@@ -295,14 +308,14 @@ pub fn handle_command_add(
             if trimmed_name.is_empty() {
                 println!("Error: Entry name cannot be empty!");
                 continue 'input;
-            } else if trimmed_name.eq("-EXIT-") {
-                return Ok(());
+            } else if trimmed_name.eq(CANCEL_ARG) {
+                return Err(SessionError::VaultError(VaultError::ActionCancelled));
             }
 
             if existing_names.contains(&trimmed_name) {
                 println!(
-                    "Error: the name '{}' already exists! Try again or type '-EXIT-'.",
-                    trimmed_name
+                    "Error: the name '{}' already exists! Try again or type '{}'.",
+                    trimmed_name, CANCEL_ARG
                 );
                 continue 'input;
             }
@@ -687,9 +700,7 @@ pub fn handle_command_deletevault(
     io::stdin().read_line(&mut input)?;
 
     if input.trim().eq_ignore_ascii_case("n") {
-        return Err(SessionError::VaultError(VaultError::AnyhowError(anyhow!(
-            "Cancelled."
-        ))));
+        return Err(SessionError::VaultError(VaultError::ActionCancelled));
     }
 
     println!();
@@ -717,17 +728,18 @@ pub fn handle_command_deletevault(
         let expected_low_case = format!("delete {}", vault_name);
         if trimmed == expected_low_case {
             println!();
-            println!("You have to use capital letters! Try again or type exit.");
+            println!(
+                "You have to use capital letters! Try again or type '{}'.",
+                CANCEL_ARG
+            );
             continue 'input;
         } else if trimmed == expected {
             break 'input;
-        } else if trimmed == "exit" {
-            return Err(SessionError::VaultError(VaultError::AnyhowError(anyhow!(
-                "exit"
-            ))));
+        } else if trimmed == CANCEL_ARG {
+            return Err(SessionError::VaultError(VaultError::ActionCancelled));
         } else {
             println!();
-            println!("Wrong input! Try again or type exit.");
+            println!("Wrong input! Try again or type '{}'.", CANCEL_ARG);
             continue 'input;
         }
     }
@@ -748,28 +760,19 @@ pub fn handle_command_deletevault(
 }
 
 pub fn handle_command_generate(length: i32, no_symbols: bool) -> Result<String, SessionError> {
-    use rand::Rng;
-
     // Validierung der Länge
-    if length <= 0 || length > 200 {
+    if length <= 1 || length > 200 {
         return Err(SessionError::VaultError(VaultError::InvalidLength));
     }
 
     // Zeichensatz basierend auf no_symbols Flag
     let charset = if no_symbols {
-        "ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789"
+        charsets::ALPHANUMERIC
     } else {
-        "ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789!@#$%^&*()_+-=[]{}|;:,.<>?"
+        charsets::ASCII
     };
 
-    let chars: Vec<char> = charset.chars().collect();
-    // Generiere Passwort durch zufällige Auswahl aus charset
-    let password: String = (0..length)
-        .map(|_| {
-            let idx = rand::rng().random_range(0..charset.len());
-            chars[idx]
-        })
-        .collect();
+    let password = random_password(charset, length as usize, "")?;
 
     println!("\n┌─────────────────────────────────────────┐");
     println!("│ Generated Password                      │");
@@ -817,6 +820,10 @@ pub fn handle_command_change_master(
             session_vault_name
         ))?
         .into();
+
+        if input.expose_secret() == CANCEL_ARG {
+            return Err(SessionError::VaultError(VaultError::ActionCancelled));
+        }
 
         match check_password_strength(&input) {
             Err(_) => continue 'input_new_master,
@@ -1365,7 +1372,13 @@ fn add_password_to_entry() -> Result<Option<String>, SessionError> {
                 let mut length_input = String::new();
                 io::stdout().flush().unwrap();
                 io::stdin().read_line(&mut length_input)?;
-                if let Ok(len) = length_input.trim().parse::<i32>() {
+                let trimmed_input = length_input.trim();
+
+                if trimmed_input.eq(CANCEL_ARG) {
+                    return Ok(None);
+                }
+
+                if let Ok(len) = trimmed_input.parse::<i32>() {
                     length = len;
                     break 'input_length;
                 }
@@ -1693,5 +1706,72 @@ mod tests {
     fn test_vault_error_display_strings() {
         assert_eq!(format!("{}", VaultError::NameExists), "NAME ALREADY EXISTS");
         assert_eq!(format!("{}", VaultError::NoVaultOpen), "NO VAULT IS OPEN");
+    }
+
+    // ================== PASSWORD STRENGTH TESTS ==================
+
+    #[test]
+    fn test_valid_password() {
+        let password: SecretString = "rustSEPtest".into();
+        let result = check_password_strength(&password);
+        assert!(result.is_ok());
+    }
+
+    #[test]
+    fn test_empty_passsword() {
+        let password: SecretString = "".into();
+        let result = check_password_strength(&password);
+        assert!(matches!(result, Err(VaultError::WeakPassword)));
+    }
+
+    #[test]
+    fn test_short_password() {
+        let password: SecretString = "too_short".into();
+        let result = check_password_strength(&password);
+        assert!(matches!(result, Err(VaultError::WeakPassword)));
+    }
+
+    #[test]
+    fn test_weak_password() {
+        let password: SecretString = "weakpassword".into();
+        let result = check_password_strength(&password);
+        assert!(matches!(result, Err(VaultError::WeakPassword)));
+    }
+
+    // ================== VAULT NAME TESTS ==================
+    #[test]
+    fn test_valid_vault_name() {
+        let name = "valid_-Name1";
+        let result = check_vault_name(name);
+        assert!(result.is_ok());
+    }
+
+    #[test]
+    fn test_empty_vault_name() {
+        let name = "";
+        let result = check_vault_name(name);
+        assert!(matches!(result, Err(VaultError::InvalidVaultName)));
+    }
+
+    #[test]
+    fn test_long_vault_name() {
+        let name = "a".repeat(65);
+        let result = check_vault_name(&name);
+        assert!(matches!(result, Err(VaultError::InvalidVaultName)));
+    }
+
+    #[test]
+    fn test_invalid_name() {
+        let name = "/";
+        let result = check_vault_name(name);
+        assert!(matches!(result, Err(VaultError::InvalidVaultName)));
+
+        let name2 = "\\";
+        let result2 = check_vault_name(name2);
+        assert!(matches!(result2, Err(VaultError::InvalidVaultName)));
+
+        let name3 = ".";
+        let result3 = check_vault_name(name3);
+        assert!(matches!(result3, Err(VaultError::InvalidVaultName)));
     }
 }

@@ -93,8 +93,8 @@ pub fn list_vaults() -> Result<Vec<String>, VaultError> {
     let entries = fs::read_dir("vaults")?;
 
     for entry in entries {
-        let unwraped_entry = entry?;
-        let entry_path = unwraped_entry.path();
+        let unwrapped_entry = entry?;
+        let entry_path = unwrapped_entry.path();
 
         if let Some(file_name) = entry_path.file_name().and_then(|s| s.to_str()) {
             let string_entry = file_name.to_string();

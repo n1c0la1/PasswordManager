@@ -32,7 +32,7 @@ impl fmt::Display for SessionError {
         match self {
             SessionError::SessionInactive => write!(f, "SESSION IS INACTIVE"),
             SessionError::SessionActive => write!(f, "SESSION IS ALREADY ACTIVE"),
-            SessionError::VaultError(e) => write!(f, "VAULT ERROR: {}", e),
+            SessionError::VaultError(e) => write!(f, "{}", e),
         }
     }
 }
@@ -55,6 +55,7 @@ pub enum VaultError {
     VaultDoesNotExist,
     WeakPassword,
     InvalidVaultName,
+    ActionCancelled,
     IoError(std::io::Error),
     SerdeError(serde_json::Error),
     EncFileError(enc_file::EncFileError),
@@ -72,7 +73,7 @@ impl fmt::Display for VaultError {
             VaultError::NameExists => write!(f, "NAME ALREADY EXISTS"),
             VaultError::FileExists => write!(f, "FILENAME ALREADY EXISTS"),
             VaultError::PasswordTooLong => write!(f, "PASSWORD TOO LONG"),
-            VaultError::InvalidLength => write!(f, "LENGTH MUST BE BETWEEN 0 AND 200"),
+            VaultError::InvalidLength => write!(f, "LENGTH MUST BE BETWEEN 2 AND 200"),
             VaultError::EntryNotFound => write!(f, "ENTRY NOT FOUND"),
             VaultError::CouldNotSave => write!(f, "COULD NOT SAVE VAULT"),
             VaultError::CouldNotClose => write!(f, "COULD NOT CLOSE VAULT"),
@@ -84,6 +85,7 @@ impl fmt::Display for VaultError {
             VaultError::VaultDoesNotExist => write!(f, "VAULT DOES NOT EXIST"),
             VaultError::WeakPassword => write!(f, "PASSWORD IS TOO WEAK"),
             VaultError::InvalidVaultName => write!(f, "VAULT NAME IS INVALID"),
+            VaultError::ActionCancelled => write!(f, "ACTION CANCELLED"),
             VaultError::IoError(e) => write!(f, "{}", e),
             VaultError::SerdeError(e) => write!(f, "SERDE ERROR: {}", e),
             VaultError::EncFileError(e) => write!(f, "ENC FILE ERROR: {}", e),
