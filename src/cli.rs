@@ -1339,7 +1339,7 @@ fn add_password_to_entry() -> Result<Option<String>, SessionError> {
             io::stdout().flush().unwrap();
             let mut no_symbols_input = String::new();
             io::stdin().read_line(&mut no_symbols_input)?;
-            if input_choice_gen.trim().eq_ignore_ascii_case("y") {
+            if no_symbols_input.trim().eq_ignore_ascii_case("y") {
                 no_symbols = false;
             } else {
                 no_symbols = true;
