@@ -1,5 +1,5 @@
 use crate::session::Session;
-use serde_json::{json, Value};
+use serde_json::{Value, json};
 use std::sync::{Arc, Mutex};
 use tiny_http::{Request, Response, Server};
 
@@ -72,17 +72,13 @@ fn handle_request(
         _ => json!({"error": "Invalid request"}),
     };
 
-    let header = match tiny_http::Header::from_bytes(
-        &b"Content-Type"[..],
-        &b"application/json"[..],
-    ) {
+    let header = match tiny_http::Header::from_bytes(&b"Content-Type"[..], &b"application/json"[..])
+    {
         Ok(h) => h,
         Err(_) => return Err("Invalid Content-Type header".into()),
     };
 
-    request
-        .respond(Response::from_string(response.to_string()).with_header(header))
-        ?;
+    request.respond(Response::from_string(response.to_string()).with_header(header))?;
     Ok(())
 }
 

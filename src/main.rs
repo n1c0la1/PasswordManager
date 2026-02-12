@@ -32,7 +32,10 @@ fn main() {
             format!("{:x}", idx)
         })
         .collect();
-    println!("\n🔒 Extension Token (store in extension settings): {}\n", token);
+    println!(
+        "\n🔒 Extension Token (store in extension settings): {}\n",
+        token
+    );
     let server_session = current_session.clone();
     let server_token = token.clone();
     thread::spawn(move || {
@@ -137,7 +140,6 @@ fn main() {
         };
 
         if let Ok(mut session_guard) = current_session.lock() {
-
             // Update activity before command
             if let Some(session) = session_guard.as_mut() {
                 session.update_activity();

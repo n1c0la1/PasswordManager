@@ -1,13 +1,13 @@
 #![allow(dead_code)]
 // dead code allowed because this is only used in native host mode
 
+use serde_json::json;
 use std::io::{self, Read, Write};
 use std::sync::{Arc, Mutex};
-use serde_json::json;
 use url::Url;
 
-use crate::session::Session;
 use crate::cli::handle_command_get_by_url;
+use crate::session::Session;
 
 const MAX_MESSAGE_SIZE: usize = 1024 * 1024; // 1MB max message size to prevent abuse
 // The message is the JSON object received from the extension
@@ -19,7 +19,10 @@ fn read_message() -> Option<serde_json::Value> {
 
     // Validate message size to prevent OOM attacks
     if len > MAX_MESSAGE_SIZE {
-        eprintln!("Warning: Message size {} exceeds maximum allowed {}", len, MAX_MESSAGE_SIZE);
+        eprintln!(
+            "Warning: Message size {} exceeds maximum allowed {}",
+            len, MAX_MESSAGE_SIZE
+        );
         // eprint can be read from the extension console for debugging in the browser
         return None;
     }
@@ -74,7 +77,7 @@ pub fn run(session_arc: Arc<Mutex<Option<Session>>>) {
                         poisoned.into_inner()
                     }
                 };
-                
+
                 match &*session_guard {
                     Some(session) => {
                         eprintln!("Session is active, searching for entries");
