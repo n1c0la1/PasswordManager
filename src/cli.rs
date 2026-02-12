@@ -8,7 +8,6 @@ use clap::{Parser, Subcommand, command};
 use indicatif::{self, ProgressBar, ProgressStyle};
 use passgenr::charsets;
 use passgenr::random_password;
-use password_manager;
 use rpassword;
 use secrecy::ExposeSecret;
 use secrecy::SecretString;

@@ -347,8 +347,8 @@ fn main() {
                     // continue happens below after updating activity
                 }
 
-                CommandCLI::Open { name } => {
-                    match handle_command_open(name, &mut *session_guard) {
+                CommandCLI::Open { name, timeout } => {
+                    match handle_command_open(name, &mut *session_guard, &timeout) {
                         Ok(session) => {
                             if session.opened_vault.is_none() {
                                 println!("Something went wrong!");
