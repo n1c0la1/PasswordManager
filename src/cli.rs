@@ -457,7 +457,9 @@ pub fn handle_command_get(
         e
     } else {
         // Not found by name, try URL-based lookup
-        let matches: Vec<&crate::vault_entry_manager::Entry> = vault.entries.iter()
+        let matches: Vec<&crate::vault_entry_manager::Entry> = vault
+            .entries
+            .iter()
             .filter(|entry| {
                 if let Some(entry_url) = entry.get_url() {
                     url_matches(entry_url, &entry_name_or_url)
@@ -508,20 +510,21 @@ pub fn handle_command_get(
         let clipboard_content = format!("{}\n{}", username, password);
 
         match Clipboard::new() {
-            Ok(mut clipboard) => {
-                match clipboard.set_text(clipboard_content) {
-                    Ok(_) => {
-                        let duration = 30;
-                        println!("✓ Credentials copied to clipboard for '{}'", entry.get_entry_name());
-                        println!("  (Clipboard will be cleared in {} seconds)", &duration);
-                        
-                        clear_clipboard_after(duration);
-                    }
-                    Err(e) => {
-                        println!("Failed to copy to clipboard: {}", e);
-                    }
+            Ok(mut clipboard) => match clipboard.set_text(clipboard_content) {
+                Ok(_) => {
+                    let duration = 30;
+                    println!(
+                        "✓ Credentials copied to clipboard for '{}'",
+                        entry.get_entry_name()
+                    );
+                    println!("  (Clipboard will be cleared in {} seconds)", &duration);
+
+                    clear_clipboard_after(duration);
                 }
-            }
+                Err(e) => {
+                    println!("Failed to copy to clipboard: {}", e);
+                }
+            },
             Err(e) => {
                 println!("Failed to access clipboard: {}", e);
             }
@@ -1297,7 +1300,7 @@ fn copy_to_clipboard(content: &str) -> Result<(), SessionError> {
 
     let duration = 30;
     println!("  (Clipboard will be cleared in {} seconds)", &duration);
-    
+
     clear_clipboard_after(duration);
     Ok(())
 }
@@ -1447,7 +1450,7 @@ pub fn extract_domain(url: &str) -> String {
     url.to_string()
 }
 
-pub fn clear_clipboard_after(duration: u64){
+pub fn clear_clipboard_after(duration: u64) {
     use arboard::Clipboard;
     std::thread::spawn(move || {
         std::thread::sleep(std::time::Duration::from_secs(duration));
@@ -1455,7 +1458,6 @@ pub fn clear_clipboard_after(duration: u64){
             let _ = clip.set_text("".to_string());
         }
     });
-    
 }
 // tests
 
@@ -1772,17 +1774,26 @@ mod tests {
 
     #[test]
     fn test_extract_domain_2_login() {
-        assert_eq!(extract_domain("https://www.example.com/login"), "example.com");
+        assert_eq!(
+            extract_domain("https://www.example.com/login"),
+            "example.com"
+        );
     }
 
     #[test]
     fn test_extract_domain_3_port() {
-        assert_eq!(extract_domain("https://www.example.com:8080"), "example.com");
+        assert_eq!(
+            extract_domain("https://www.example.com:8080"),
+            "example.com"
+        );
     }
 
     #[test]
     fn test_extract_domain_4_port_and_path() {
-        assert_eq!(extract_domain("https://www.example.com:8080/path"), "example.com");
+        assert_eq!(
+            extract_domain("https://www.example.com:8080/path"),
+            "example.com"
+        );
     }
 
     #[test]
@@ -1792,7 +1803,10 @@ mod tests {
 
     #[test]
     fn test_extract_domain_6() {
-        assert_eq!(extract_domain("https://subdomain.example.com"), "subdomain.example.com");
+        assert_eq!(
+            extract_domain("https://subdomain.example.com"),
+            "subdomain.example.com"
+        );
     }
 
     #[test]
@@ -1822,9 +1836,18 @@ mod tests {
 
     #[test]
     fn test_extract_and_compare() {
-        assert!(url_matches(&extract_domain("https://www.example.com/login"), &extract_domain("example.com")));
-        assert!(url_matches(&extract_domain("http://github.com"), &extract_domain("github.com")));
+        assert!(url_matches(
+            &extract_domain("https://www.example.com/login"),
+            &extract_domain("example.com")
+        ));
+        assert!(url_matches(
+            &extract_domain("http://github.com"),
+            &extract_domain("github.com")
+        ));
         assert!(url_matches("www.example.com", "example.com"));
-        assert!(!url_matches(&extract_domain("https://www.example.com"), &extract_domain("different.com")));
+        assert!(!url_matches(
+            &extract_domain("https://www.example.com"),
+            &extract_domain("different.com")
+        ));
     }
 }
