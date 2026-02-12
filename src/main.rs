@@ -41,7 +41,6 @@ fn main() {
         extension_server::run(server_session, server_token);
     });
 
-
     // Background thread for AutoLock
     // just clones the Arc (which is a pointer), not the entire session!
     let session_clone = current_session.clone();

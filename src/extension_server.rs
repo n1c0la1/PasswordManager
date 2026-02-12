@@ -163,11 +163,7 @@ mod tests {
     }
 
     fn parse_body_json(response: &str) -> JsonValue {
-        let body = response
-            .splitn(2, "\r\n\r\n")
-            .nth(1)
-            .unwrap_or("")
-            .trim();
+        let body = response.splitn(2, "\r\n\r\n").nth(1).unwrap_or("").trim();
         serde_json::from_str(body).unwrap_or_else(|_| json!({}))
     }
 
@@ -204,7 +200,10 @@ mod tests {
         let response = with_server(session, "token".to_string(), "POST", Some(body));
         assert_eq!(parse_status(&response), 401);
         let json = parse_body_json(&response);
-        assert_eq!(json.get("error").and_then(|v| v.as_str()), Some("invalid token"));
+        assert_eq!(
+            json.get("error").and_then(|v| v.as_str()),
+            Some("invalid token")
+        );
     }
 
     #[test]
