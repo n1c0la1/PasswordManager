@@ -24,11 +24,30 @@ else
     fi
 fi
 
-# Determine install location - prefer local bin to avoid sudo
-INSTALL_DIR="$HOME/.local/bin"
+# Determine install location -> Standard local binary locations
+# Binary then is owned by root, but can be executed by anyone.
+INSTALL_DIR="/usr/local/bin"
 if [ ! -d "$INSTALL_DIR" ]; then
     echo "Creating $INSTALL_DIR..."
-    mkdir -p "$INSTALL_DIR"
+    mkdir -p "$INSTALL_DIR" 2>/dev/null
+    if [ $? -ne 0 ]; then
+        echo "Error: Cannot create $INSTALL_DIR. You need sudo permissions."
+        echo "Please run this script with sudo:"
+        echo ""
+        echo "    sudo bash install.sh"
+        echo ""
+        exit 1
+    fi
+fi
+
+# Check if we have write permissions to INSTALL_DIR
+if [ ! -w "$INSTALL_DIR" ]; then
+    echo "Error: You don't have write permissions to $INSTALL_DIR"
+    echo "Please run this script with sudo:"
+    echo ""
+    echo "    sudo bash install.sh"
+    echo ""
+    exit 1
 fi
 
 # Install
@@ -46,7 +65,7 @@ if [ $? -eq 0 ]; then
             echo "WARNING: $INSTALL_DIR is NOT in your PATH."
             echo "To use 'pw', add this to your shell configuration (e.g. ~/.zshrc or ~/.bashrc):"
             echo ""
-            echo "    export PATH=\"\$HOME/.local/bin:\$PATH\""
+            echo "    export PATH=\"$INSTALL_DIR:\$PATH\""
             echo ""
             echo "Then run: source ~/.zshrc (or your shell config)"
             ;;

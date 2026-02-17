@@ -6,11 +6,11 @@ BINARY_NAME="pw"
 echo "Uninstalling $BINARY_NAME..."
 
 # Remove from user local bin
-if [ -f "$HOME/.local/bin/$BINARY_NAME" ]; then
-    rm "$HOME/.local/bin/$BINARY_NAME"
-    echo "Removed $HOME/.local/bin/$BINARY_NAME"
+if [ -f "/usr/local/bin/$BINARY_NAME" ]; then
+    rm "/usr/local/bin/$BINARY_NAME"
+    echo "Removed /usr/local/bin/$BINARY_NAME"
 else
-    echo "No binary found in $HOME/.local/bin"
+    echo "No binary found in /usr/local/bin"
 fi
 
 # Remove from system bin (requires sudo if present)
