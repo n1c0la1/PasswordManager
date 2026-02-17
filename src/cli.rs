@@ -1592,7 +1592,7 @@ mod tests {
         cleanup_test_vault(vault_name);
     }
 
-    // Tests for getall, generate and delete
+    // ================== GETALL TESTS ==================
     #[test]
     fn test_handle_command_getall_no_vault() {
         let vault_name = "test_vault";
@@ -1624,6 +1624,7 @@ mod tests {
         cleanup_test_vault(vault_name);
     }
 
+    // ================== GENERATE TESTS ==================
     #[test]
     fn test_generate_invalid_length() {
         let res = handle_command_generate(0, true);
@@ -1659,6 +1660,7 @@ mod tests {
         }
     }
 
+    // ================== DELETE TESTS ==================
     #[test]
     fn test_delete_entry_not_found() {
         let vault_name = "test_vault_delete_not_found";
@@ -1692,12 +1694,117 @@ mod tests {
         cleanup_test_vault(vault_name);
     }
 
+    // ================== FORMAT OF CUSTOM VAULTERRORS TESTS ==================
     // Testing format of custom VaultErrors
     #[test]
     fn test_vault_error_display_strings() {
         assert_eq!(format!("{}", VaultError::NameExists), "NAME ALREADY EXISTS");
         assert_eq!(format!("{}", VaultError::NoVaultOpen), "NO VAULT IS OPEN");
     }
+
+    // ================== ADD TESTS ==================
+
+     //Test: create a new entry with everything to be added to the vault -> success
+     #[test]
+     fn test_add_entry() {
+        let vault_name = "test_vault_add";
+
+        let session = create_test_session(vault_name);
+        let mut opt_session = Some(session);
+
+        let entry_name = Some("test_entry".to_string());
+        let username = Some("original_user".to_string());
+        let url = Some("https://original.com".to_string());
+        let notes = Some("original notes".to_string());
+        let password = Some("original_password".to_string());
+        
+        let result = handle_command_add(&mut opt_session, entry_name, username, url, notes, password);
+
+        assert!(result.is_ok());
+
+        let vault_ref = opt_session.as_ref().unwrap().opened_vault.as_ref().unwrap();
+        assert!(vault_ref.entryname_exists("test_entry"));
+
+        cleanup_test_vault(vault_name.into());
+     }
+
+     #[test]
+     fn test_add_entry_with_existing_entry() {
+        let vault_name = "test_vault_add";
+
+        let session = create_test_session(vault_name);
+        let mut opt_session = Some(session);
+
+        //let vault = &mut session.opened_vault;
+
+        let entry_name = Some("test_entry".to_string());
+        let username = Some("orisiginal_user".to_string());
+        let url = Some("https://original.com".to_string());
+        let notes = Some("original notes".to_string());
+        let password = Some("original_password".to_string());
+        
+        let first_add = handle_command_add(&mut opt_session, entry_name.clone(), username.clone(), url.clone(), notes.clone(), password.clone());
+        assert!(first_add.is_ok());
+
+        let vault_ref = opt_session.as_ref().unwrap().opened_vault.as_ref().unwrap();
+        assert!(vault_ref.entryname_exists("test_entry"));
+
+        let second_add = handle_command_add(&mut opt_session, entry_name, username, url, notes, password);
+        assert!(matches!(second_add, Err(SessionError::VaultError(VaultError::NameExists))));
+
+        cleanup_test_vault(vault_name.into());
+     }
+
+    // ================== GET TESTS ==================
+
+     //Test: no session active -> error
+     #[test]
+     fn test_get_entry_no_session(){
+        let mut opt_session = None;
+        let result = handle_command_get(&mut opt_session, "unimportant".to_string(), false, false);
+        assert!(matches!(result, Err(SessionError::SessionInactive)));
+     }
+
+    //Test: get an entry by name, do not show password -> success
+     #[test]
+     fn test_get_entry_dont_show_pw() {
+        let vault_name = "test_get";
+
+        let session = create_test_session(vault_name);
+        let mut opt_session = Some(session);
+
+        //Add test entry
+        let entry_name = Some("test_entry".to_string());
+        let username = Some("original_user".to_string());
+        let url = Some("https://original.com".to_string());
+        let notes = Some("original notes".to_string());
+        let password = Some("original_password".to_string());
+        
+        let add_entry = handle_command_add(&mut opt_session, entry_name, username, url, notes, password);
+        assert!(add_entry.is_ok());
+
+        let vault_ref = opt_session.as_ref().unwrap().opened_vault.as_ref().unwrap();
+        assert!(vault_ref.entryname_exists("test_entry"));
+
+        let result = handle_command_get(&mut opt_session, "test_entry".to_string(), false, false);
+        assert!(result.is_ok());
+
+        cleanup_test_vault(vault_name);
+     }
+
+    //Test: get entry with non-existent name -> error
+     #[test]
+     fn test_get_entry_with_nonexistent_name() {
+        let vault_name = "test_get";
+
+        let session = create_test_session(vault_name);
+        let mut opt_session = Some(session); 
+
+        let result = handle_command_get(&mut opt_session, "nonexistent".to_string(), false, false);
+        assert!(matches!(result, Err(SessionError::VaultError(VaultError::EntryNotFound))));
+
+        cleanup_test_vault(vault_name.into());
+     }
 
     // ================== PASSWORD STRENGTH TESTS ==================
 
@@ -1766,6 +1873,7 @@ mod tests {
         assert!(matches!(result3, Err(VaultError::InvalidVaultName)));
     }
 
+    // ================== EXTENSION TESTS ==================
     // Tests for the extension: URL comparision and domain extraction
     #[test]
     fn test_extract_domain_1() {
