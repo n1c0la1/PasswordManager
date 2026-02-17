@@ -1720,9 +1720,8 @@ mod tests {
         let url = Some("https://original.com".to_string());
         let notes = Some("original notes".to_string());
         let password = Some("original_password".to_string());
-
-        let result =
-            handle_command_add(&mut opt_session, entry_name, username, url, notes, password);
+        
+        let result = handle_command_add(&mut opt_session, entry_name, username, url, notes, password);
 
         assert!(result.is_ok());
 
