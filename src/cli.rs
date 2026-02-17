@@ -43,7 +43,8 @@ pub enum CommandCLI {
         #[arg(short, long)]
         username: Option<String>,
 
-        #[arg(long)]
+        // w as in website
+        #[arg(short = 'w',long)]
         url: Option<String>,
 
         #[arg(short, long)]
