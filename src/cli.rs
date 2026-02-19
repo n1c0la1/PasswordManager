@@ -80,9 +80,9 @@ pub enum CommandCLI {
     /// Generate a password.
     // maybe implement interaction (abfrage) if with special cases, numbers etc.
     Generate {
-        length: i32,
+        length: u32,
 
-        #[arg(short = 'f', long = "no-symbols")]
+        #[arg(short = 'f', long = "no_symbols")]
         no_symbols: bool,
     },
 
@@ -757,7 +757,7 @@ pub fn handle_command_deletevault(
     Ok(())
 }
 
-pub fn handle_command_generate(length: i32, no_symbols: bool) -> Result<String, SessionError> {
+pub fn handle_command_generate(length: u32, no_symbols: bool) -> Result<String, SessionError> {
     // Validierung der Länge
     if length <= 1 || length > 200 {
         return Err(SessionError::VaultError(VaultError::InvalidLength));
@@ -1315,7 +1315,7 @@ fn add_password_to_entry() -> Result<Option<String>, SessionError> {
         io::stdin().read_line(&mut input_choice_gen)?;
 
         if input_choice_gen.trim().eq_ignore_ascii_case("y") {
-            let length: i32;
+            let length: u32;
             let no_symbols: bool;
 
             'input_length: loop {
@@ -1329,7 +1329,7 @@ fn add_password_to_entry() -> Result<Option<String>, SessionError> {
                     return Ok(None);
                 }
 
-                if let Ok(len) = trimmed_input.parse::<i32>() {
+                if let Ok(len) = trimmed_input.parse::<u32>() {
                     length = len;
                     break 'input_length;
                 }
