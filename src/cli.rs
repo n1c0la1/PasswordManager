@@ -1,6 +1,9 @@
 use crate::errors::*;
 use crate::session::*;
 use crate::vault_entry_manager::*;
+use crate::vault_file_manager::{list_vaults, vault_exists};
+//use crate::vault_file_manager::initialize_vault;
+//use crate::test::*;
 
 use anyhow::anyhow;
 use arboard::Clipboard;
@@ -11,10 +14,8 @@ use passgenr::random_password;
 use rpassword;
 use secrecy::ExposeSecret;
 use secrecy::SecretString;
-use std::fs;
 use std::io::stdout;
 use std::io::{self, Write};
-use std::path::Path;
 use std::time::Duration;
 use zxcvbn::zxcvbn;
 
@@ -44,7 +45,8 @@ pub enum CommandCLI {
         #[arg(short, long)]
         username: Option<String>,
 
-        #[arg(long)]
+        // w as in website
+        #[arg(short = 'w', long)]
         url: Option<String>,
 
         #[arg(short, long)]
@@ -203,8 +205,7 @@ pub fn handle_command_init(option_name: Option<String>) -> Result<(), VaultError
         };
     };
 
-    let path = Path::new("vaults").join(format!("{vault_name}.psdb"));
-    if path.exists() {
+    if crate::vault_file_manager::vault_exists(&vault_name)? {
         return Err(VaultError::NameExists);
     }
 
@@ -746,11 +747,8 @@ pub fn handle_command_deletevault(
     let spinner = spinner();
     spinner.set_message(format!("Permanently deleting '{}' ...", vault_name));
     spinner.enable_steady_tick(Duration::from_millis(80));
-    let path = Path::new("vaults").join(format!("{vault_name}.psdb"));
-
     session.end_session()?;
-
-    fs::remove_file(path)?;
+    crate::vault_file_manager::delete_vault_file(&vault_name).map_err(SessionError::VaultError)?;
     spinner.finish_and_clear();
     println!();
     println!("Vault '{}' deleted permanently.", vault_name);
@@ -1047,9 +1045,10 @@ pub fn handle_command_open(
     timeout: &Option<u64>,
 ) -> Result<Session, SessionError> {
     // Check if vault file exists
-    let path = Path::new("vaults").join(format!("{vault_to_open}.psdb"));
-    if !path.exists() {
-        return Err(SessionError::VaultError(VaultError::VaultDoesNotExist));
+    match vault_exists(&vault_to_open) {
+        Ok(true) => { /* Do nothing */ }
+        Ok(false) => return Err(SessionError::VaultError(VaultError::VaultDoesNotExist)),
+        Err(e) => return Err(SessionError::VaultError(e)),
     }
 
     //check if the same vault is already open
@@ -1213,25 +1212,8 @@ pub fn handle_command_close(
 pub fn handle_command_vaults(current_session: &Option<Session>) {
     println!("\n=== Available Vaults ===");
 
-    match fs::read_dir("vaults") {
-        Ok(entries) => {
-            let mut vault_files: Vec<String> = entries
-                .filter_map(|e| e.ok())
-                .filter(|e| {
-                    e.path()
-                        .extension()
-                        .and_then(|ext| ext.to_str())
-                        .map(|ext| ext == "psdb")
-                        .unwrap_or(false)
-                })
-                .filter_map(|e| {
-                    e.path()
-                        .file_stem()
-                        .and_then(|s| s.to_str())
-                        .map(|s| s.to_string())
-                })
-                .collect();
-
+    match list_vaults() {
+        Ok(mut vault_files) => {
             if vault_files.is_empty() {
                 println!("  (no vaults found)");
                 println!("\nCreate a new vault with: init <vault_name>");
@@ -1322,7 +1304,7 @@ fn add_password_to_entry() -> Result<Option<String>, SessionError> {
             let no_symbols: bool;
 
             'input_length: loop {
-                println!("Enter desired password-length: ");
+                print!("Enter desired password-length: ");
                 let mut length_input = String::new();
                 io::stdout().flush().unwrap();
                 io::stdin().read_line(&mut length_input)?;
