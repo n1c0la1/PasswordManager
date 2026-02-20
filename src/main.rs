@@ -62,9 +62,6 @@ fn main() {
                                 );
                                 io::stdout().flush().unwrap();
                             }
-                            Err(e) => {
-                                eprintln!("\nError in AutoLock: Could not end session: {}", e);
-                            }
                         }
                     } else {
                         /* Do nothing */
