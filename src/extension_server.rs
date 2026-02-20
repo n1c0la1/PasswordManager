@@ -62,15 +62,13 @@ fn handle_request(
     let url = body.get("url").and_then(|v| v.as_str());
 
     let response = match (action, url) {
-        (Some("fill"), Some(url)) => {
-            match session.lock() {
-                Ok(session_guard) => match session_guard.as_ref() {
-                    Some(sess) => match_entries_by_url(sess, url),
-                    None => json!({"status": "error", "message": "No session open"}),
-                },
-                Err(_) => json!({"status": "error", "message": "Session state unavailable"}),
-            }
-        }
+        (Some("fill"), Some(url)) => match session.lock() {
+            Ok(session_guard) => match session_guard.as_ref() {
+                Some(sess) => match_entries_by_url(sess, url),
+                None => json!({"status": "error", "message": "No session open"}),
+            },
+            Err(_) => json!({"status": "error", "message": "Session state unavailable"}),
+        },
         _ => json!({"error": "Invalid request"}),
     };
 
