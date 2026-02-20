@@ -63,10 +63,12 @@ fn handle_request(
 
     let response = match (action, url) {
         (Some("fill"), Some(url)) => {
-            let session_guard = session.lock().unwrap();
-            match session_guard.as_ref() {
-                Some(sess) => match_entries_by_url(sess, url),
-                None => json!({"status": "error", "message": "No session open"}),
+            match session.lock() {
+                Ok(session_guard) => match session_guard.as_ref() {
+                    Some(sess) => match_entries_by_url(sess, url),
+                    None => json!({"status": "error", "message": "No session open"}),
+                },
+                Err(_) => json!({"status": "error", "message": "Session state unavailable"}),
             }
         }
         _ => json!({"error": "Invalid request"}),
@@ -85,11 +87,10 @@ fn handle_request(
 fn match_entries_by_url(session: &Session, url: &str) -> Value {
     use crate::cli::url_matches;
 
-    if session.opened_vault.is_none() {
-        return json!({"status": "error", "message": "No vault open"});
-    }
-
-    let vault = session.opened_vault.as_ref().unwrap();
+    let vault = match session.opened_vault.as_ref() {
+        Some(vault) => vault,
+        None => return json!({"status": "error", "message": "No vault open"}),
+    };
     let mut matches = Vec::new();
 
     for entry in &vault.entries {
@@ -265,7 +266,8 @@ mod tests {
         let json = parse_body_json(&response);
         assert_eq!(json.get("status").and_then(|v| v.as_str()), Some("ok"));
         assert_eq!(json.get("mode").and_then(|v| v.as_str()), Some("multiple"));
-        let entries = json.get("entries").and_then(|v| v.as_array()).unwrap();
-        assert_eq!(entries.len(), 2);
+        let entries = json.get("entries").and_then(|v| v.as_array());
+        assert!(entries.is_some(), "Expected entries array in response");
+        assert_eq!(entries.map(|values| values.len()), Some(2));
     }
 }

@@ -152,12 +152,11 @@ Secure • Fast • Rust-Powered Password Manager
 
 pub fn spinner() -> ProgressBar {
     let spinner: ProgressBar = ProgressBar::new_spinner();
-    spinner.set_style(
-        ProgressStyle::default_spinner()
-            .tick_strings(&["|", "/", "-", "\\"])
-            .template("{spinner} {msg}")
-            .unwrap(),
-    );
+    let style = ProgressStyle::default_spinner()
+        .tick_strings(&["|", "/", "-", "\\"])
+        .template("{spinner} {msg}")
+        .unwrap_or_else(|_| ProgressStyle::default_spinner());
+    spinner.set_style(style);
     spinner
 }
 
@@ -685,7 +684,9 @@ pub fn handle_command_deletevault(
         ))));
     }
 
-    let session = option_session.as_mut().unwrap();
+    let session = option_session
+        .as_mut()
+        .ok_or(SessionError::SessionInactive)?;
     let vault_name = session.vault_name.clone();
     println!(
         "WARNING: You are about to PERMANENTLY delete vault '{}'!",
@@ -799,7 +800,9 @@ pub fn handle_command_change_master(
     if !active_session(option_session) {
         return Err(SessionError::SessionInactive);
     }
-    let session = option_session.as_mut().unwrap();
+    let session = option_session
+        .as_mut()
+        .ok_or(SessionError::SessionInactive)?;
     let session_vault_name = session.vault_name.clone();
 
     io::stdout().flush().unwrap();
