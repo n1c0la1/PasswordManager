@@ -18,6 +18,8 @@ pub struct Vault {
 
 #[derive(Debug, Clone, Serialize, Deserialize, PartialEq)]
 pub struct Entry {
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub id: Option<u32>,
     pub entryname: String,
     username: Option<String>,
     password: Option<String>,
@@ -34,6 +36,7 @@ impl Entry {
         notes: Option<String>,
     ) -> Entry {
         Entry {
+            id: None,
             entryname: name,
             username: user,
             password: pw,
@@ -56,6 +59,18 @@ impl Entry {
 
     pub fn get_url(&self) -> &Option<String> {
         &self.url
+    }
+
+    pub fn username(&self) -> Option<&str> {
+        self.username.as_deref()
+    }
+
+    pub fn password(&self) -> Option<&str> {
+        self.password.as_deref()
+    }
+
+    pub fn url(&self) -> Option<&str> {
+        self.url.as_deref()
     }
 
     pub fn get_notes(&self) -> &Option<String> {

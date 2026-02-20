@@ -1,6 +1,8 @@
 use std::error::Error;
 use std::fmt;
 
+use zxcvbn::ZxcvbnError;
+
 //use crate::crypto::CryptoError;
 
 #[derive(Debug)]
@@ -30,7 +32,7 @@ impl fmt::Display for SessionError {
         match self {
             SessionError::SessionInactive => write!(f, "SESSION IS INACTIVE"),
             SessionError::SessionActive => write!(f, "SESSION IS ALREADY ACTIVE"),
-            SessionError::VaultError(e) => write!(f, "VAULT ERROR: {}", e),
+            SessionError::VaultError(e) => write!(f, "{}", e),
         }
     }
 }
@@ -51,12 +53,16 @@ pub enum VaultError {
     NoVaultOpen,
     CouldNotOpen,
     VaultDoesNotExist,
+    WeakPassword,
+    InvalidVaultName,
+    ActionCancelled,
     IoError(std::io::Error),
     SerdeError(serde_json::Error),
     EncFileError(enc_file::EncFileError),
     AnyhowError(anyhow::Error),
     Utf8Error(std::str::Utf8Error),
     CryptoError(CryptoError),
+    ZxcvbnError(zxcvbn::ZxcvbnError),
     ClipboardError,
 }
 
@@ -67,7 +73,7 @@ impl fmt::Display for VaultError {
             VaultError::NameExists => write!(f, "NAME ALREADY EXISTS"),
             VaultError::FileExists => write!(f, "FILENAME ALREADY EXISTS"),
             VaultError::PasswordTooLong => write!(f, "PASSWORD TOO LONG"),
-            VaultError::InvalidLength => write!(f, "LENGTH MUST BE BETWEEN 0 AND 200"),
+            VaultError::InvalidLength => write!(f, "LENGTH MUST BE BETWEEN 2 AND 200"),
             VaultError::EntryNotFound => write!(f, "ENTRY NOT FOUND"),
             VaultError::CouldNotSave => write!(f, "COULD NOT SAVE VAULT"),
             VaultError::CouldNotClose => write!(f, "COULD NOT CLOSE VAULT"),
@@ -77,12 +83,16 @@ impl fmt::Display for VaultError {
             VaultError::NoVaultOpen => write!(f, "NO VAULT IS OPEN"),
             VaultError::CouldNotOpen => write!(f, "COULD NOT OPEN VAULT"),
             VaultError::VaultDoesNotExist => write!(f, "VAULT DOES NOT EXIST"),
+            VaultError::WeakPassword => write!(f, "PASSWORD IS TOO WEAK"),
+            VaultError::InvalidVaultName => write!(f, "VAULT NAME IS INVALID"),
+            VaultError::ActionCancelled => write!(f, "ACTION CANCELLED"),
             VaultError::IoError(e) => write!(f, "{}", e),
             VaultError::SerdeError(e) => write!(f, "SERDE ERROR: {}", e),
             VaultError::EncFileError(e) => write!(f, "ENC FILE ERROR: {}", e),
             VaultError::AnyhowError(e) => write!(f, "{}", e),
             VaultError::Utf8Error(e) => write!(f, "UTF8 ERROR: {}", e),
             VaultError::CryptoError(e) => write!(f, "CRYPTO ERROR: {}", e),
+            VaultError::ZxcvbnError(e) => write!(f, "ZXCVBN ERROR: {}", e),
             VaultError::ClipboardError => write!(f, "COULD NOT COPY TO CLIPBOARD"),
         }
     }
@@ -131,5 +141,11 @@ impl From<std::str::Utf8Error> for VaultError {
 impl From<CryptoError> for VaultError {
     fn from(error: CryptoError) -> Self {
         VaultError::CryptoError(error)
+    }
+}
+
+impl From<ZxcvbnError> for VaultError {
+    fn from(error: zxcvbn::ZxcvbnError) -> Self {
+        VaultError::ZxcvbnError(error)
     }
 }
