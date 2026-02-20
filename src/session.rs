@@ -115,7 +115,12 @@ impl Session {
 
     pub fn verify_master_pw(&self, key: SecretString) -> Result<(), SessionError> {
         // no need to check if self.is_some(), there are enough checks, where it's called.
-        if !(self.master_password.as_ref().unwrap().expose_secret() == key.expose_secret()) {
+        let master_password = self
+            .master_password
+            .as_ref()
+            .ok_or(SessionError::SessionInactive)?;
+
+        if master_password.expose_secret() != key.expose_secret() {
             return Err(SessionError::VaultError(VaultError::InvalidKey));
         }
         Ok(())

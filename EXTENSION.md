@@ -52,6 +52,232 @@ Firefox Extension Manifest (Permissions, Background, Popup, Content Script), was
 ### webextension/host.json
 Alt/Beispiel: Native‑Host‑Registrierung (wird für die aktuelle HTTP‑Variante **nicht** benötigt).
 
+## Function documentation
+
+### src/extension_server.rs
+
+#### `run`
+Starts the local HTTP server for the web extension.
+
+**Description:** Binds to 127.0.0.1:9123, accepts incoming requests, and spawns a worker thread per request.
+
+**Parameter:**
+
+| Parameter | Type | Required | Description |
+| :--- | :--- | :--- | :--- |
+| `session` | `Arc<Mutex<Option<Session>>>` | **Yes** | Shared session state for lookups. |
+| `token` | `String` | **Yes** | Token used to authenticate requests. |
+
+**Hint:**
+
+If binding fails, the server exits early and prints an error.
+
+**Example:**
+
+```rust
+run(session, token);
+```
+
+#### `handle_request`
+Handles a single HTTP request from the extension.
+
+**Description:** Accepts only POST, validates the token, parses JSON, dispatches the action, and returns a JSON response.
+
+**Parameter:**
+
+| Parameter | Type | Required | Description |
+| :--- | :--- | :--- | :--- |
+| `request` | `Request` | **Yes** | Incoming HTTP request. |
+| `session` | `Arc<Mutex<Option<Session>>>` | **Yes** | Shared session state. |
+| `token` | `String` | **Yes** | Token used for validation. |
+
+**Hint:**
+
+Non-POST requests receive HTTP 405.
+
+**Example:**
+
+```rust
+let _ = handle_request(request, session, token);
+```
+
+#### `match_entries_by_url`
+Finds credentials that match a URL.
+
+**Description:** Scans the opened vault and returns a JSON response for zero, single, or multiple matches.
+
+**Parameter:**
+
+| Parameter | Type | Required | Description |
+| :--- | :--- | :--- | :--- |
+| `session` | `&Session` | **Yes** | Active session to read entries from. |
+| `url` | `&str` | **Yes** | URL to match against entries. |
+
+**Hint:**
+
+Uses `url_matches` from the CLI helpers to compare domains.
+
+**Example:**
+
+```rust
+let response = match_entries_by_url(&session, "https://example.com");
+```
+
+### webextension/background.js
+
+#### `getAuthToken`
+Loads the auth token from memory or browser storage.
+
+**Description:** Returns a cached token if available; otherwise reads `authToken` from `storage.local`.
+
+**Hint:**
+
+Used before sending any request to the local server.
+
+**Example:**
+
+```javascript
+const token = await getAuthToken();
+```
+
+### webextension/popup.js
+
+
+#### `saveToken`
+Validates and stores the auth token.
+
+**Description:** Sends a message to the background script and stores the token in `storage.local`.
+
+**Hint:**
+
+Shows a success or error modal based on the result.
+
+**Example:**
+
+```javascript
+await saveToken();
+```
+
+#### `handleFillClick`
+Requests credentials and fills the active page.
+
+**Description:** Reads the active tab URL, requests credentials from the background script, and handles the response.
+
+**Hint:**
+
+If multiple entries match, it opens the selection modal.
+
+**Example:**
+
+```javascript
+await handleFillClick();
+```
+
+#### `showError`
+Shows an error or success modal.
+
+**Description:** Sets modal title and message, then displays it.
+
+**Parameter:**
+
+| Parameter | Type | Required | Description |
+| :--- | :--- | :--- | :--- |
+| `title` | `string` | **Yes** | Modal header text. |
+| `message` | `string` | **Yes** | Modal body text. |
+
+**Hint:**
+
+Used for both errors and success messages.
+
+**Example:**
+
+```javascript
+showError('Error', 'Token cannot be empty');
+```
+
+#### `showSelectionModal`
+Displays a list of matching entries.
+
+**Description:** Renders a clickable list of entries and opens the selection modal.
+
+**Parameter:**
+
+| Parameter | Type | Required | Description |
+| :--- | :--- | :--- | :--- |
+| `entries` | `Array` | **Yes** | Entries returned by the server. |
+| `tabId` | `number` | **Yes** | Tab to fill after selection. |
+
+**Hint:**
+
+Each entry click fills the page and closes the popup.
+
+**Example:**
+
+```javascript
+showSelectionModal(entries, tab.id);
+```
+
+#### `fillPage`
+Sends credentials to the content script.
+
+**Description:** Uses `tabs.sendMessage` to request filling the login form.
+
+**Parameter:**
+
+| Parameter | Type | Required | Description |
+| :--- | :--- | :--- | :--- |
+| `tabId` | `number` | **Yes** | Target tab ID. |
+| `credentials` | `object` | **Yes** | Object with `username` and `password`. |
+
+**Hint:**
+
+On failure, the UI shows a fill error.
+
+**Example:**
+
+```javascript
+await fillPage(tab.id, response);
+```
+
+### webextension/content_script.js
+
+#### `findLoginFields`
+Finds username and password fields in the current page.
+
+**Description:** Prefers fields in the same form as the password input, then falls back to heuristic matching.
+
+**Hint:**
+
+Heuristics check name, id, and placeholder.
+
+**Example:**
+
+```javascript
+const fields = findLoginFields();
+```
+
+#### `fillFields`
+Fills the detected login fields.
+
+**Description:** Sets values and dispatches `input` events so pages detect changes.
+
+**Parameter:**
+
+| Parameter | Type | Required | Description |
+| :--- | :--- | :--- | :--- |
+| `username` | `string` | No | Value to fill into the username field. |
+| `password` | `string` | No | Value to fill into the password field. |
+
+**Hint:**
+
+The function skips fields when values are missing.
+
+**Example:**
+
+```javascript
+fillFields('user@example.com', 'secret');
+```
+
 
 ## Installation
 

@@ -14,3 +14,52 @@ Findet und füllt Login Felder
 
 ### manifest.json
 Sagt Firefox wo alles ist, benötigte Datei
+
+## Function documentation
+
+### webextension_secure/background.js
+
+#### `browser.action.onClicked` handler
+Fills the current page using clipboard credentials.
+
+**Description:** Reads the clipboard, validates the "username\npassword" format, sends a fill message to the content script, then clears the clipboard.
+
+**Parameter:**
+
+| Parameter | Type | Required | Description |
+| :--- | :--- | :--- | :--- |
+| `tab` | `object` | **Yes** | Active tab information provided by the browser. |
+
+**Hint:**
+
+If the clipboard format is invalid, it shows an alert with instructions.
+
+**Example:**
+
+```javascript
+// Triggered by clicking the extension icon
+```
+
+### webextension_secure/content_script.js
+
+#### `fillLoginForm`
+Fills username and password fields on the page.
+
+**Description:** Locates common username and password inputs, sets their values, and dispatches input/change events.
+
+**Parameter:**
+
+| Parameter | Type | Required | Description |
+| :--- | :--- | :--- | :--- |
+| `username` | `string` | **Yes** | Username or email to fill. |
+| `password` | `string` | **Yes** | Password to fill. |
+
+**Hint:**
+
+This is invoked via `runtime.onMessage` with the `fill` action.
+
+**Example:**
+
+```javascript
+fillLoginForm('user@example.com', 'secret');
+```
