@@ -8,88 +8,467 @@ Contents:
 3. Installation process
 4. Testing
 5. Threat model
-6. Use of AI / LLM
+6. Compliance & AI Disclosure
 
-### Application description
+## Application description
 
 Password manager is a software that is installed locally on a stand-alone machine (not part of a network, no server needed), which manages the passwords for the local user of this machine. The user can manage different passwords for different applications in a central point. That means, that the user can define one or multiple encrypted files (called vault) where he can create / write / edit passwords for different applications and websites. 
 
-### Features
+## Features
 
 The password manager offers the following features and capabilities for the user: 
 
-**File creation**
--  The command "init" creates a new vault where the user stores passwords. It gives the user the option to select a name for the vault and allows him to initiate the process of creating a password file (vault).
+### `init`
 
-How to use:
-- The user can either use "init" by itself, and will be guided through the initialization, or use "init <vault_name>" to directly choose a name.
+**Description:** Creates a new password manager vault.
 
-**Open a vault**
-- The command "open" allows the user to open one of the existing vaults and access all passwords stored in this vault. The master password is needed to access this vault. 
+**Parameter:**
 
-How to use:
-- The user can type "open <vault_name>", where <vault_name> is an existing vault. Then the user will be prompted to type the master password associated with this vault. 
+| Parameter | Type | Required to create | Description |
+| :--- | :--- | :--- | :--- |
+| `name` | `String` | Yes | Optional name of the password vault. |
 
-**Close a vault**
-- The command "close" allows the user to close an opened vault. This can only be used when a vault has already been successfully opened. 
+**Hint:**
 
-How to use:
-- The user can type "close" and then will be asked to confirm with "y" or "n". 
+The User can either use `init` by itself, and will be guided through the initialization, or use `init <vault-name>` to directly choose a name. If the given master-passwords do not match or are empty, there will be an error message.
 
-**List all existing vaults**
-- The command "vaults" allows the user to get an overview of all existing vaults. 
+**Example:**
 
-**Edit a vault**
-- The command "edit" allows the user to edit existing password entries in a vault and the associated information (including the entry name, the url, the username, the password and the notes). 
+```bash
+$ init 
 
-How to use:
-- The user can type "edit <entry_name>" and will be guided through the process of changing the information related to that entry by typing the new entry_name/username/URL/notes/password or pressing enter to keep the current value. 
+OR
 
-**Add a new password entry**
-- The command "add" allows the user to add a new password entry. 
+$ init MyVault
+```
 
-How to use:
-- The user can type "add" to add a new entry OR the user can type “add <entry_name>” and then will be guided through the rest of the process automatically where he can define the entry name (if command "add" was used), the username, the url, the notes and the password.
-
-**Delete a password entry**
-- The command "delete", removes a password entry from the vault.
-
-**Delete a vault**
-- The command "deletevault" permanently deletes a vault. Due to RustPass’s logic, the vault must be opened in order to be able to delete it.
-
-**List one password entry**
-- The command "get" lets the user pick 1 entry to be shown. 
-
-How to use:
-- Get uses the currently open vault and requires the user to type the entryname with get: "get <entryname>". With this, the password will be censored. To show the password "get <entryname> -s(--show)" does the trick. Though, using -s does query the user to input the master password for the current vault for more security.
-
-**List all password entries**
-- The command "getall" allows the user to view all saved password entries in the currently opened vault.
-
-**Generate a secure password**
-- The command “generate” gives the user the option to generate a secure password for a password entry (NOT THE MASTER PASSWORD).
-
-How to use:
-- “Generate <length-of-generated-password>” 
-- Generate <…> -f (--no-symbols) (to not include any symbols in the password)
-
-**Change the master password**
-- The command "changemaster" changes the master password.
-
-**Clear the terminal**
-- The command "clear" clears the terminal for a cleaner look.
-
-**Exit the application**
-- The command "quit" queries the user to confirm by using "y/n" and then terminates the application. By using "quit -f (--force)" the query can be skipped. 
+---
 
 
-### Installation process
+### `open`
+
+**Description:** Opens one of the existing vaults and accesses all passwords stored in this vault. 
 
 
-### Testing 
+| Parameter | Type | Required | Description |
+| :--- | :--- | :--- | :--- |
+| `vault_name` | `String` | Yes | Name of the vault to be opened. |
+
+**Hint:** 
+
+The user will be prompted to type the master password associated with this vault.
+
+**Example:**
+
+```bash
+$ open myVault
+```
+
+---
+
+### `close`
+
+**Description:** Closes an opened vault. This can only be used when a vault has already been successfully opened. 
+
+| Parameter | Short | Type | Required | Description |
+| :--- | :--- | :--- | :--- | :--- |
+| `force` | `-f` | `bool` | No | Skips the confirmation |
+
+**Hint:** 
+
+After typing `close` the user will be asked to confirm with "y" or "n".
+
+**Example:**
+
+```bash
+$ close
+```
+
+---
 
 
-### Threat model
+### `add`
+
+Adds a new password entry to the database.
+
+**Description:** Stores credentials and metadata for a specific service.
+
+| Parameter | Short | Type | Required to create Entry | Description |
+| :--- | :--- | :--- | :--- | :--- |
+| `name` | — | `String` | **Yes** | Name of the service (e.g., GitHub). |
+| `username` | `-u` | `String` | No | Username for the account. |
+| `url` | `-w` | `String` | No | Associated service URL. |
+| `password` | `-p` | `String` | No | Password for the account. |
+| `notes` | `-n` | `String` | No | Additional metadata. |
+
+**Hint:**
+
+The user can type `add` to add a new entry OR the user can type `add <entry-name>` and then he will be guided through the rest of the process automatically, where he can define the entry name (if command `add` was used), the username, the url, the notes and the password.
+
+**Example:**
+
+```bash
+$ add GitHub \
+  -u johndoe \
+  -p mysecurepassword \
+  -w https://github.com \
+  -n Personal account
+
+```
+
+---
+
+### `edit`
+
+**Description:** Edits existing password entries in a vault and the associated information (including the entry name, the url, the username, the password and the notes). 
+
+| Parameter | Type | Required | Description |
+| :--- | :--- | :--- | :--- |
+| `entry_name` | `String` | Yes | Entry to be edited |
+
+**Hint:** 
+
+By typing `edit <entry_name>` the user will be guided through the process of changing the information related to that entry by typing the new entry_name/username/URL/notes/password or pressing enter to keep the current value.
+
+**Example:**
+
+```bash
+$ edit GitHub
+```
+
+---
+
+### `get`
+
+Retrieves a specific entry from the database.
+
+**Description:** Fetches information for a given entry. The password is masked by default.
+
+| Parameter | Short | Type | Required | Description |
+| :--- | :--- | :--- | :--- | :--- |
+| `name` | — | `String` | **Yes** | Name of the entry. |
+| `show` | `-s` | `bool` | No | Reveals the password in plain text.|
+
+**Hint:**
+
+Using the `show` parameter queries the user for the master-password of the entry's vault once again.
+
+**Example:**
+
+```bash
+$ get GitHub --show
+```
+
+---
+
+### `getall`
+
+**Description:** Lists all entries stored in the current vault. Displays a summary of all credentials.
+
+| Parameter | Short | Type | Required | Description |
+| :--- | :--- | :--- | :--- | :--- |
+| `show` | `-s` | `bool` | No | Displays all passwords at once. |
+
+**Hint:**
+
+Using the `show` parameter queries the user for the master-password of the entry's vault once again.
+
+**Example:**
+
+```bash
+$ getall -s
+```
+
+---
+
+### `delete`
+
+**Description:** Deletes a vault-entry. 
+
+**Hint:**
+
+The deletion fails, if there is no active session or the entry does not exist. A confirmation by the user is required to complete the deletion process.
+
+**Example:**
+
+```bash
+$ delete GitHub
+```
+
+---
+
+### `deletevault`
+
+**Description:** Permanently deletes the current vault. The deletion fails, if there is no active session.
+
+**Hint:**
+
+A confirmation by the user as well as the master-password and the confirmation phrase "DELETE 'VAULTNAME'" is required to complete the deletion process.
+After succesfull deletion the session will close automatically.
+
+**Example:**
+
+```bash
+$ deletevault
+```
+
+---
+
+### `generate`
+
+**Description:** Generates a cryptographically random secure password. 
+
+| Parameter | Short | Type | Required | Description |
+| :--- | :--- | :--- | :--- | :--- |
+| `length` | - | `u32` | Yes | Sets the length of the generated password |
+| `no_symbols` | `-f` | `bool`| No | Generates a password without symbols |
+
+**Hint:** 
+
+PASSWORDLENGTH must be between 2 and 199.
+Optionally the password can be generated without symbols by using the flag -f. The password will be copied to the clipboard.
+
+**Example:**
+
+```bash
+$ generate 10
+```
+
+---
+
+### `change-master`
+
+**Description:** Changes the master-password of an existing vault. The change fails, if there is no active session.
+
+**Hint:** 
+
+The current master-password is required and the new master-password must fulfill the password-strength criteria. A confirmation of the new master-password is needed.
+After succesfull amendment the session will close automatically.
+
+**Example:**
+
+```bash
+$ change-master
+```
+
+---
+
+### `vaults`
+
+**Description:** Lists all existing vaults.  
+
+**Example:**
+
+```bash
+$ vaults
+```
+
+---
+
+### `clear`
+
+**Description:** Clears the terminal by calling the function clear_terminal and prints the intro animation again with the eponimous function.
+
+---
+
+### `quit`
+
+**Description:** Quits the programm, by saving the session and exiting the loop in main.rs.
+
+| Parameter | Short | Type | Required | Description |
+| :--- | :--- | :--- | :--- | :--- |
+| `force` | `-f` | `bool` | No | Skips the confirmation |
+
+**Hint**
+By using `quit` alone, the user is prompted to confirm with y or n. 
+
+**Example:**
+
+```bash
+$ quit -f
+```
+---
+
+### Helper Functions
+
+#### `clear_terminal`
+Prints \x1b[2J\x1b[1;1H
+\x1b[2J clears the entire screen
+\x1b[1;1H moves the cursor to row 1, column 1, so the next output starts at the top
+
+#### `copy_to_clipboard`
+Copies a string to the system clipboard using the arboard crate and schedules auto-clear.
+
+**Description:** Writes the given text to the clipboard, prints a message, and calls `clear_clipboard_after` to erase it after 30 seconds.
+
+**Parameter:**
+
+| Parameter | Type | Required | Description |
+| :--- | :--- | :--- | :--- |
+| `content` | `&str` | **Yes** | The text that should be copied. |
+
+**Hint:**
+
+Used by the password generator to reduce manual copy errors.
+
+**Example:**
+
+```rust
+copy_to_clipboard("my-password")?;
+```
+
+
+#### `clear_clipboard_after`
+Clears clipboard content after a delay.
+
+**Description:** Spawns a background thread, waits for the given number of seconds, and replaces the clipboard content with an empty string.
+
+**Parameter:**
+
+| Parameter | Type | Required | Description |
+| :--- | :--- | :--- | :--- |
+| `duration` | `u64` | **Yes** | Delay in seconds before clearing. |
+
+**Hint:**
+
+This is best-effort: if clipboard access fails, it silently skips.
+
+**Example:**
+
+```rust
+clear_clipboard_after(30);
+```
+
+
+#### `url_matches`
+Compares two URLs by their domain.
+
+**Description:** Extracts the host portion of both inputs (ignoring a leading `www.`) and returns `true` if they match exactly.
+
+**Parameter:**
+
+| Parameter | Type | Required | Description |
+| :--- | :--- | :--- | :--- |
+| `entry_url` | `&str` | **Yes** | URL stored in the entry. |
+| `target_url` | `&str` | **Yes** | URL to compare against. |
+
+**Hint:**
+
+This allows matching `https://github.com/login` with `github.com`.
+
+**Example:**
+
+```rust
+assert!(url_matches("https://github.com/login", "github.com"));
+```
+
+
+#### `extract_domain`
+Extracts the domain from a URL or hostname.
+
+**Description:** Ensures a scheme is present, parses the URL, and returns the host without a leading `www.`. If parsing fails, it returns the input as-is.
+
+**Parameter:**
+
+| Parameter | Type | Required | Description |
+| :--- | :--- | :--- | :--- |
+| `url` | `&str` | **Yes** | The URL or hostname to normalize. |
+
+**Hint:**
+
+Used internally by `url_matches` to normalize input.
+
+**Example:**
+
+```rust
+assert_eq!(extract_domain("https://www.example.com/login"), "example.com");
+```
+
+
+
+
+## Installation process
+
+> Without the binary or project directory with the source files, this step is not possible!
+
+The scripts supports installing without `cargo` (Rust) if a pre-built binary is present.
+
+**Steps:**
+
+1. **Build** the project on a developer machine (`cargo build --release`).
+2. **Copy** the binary and the install script to the new machine.
+  
+  > **Mac/Linux:** Copy `target/release/password_manager` and `install.sh`.                   
+    **Windows:** Copy `target/release/password_manager.exe` and `install.ps1`.
+
+3. **Run** the script.
+
+> It will detect the binary in the same folder and install it.
+
+**macOS / Linux** Run:
+
+```bash
+sudo bash install.sh
+
+```
+
+**Windows (PowerShell)** Run:
+
+```powershell
+./install.ps1
+
+```
+
+---
+
+### How to Migrate Existing Vaults
+
+If you have existing vaults in the old `vaults/` folder, move them to the new location:
+
+```bash
+# Linux
+mkdir -p "~/.local/share/password_manager/vaults"
+mv vaults/*.psdb "~/.local/share/password_manager/vaults"
+```
+
+```bash
+# macOS
+mkdir -p "~/Library/Application\ Support/password_manager/vaults"
+mv vaults/*.psdb "~/Library/Application\ Support/password_manager/vaults"
+```
+
+```powershell
+# Windows
+New-Item -ItemType Directory -Force -Path "$env:APPDATA\password_manager\vaults"
+
+Move-Item -Path .\vaults\*.psdb -Destination "$env:APPDATA\password_manager\vaults\"
+```
+
+---
+
+
+## Testing 
+
+### Methodology
+
+We utilize a two-tier testing approach to ensure data integrity:
+
+1. **Unit Tests:** Testing individual cryptographic functions and input validation.
+2. **Integration Tests:** Simulating CLI workflows (init -> add -> get) to ensure the database read/write cycles are consistent.
+
+**To run tests:**
+
+```bash
+$ cargo test
+
+```
+
+*The testing method is well-founded because it covers the critical path of data encryption/decryption, ensuring no data loss occurs during vault serialization.*
+
+---
+
+
+## Threat model
 
 **Summary:**
 Total threats identified: 37
@@ -284,3 +663,20 @@ Residual risks (accepted):
 | Information disclosure | Extension server exposes entries to any process with valid token | Low | PM - Token required, localhost only, active session required. |
 | Denial of service | Rapid requests spawn unlimited threads | Low | NM - Improvement: rate limiting|
 | Elevation of privilege | NA | | |
+
+
+## Compliance & AI Disclosure
+
+### Logbook
+
+The logbook detailing the daily progress is submitted as a separate PDF file via Moodle.
+
+### AI/LLM Usage Disclosure
+
+* **Tool:** Gemini (Google).
+* **Purpose:** Used for structuring the Markdown documentation, refining the command tables for readability, and generating the project README template.
+
+### Proof of Requirements
+
+* **Feature Discovery:** All commands are discoverable via the `--help` flag.
+* **Encryption:** (See `/src/crypto.rs`) Implementation of the AES-256 standard.
