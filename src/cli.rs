@@ -46,7 +46,7 @@ pub enum CommandCLI {
         username: Option<String>,
 
         // w as in website
-        #[arg(short = 'w',long)]
+        #[arg(short = 'w', long)]
         url: Option<String>,
 
         #[arg(short, long)]
@@ -744,15 +744,14 @@ pub fn handle_command_deletevault(
         }
     }
 
-        let spinner = spinner();
-        spinner.set_message(format!("Permanently deleting '{}' ...", vault_name));
-        spinner.enable_steady_tick(Duration::from_millis(80));
-        session.end_session()?;
-        crate::vault_file_manager::delete_vault_file(&vault_name)
-            .map_err(SessionError::VaultError)?;
-        spinner.finish_and_clear();
-        println!();
-        println!("Vault '{}' deleted permanently.", vault_name);
+    let spinner = spinner();
+    spinner.set_message(format!("Permanently deleting '{}' ...", vault_name));
+    spinner.enable_steady_tick(Duration::from_millis(80));
+    session.end_session()?;
+    crate::vault_file_manager::delete_vault_file(&vault_name).map_err(SessionError::VaultError)?;
+    spinner.finish_and_clear();
+    println!();
+    println!("Vault '{}' deleted permanently.", vault_name);
 
     Ok(())
 }
