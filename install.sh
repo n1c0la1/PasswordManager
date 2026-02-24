@@ -53,6 +53,7 @@ fi
 # Install
 echo "Installing to $INSTALL_DIR..."
 cp "$BINARY_SOURCE" "$INSTALL_DIR/pw"
+chmod +x "$INSTALL_DIR/pw" # Should normally be set during `cargo build --release`, just as backup.
 
 if [ $? -eq 0 ]; then
     echo "Installation successful! You can now use 'pw' from the terminal."
