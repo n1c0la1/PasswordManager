@@ -148,6 +148,7 @@ Retrieves a specific entry from the database.
 | :--- | :--- | :--- | :--- | :--- |
 | `name` | — | `String` | **Yes** | Name of the entry. |
 | `show` | `-s` | `bool` | No | Reveals the password in plain text.|
+| `copy` | `-c` | `bool`| No | Copies the entry in the format used by the secure extension. |
 
 **Hint:**
 
@@ -384,7 +385,222 @@ Used internally by `url_matches` to normalize input.
 assert_eq!(extract_domain("https://www.example.com/login"), "example.com");
 ```
 
+### Extension
 
+
+#### `run`
+Starts the local HTTP server for the web extension.
+
+**Description:** Binds to 127.0.0.1:9123, accepts incoming requests, and spawns a worker thread per request.
+
+**Parameter:**
+
+| Parameter | Type | Required | Description |
+| :--- | :--- | :--- | :--- |
+| `session` | `Arc<Mutex<Option<Session>>>` | **Yes** | Shared session state for lookups. |
+| `token` | `String` | **Yes** | Token used to authenticate requests. |
+
+**Hint:**
+
+If binding fails, the server exits early and prints an error.
+
+**Example:**
+
+```rust
+run(session, token);
+```
+
+#### `handle_request`
+Handles a single HTTP request from the extension.
+
+**Description:** Accepts only POST, validates the token, parses JSON, dispatches the action, and returns a JSON response.
+
+**Parameter:**
+
+| Parameter | Type | Required | Description |
+| :--- | :--- | :--- | :--- |
+| `request` | `Request` | **Yes** | Incoming HTTP request. |
+| `session` | `Arc<Mutex<Option<Session>>>` | **Yes** | Shared session state. |
+| `token` | `String` | **Yes** | Token used for validation. |
+
+
+**Example:**
+
+```rust
+let _ = handle_request(request, session, token);
+```
+
+#### `match_entries_by_url`
+Finds credentials that match a URL.
+
+**Description:** Scans the opened vault and returns a JSON response for zero, single, or multiple matches.
+
+**Parameter:**
+
+| Parameter | Type | Required | Description |
+| :--- | :--- | :--- | :--- |
+| `session` | `&Session` | **Yes** | Active session to read entries from. |
+| `url` | `&str` | **Yes** | URL to match against entries. |
+
+**Hint:**
+
+Uses `url_matches` from the CLI helpers to compare domains.
+
+**Example:**
+
+```rust
+let response = match_entries_by_url(&session, "https://example.com");
+```
+
+
+#### `getAuthToken`
+Loads the auth token from memory or browser storage.
+
+**Description:** Returns a cached token if available; otherwise reads `authToken` from `storage.local`.
+
+**Hint:**
+
+Used before sending any request to the local server.
+
+**Example:**
+
+```javascript
+const token = await getAuthToken();
+```
+
+
+#### `saveToken`
+Validates and stores the auth token.
+
+**Description:** Sends a message to the background script and stores the token in `storage.local`.
+
+**Hint:**
+
+Shows a success or error modal based on the result.
+
+**Example:**
+
+```javascript
+await saveToken();
+```
+
+#### `handleFillClick`
+Requests credentials and fills the active page.
+
+**Description:** Reads the active tab URL, requests credentials from the background script, and handles the response.
+
+**Hint:**
+
+If multiple entries match, it opens the selection modal.
+
+**Example:**
+
+```javascript
+await handleFillClick();
+```
+
+#### `showError`
+Shows an error or success modal.
+
+**Description:** Sets modal title and message, then displays it.
+
+**Parameter:**
+
+| Parameter | Type | Required | Description |
+| :--- | :--- | :--- | :--- |
+| `title` | `string` | **Yes** | Modal header text. |
+| `message` | `string` | **Yes** | Modal body text. |
+
+**Hint:**
+
+Used for both errors and success messages.
+
+**Example:**
+
+```javascript
+showError('Error', 'Token cannot be empty');
+```
+
+#### `showSelectionModal`
+Displays a list of matching entries.
+
+**Description:** Renders a clickable list of entries and opens the selection modal.
+
+**Parameter:**
+
+| Parameter | Type | Required | Description |
+| :--- | :--- | :--- | :--- |
+| `entries` | `Array` | **Yes** | Entries returned by the server. |
+| `tabId` | `number` | **Yes** | Tab to fill after selection. |
+
+**Hint:**
+
+Each entry click fills the page and closes the popup.
+
+**Example:**
+
+```javascript
+showSelectionModal(entries, tab.id);
+```
+
+#### `fillPage`
+Sends credentials to the content script.
+
+**Description:** Uses `tabs.sendMessage` to request filling the login form.
+
+**Parameter:**
+
+| Parameter | Type | Required | Description |
+| :--- | :--- | :--- | :--- |
+| `tabId` | `number` | **Yes** | Target tab ID. |
+| `credentials` | `object` | **Yes** | Object with `username` and `password`. |
+
+**Hint:**
+
+On failure, the UI shows a fill error.
+
+**Example:**
+
+```javascript
+await fillPage(tab.id, response);
+```
+
+#### `findLoginFields`
+Finds username and password fields in the current page.
+
+**Description:** Prefers fields in the same form as the password input, then falls back to heuristic matching.
+
+**Hint:**
+
+Heuristics check name, id, and placeholder.
+
+**Example:**
+
+```javascript
+const fields = findLoginFields();
+```
+
+#### `fillFields`
+Fills the detected login fields.
+
+**Description:** Sets values and dispatches `input` events so pages detect changes.
+
+**Parameter:**
+
+| Parameter | Type | Required | Description |
+| :--- | :--- | :--- | :--- |
+| `username` | `string` | No | Value to fill into the username field. |
+| `password` | `string` | No | Value to fill into the password field. |
+
+**Hint:**
+
+The function skips fields when values are missing.
+
+**Example:**
+
+```javascript
+fillFields('user@example.com', 'secret');
+```
 
 
 ## Installation process
@@ -446,6 +662,27 @@ Move-Item -Path .\vaults\*.psdb -Destination "$env:APPDATA\password_manager\vaul
 
 ---
 
+### Installing the extension
+> The extension is only tested for Firefox and is used as a temporary addon
+
+**Steps**
+1. Open `about:debugging#/runtime/this-firefox` in a new Firefox Tab
+2. Load a temporary addon by selecting the `manifest.json` file in the build folder (either in webextension or webextension_secure)
+
+
+If you are using the secure extension, you are already done. You can copy & paste the URL into the CLI with `get [URL] -c`, to have the entry in the right format copied to the clipboard. Click the extension Icon afterwards to paste the entry and emtpy the clipboard.
+
+If you are using the larger extension, follow the steps below to synchronize your session with the extension.
+
+
+3. Open a vault in the CLI and copy the token displayed
+4. Paste the token in the settings menu of the Webextension
+5. Hit save and the extension is ready to go
+
+**Hint:**
+You can add an icon to the toolbar by right-clicking the extension in the extensions menu on the top right. 
+
+---
 
 ## Testing 
 
