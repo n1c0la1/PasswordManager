@@ -109,11 +109,17 @@ fn main() {
         io::stdout().flush().unwrap();
 
         let mut input = String::new();
-        io::stdin().read_line(&mut input).unwrap();
+        match io::stdin().read_line(&mut input) {
+            Ok(_) => {/* Do nothing */}
+            Err(e) => {
+                println!("Error: '{}' please try again!", e);
+                continue 'interactive_shell;
+            }
+        }
         let input = input.trim();
 
         if input.is_empty() {
-            continue;
+            continue 'interactive_shell;
         }
 
         // split input like CLI-Args

@@ -42,7 +42,7 @@ sudo bash install.sh
 **Windows (PowerShell)** Run:
 
 ```powershell
-./install.ps1
+.\install.ps1
 
 ```
 
