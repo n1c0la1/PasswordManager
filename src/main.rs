@@ -110,7 +110,7 @@ fn main() {
 
         let mut input = String::new();
         match io::stdin().read_line(&mut input) {
-            Ok(_) => {/* Do nothing */}
+            Ok(_) => { /* Do nothing */ }
             Err(e) => {
                 println!("Error: '{}' please try again!", e);
                 continue 'interactive_shell;
