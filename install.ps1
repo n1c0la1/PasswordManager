@@ -1,8 +1,9 @@
-# PowerShell Execution Policy Handler
-$currentPolicy = Get-ExecutionPolicy -Scope Process
-if ($currentPolicy -eq "Restricted") {
-    Write-Host "Adjusting PowerShell execution policy for installation..."
-    Set-ExecutionPolicy -ExecutionPolicy RemoteSigned -Scope Process -Force
+$currentPolicy = Get-ExecutionPolicy -Scope CurrentUser
+if ($currentPolicy -eq "Restricted" -or $currentPolicy -eq "Undefined") {
+    Write-Host "Script requires execution rights. Restarting with Bypass policy..."
+    $scriptPath = $MyInvocation.MyCommand.Path
+    Start-Process powershell.exe -ArgumentList "-ExecutionPolicy", "Bypass", "-File", "`"$scriptPath`"", "-NoExit" -NoNewWindow -Wait
+    exit
 }
 
 if (Test-Path -Path ".\password_manager.exe") {

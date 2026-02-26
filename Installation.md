@@ -24,8 +24,12 @@ bash install.sh
 
 ```powershell
 ./install.ps1
-
 ```
+
+> If you get an execution policy error, run:
+> ```powershell
+> powershell -ExecutionPolicy Bypass -File install.ps1 # uninstall.ps1
+> ```
 
 ### 3. Offline / USB Installation
 
