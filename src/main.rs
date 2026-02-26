@@ -43,11 +43,11 @@ fn main() {
 
     // Background thread for AutoLock
     // just clones the Arc (which is a pointer), not the entire session!
-    let session_clone = current_session.clone();
+    let autolock_session_arc = current_session.clone();
     thread::spawn(move || {
         loop {
             thread::sleep(Duration::from_secs(1));
-            if let Ok(mut session_guard) = session_clone.lock() {
+            if let Ok(mut session_guard) = autolock_session_arc.lock() {
                 if let Some(session) = session_guard.as_mut() {
                     if session.opened_vault.is_some() {
                         // Check for timeout (wished_timeout minutes)

@@ -14,6 +14,85 @@ Contents:
 
 Password manager is a software that is installed locally on a stand-alone machine (not part of a network, no server needed), which manages the passwords for the local user of this machine. The user can manage different passwords for different applications in a central point. That means, that the user can define one or multiple encrypted files (called vault) where he can create / write / edit passwords for different applications and websites. 
 
+## Installation process
+
+> Without the binary or project directory with the source files, this step is not possible!
+
+The scripts supports installing without `cargo` (Rust) if a pre-built binary is present.
+
+**Steps:**
+
+1. **Build** the project on a developer machine (`cargo build --release`).
+2. **Copy** the binary and the install script to the new machine.
+  
+  > **Mac/Linux:** Copy `target/release/password_manager` and `install.sh`.                   
+    **Windows:** Copy `target/release/password_manager.exe` and `install.ps1`.
+
+3. **Run** the script.
+
+> It will detect the binary in the same folder and install it.
+
+**macOS / Linux** Run:
+
+```bash
+sudo bash install.sh
+
+```
+
+**Windows (PowerShell)** Run:
+
+```powershell
+./install.ps1
+
+```
+
+---
+
+### How to Migrate Existing Vaults
+
+If you have existing vaults in the old `vaults/` folder, move them to the new location:
+
+```bash
+# Linux
+mkdir -p "~/.local/share/password_manager/vaults"
+mv vaults/*.psdb "~/.local/share/password_manager/vaults"
+```
+
+```bash
+# macOS
+mkdir -p "~/Library/Application\ Support/password_manager/vaults"
+mv vaults/*.psdb "~/Library/Application\ Support/password_manager/vaults"
+```
+
+```powershell
+# Windows
+New-Item -ItemType Directory -Force -Path "$env:APPDATA\password_manager\vaults"
+
+Move-Item -Path .\vaults\*.psdb -Destination "$env:APPDATA\password_manager\vaults\"
+```
+
+---
+
+### Installing the extension
+> The extension is only tested for Firefox and is used as a temporary addon
+
+**Steps**
+1. Open `about:debugging#/runtime/this-firefox` in a new Firefox Tab
+2. Load a temporary addon by selecting the `manifest.json` file in the build folder (either in webextension or webextension_secure)
+
+
+If you are using the secure extension, you are already done. You can copy & paste the URL into the CLI with `get [URL] -c`, to have the entry in the right format copied to the clipboard. Click the extension Icon afterwards to paste the entry and emtpy the clipboard.
+
+If you are using the larger extension, follow the steps below to synchronize your session with the extension.
+
+
+3. Open a vault in the CLI and copy the token displayed
+4. Paste the token in the settings menu of the Webextension
+5. Hit save and the extension is ready to go
+
+**Hint:**
+You can add an icon to the toolbar by right-clicking the extension in the extensions menu on the top right. 
+
 ## Features
 
 The password manager offers the following features and capabilities for the user: 
@@ -601,86 +680,6 @@ The function skips fields when values are missing.
 ```javascript
 fillFields('user@example.com', 'secret');
 ```
-
-
-## Installation process
-
-> Without the binary or project directory with the source files, this step is not possible!
-
-The scripts supports installing without `cargo` (Rust) if a pre-built binary is present.
-
-**Steps:**
-
-1. **Build** the project on a developer machine (`cargo build --release`).
-2. **Copy** the binary and the install script to the new machine.
-  
-  > **Mac/Linux:** Copy `target/release/password_manager` and `install.sh`.                   
-    **Windows:** Copy `target/release/password_manager.exe` and `install.ps1`.
-
-3. **Run** the script.
-
-> It will detect the binary in the same folder and install it.
-
-**macOS / Linux** Run:
-
-```bash
-sudo bash install.sh
-
-```
-
-**Windows (PowerShell)** Run:
-
-```powershell
-./install.ps1
-
-```
-
----
-
-### How to Migrate Existing Vaults
-
-If you have existing vaults in the old `vaults/` folder, move them to the new location:
-
-```bash
-# Linux
-mkdir -p "~/.local/share/password_manager/vaults"
-mv vaults/*.psdb "~/.local/share/password_manager/vaults"
-```
-
-```bash
-# macOS
-mkdir -p "~/Library/Application\ Support/password_manager/vaults"
-mv vaults/*.psdb "~/Library/Application\ Support/password_manager/vaults"
-```
-
-```powershell
-# Windows
-New-Item -ItemType Directory -Force -Path "$env:APPDATA\password_manager\vaults"
-
-Move-Item -Path .\vaults\*.psdb -Destination "$env:APPDATA\password_manager\vaults\"
-```
-
----
-
-### Installing the extension
-> The extension is only tested for Firefox and is used as a temporary addon
-
-**Steps**
-1. Open `about:debugging#/runtime/this-firefox` in a new Firefox Tab
-2. Load a temporary addon by selecting the `manifest.json` file in the build folder (either in webextension or webextension_secure)
-
-
-If you are using the secure extension, you are already done. You can copy & paste the URL into the CLI with `get [URL] -c`, to have the entry in the right format copied to the clipboard. Click the extension Icon afterwards to paste the entry and emtpy the clipboard.
-
-If you are using the larger extension, follow the steps below to synchronize your session with the extension.
-
-
-3. Open a vault in the CLI and copy the token displayed
-4. Paste the token in the settings menu of the Webextension
-5. Hit save and the extension is ready to go
-
-**Hint:**
-You can add an icon to the toolbar by right-clicking the extension in the extensions menu on the top right. 
 
 ---
 
