@@ -7,7 +7,6 @@ use std::path::Path;
 // LIFECYCLE TESTS
 // ============================================================================
 
-//AI
 #[test]
 fn test_create_open_close_vault() {
     let vault_name = "lifecycle_test";
@@ -34,7 +33,6 @@ fn test_create_open_close_vault() {
     std::fs::remove_file(&vault_path).unwrap();
 }
 
-//AI
 #[test]
 fn test_vault_persistence() {
     let vault_name = "test_persistence";
@@ -43,7 +41,6 @@ fn test_vault_persistence() {
 
     let _ = std::fs::remove_file(&vault_path);
 
-    // Create and add entry
     create_new_vault(vault_name.to_string(), password.clone()).unwrap();
     let mut session = Session::new(vault_name.to_string());
     session.start_session(password.clone()).unwrap();
@@ -65,7 +62,6 @@ fn test_vault_persistence() {
     session.save().unwrap();
     session.end_session().unwrap();
 
-    // Reopen and verify
     let mut session2 = Session::new(vault_name.to_string());
     session2.start_session(password).unwrap();
     let vault = session2.opened_vault.as_mut().unwrap();
@@ -86,7 +82,6 @@ fn test_change_master() {
 
     let _ = std::fs::remove_file(&vault_path);
 
-    // Create new vault
     create_new_vault(vault_name.to_string(), password.clone()).unwrap();
     let mut session = Session::new(vault_name.to_string());
     session.start_session(password.clone()).unwrap();
@@ -98,13 +93,11 @@ fn test_change_master() {
 
     let mut session2 = Session::new(vault_name.to_string());
 
-    //try opening vault with old password
     assert!(
         session2.start_session(password).is_err(),
         "opened vault with old password"
     );
 
-    //try opening vault with new password
     assert!(
         session2.start_session(new_password).is_ok(),
         "could not open vault with new password"
@@ -122,7 +115,6 @@ fn test_save_and_reload() {
 
     let _ = std::fs::remove_file(&vault_path);
 
-    // Create and add entry
     create_new_vault(vault_name.to_string(), password.clone()).unwrap();
     let mut session = Session::new(vault_name.to_string());
     session.start_session(password.clone()).unwrap();
@@ -280,7 +272,6 @@ fn test_multiple_vaults() {
 // ENTRY TESTS
 // ============================================================================
 
-//AI
 #[test]
 fn test_edit_entry() {
     let vault_name = "test_edit";
@@ -293,7 +284,6 @@ fn test_edit_entry() {
     let mut session = Session::new(vault_name.to_string());
     session.start_session(password.clone()).unwrap();
 
-    // Add entry
     let entry = Entry::new(
         "GitHub".to_string(),
         Some("olduser@example.com".to_string()),
@@ -310,7 +300,6 @@ fn test_edit_entry() {
     session.save().unwrap();
     session.end_session().unwrap();
 
-    // Reopen and edit
     let mut session2 = Session::new(vault_name.to_string());
     session2.start_session(password.clone()).unwrap();
 
@@ -327,7 +316,6 @@ fn test_edit_entry() {
     session2.save().unwrap();
     session2.end_session().unwrap();
 
-    // Reopen and verify changes
     let mut session3 = Session::new(vault_name.to_string());
     session3.start_session(password).unwrap();
 
@@ -348,7 +336,6 @@ fn test_edit_entry() {
     std::fs::remove_file(&vault_path).unwrap();
 }
 
-//AI
 #[test]
 fn test_delete_entry() {
     let vault_name = "test_delete";
@@ -361,7 +348,6 @@ fn test_delete_entry() {
     let mut session = Session::new(vault_name.to_string());
     session.start_session(password.clone()).unwrap();
 
-    // Add two entries
     let entry1 = Entry::new(
         "Entry1".to_string(),
         None,
@@ -395,7 +381,6 @@ fn test_delete_entry() {
         2
     );
 
-    // Delete one entry
     session
         .opened_vault
         .as_mut()
@@ -410,7 +395,6 @@ fn test_delete_entry() {
     session.save().unwrap();
     session.end_session().unwrap();
 
-    // Reopen and verify deletion persisted
     let mut session2 = Session::new(vault_name.to_string());
     session2.start_session(password).unwrap();
 
@@ -441,7 +425,6 @@ fn test_list_and_search_entries() {
 
     let _ = std::fs::remove_file(&vault_path);
 
-    // Create and add entry
     create_new_vault(vault_name.to_string(), password.clone()).unwrap();
     let mut session = Session::new(vault_name.to_string());
     session.start_session(password.clone()).unwrap();
@@ -487,7 +470,6 @@ fn test_list_and_search_entries() {
     std::fs::remove_file(&vault_path).unwrap();
 }
 
-//AI
 #[test]
 fn test_duplicate_entry_names_rejected() {
     let vault_name = "test_duplicates";
@@ -500,7 +482,6 @@ fn test_duplicate_entry_names_rejected() {
     let mut session = Session::new(vault_name.to_string());
     session.start_session(password).unwrap();
 
-    // Add entry
     let entry1 = Entry::new(
         "GitHub".to_string(),
         None,
@@ -511,7 +492,6 @@ fn test_duplicate_entry_names_rejected() {
     let result1 = session.opened_vault.as_mut().unwrap().add_entry(entry1);
     assert!(result1.is_ok(), "First entry should be added");
 
-    // Try to add entry with same name
     let entry2 = Entry::new(
         "GitHub".to_string(),
         None,
@@ -522,7 +502,6 @@ fn test_duplicate_entry_names_rejected() {
     let result2 = session.opened_vault.as_mut().unwrap().add_entry(entry2);
     assert!(result2.is_err(), "Duplicate name should be rejected!");
 
-    // Verify only one entry exists
     assert_eq!(
         session.opened_vault.as_ref().unwrap().get_entries().len(),
         1
@@ -536,7 +515,6 @@ fn test_duplicate_entry_names_rejected() {
 // SECURITY TESTS
 // ============================================================================
 
-//AI
 #[test]
 fn test_wrong_password_rejected() {
     let vault_name = "test_auth";
@@ -546,10 +524,8 @@ fn test_wrong_password_rejected() {
 
     let _ = std::fs::remove_file(&vault_path);
 
-    // Create with correct password
     create_new_vault(vault_name.to_string(), correct.clone()).unwrap();
 
-    // Try wrong password
     let mut session = Session::new(vault_name.to_string());
     assert!(
         session.start_session(wrong).is_err(),
@@ -557,7 +533,6 @@ fn test_wrong_password_rejected() {
     );
     assert!(session.opened_vault.is_none(), "Vault should not open");
 
-    // Verify correct password works
     let mut session2 = Session::new(vault_name.to_string());
     assert!(
         session2.start_session(correct).is_ok(),
@@ -568,7 +543,6 @@ fn test_wrong_password_rejected() {
     std::fs::remove_file(&vault_path).unwrap();
 }
 
-//AI
 #[test]
 fn test_tampering_detection() {
     let vault_name = "test_tamper";
@@ -577,7 +551,6 @@ fn test_tampering_detection() {
 
     let _ = std::fs::remove_file(&vault_path);
 
-    // Create vault
     create_new_vault(vault_name.to_string(), password.clone()).unwrap();
 
     // Tamper with file
@@ -587,7 +560,6 @@ fn test_tampering_detection() {
     }
     std::fs::write(&vault_path, contents).unwrap();
 
-    // Try to open - should fail
     let result = open_vault(vault_name.to_string(), password);
     assert!(result.is_err(), "AEAD should detect tampering!");
 
