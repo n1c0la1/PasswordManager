@@ -2,8 +2,6 @@ use crate::errors::*;
 use crate::session::*;
 use crate::vault_entry_manager::*;
 use crate::vault_file_manager::{list_vaults, vault_exists};
-//use crate::vault_file_manager::initialize_vault;
-//use crate::test::*;
 
 use anyhow::anyhow;
 use arboard::Clipboard;
@@ -209,7 +207,6 @@ pub fn handle_command_init(option_name: Option<String>) -> Result<(), VaultError
         return Err(VaultError::NameExists);
     }
 
-    //Define MasterPassword
     println!("\nDefine the Master-Password for {}:", vault_name);
 
     let key: SecretString = 'define_mw: loop {
@@ -278,8 +275,6 @@ pub fn handle_command_add(
         .ok_or(SessionError::VaultError(VaultError::NoVaultOpen))?;
 
     // Entry Name (REQUIRED)
-
-    // Collect all existing entrynames
     let existing_names: Vec<String> = vault
         .get_entries()
         .iter()
@@ -430,7 +425,6 @@ pub fn handle_command_get(
         .as_mut()
         .ok_or(SessionError::SessionInactive)?;
 
-    // check Master-Password when show is passed.
     if show {
         let name_of_vault: &String = match &session.opened_vault {
             Some(vault) => vault.get_name(),
@@ -533,7 +527,6 @@ pub fn handle_command_get(
         return Ok(());
     }
 
-    // Display entry (normal behavior)
     println!("\n==== Entry: {} ====", entry.get_entry_name());
     println!(
         "Username: {}",
@@ -569,7 +562,6 @@ pub fn handle_command_getall(
         .as_mut()
         .ok_or(SessionError::SessionInactive)?;
 
-    // check Master-Password when show is passed.
     if show {
         let name_of_vault: &String = match &session.opened_vault {
             Some(vault) => vault.get_name(),
@@ -656,7 +648,6 @@ pub fn handle_command_delete(
     io::stdin().read_line(&mut confirm)?;
 
     if confirm.trim().eq_ignore_ascii_case("y") {
-        // Master PW query maybe? TODO
         let spinner = spinner();
         spinner.enable_steady_tick(Duration::from_millis(80));
         spinner.set_message("Removing entry ...");
@@ -678,7 +669,6 @@ pub fn handle_command_deletevault(
 ) -> Result<(), SessionError> {
     println!();
 
-    //deleting vault only acceptible, if a vault is currently open (-> session is active)
     if !active_session(option_session) {
         return Err(SessionError::VaultError(VaultError::AnyhowError(anyhow!(
             "Due to RustPass' logic, you have to open the vault you want to delete first!"
@@ -757,12 +747,10 @@ pub fn handle_command_deletevault(
 }
 
 pub fn handle_command_generate(length: u32, no_symbols: bool) -> Result<String, SessionError> {
-    // Validierung der Länge
     if length <= 1 || length > 200 {
         return Err(SessionError::VaultError(VaultError::InvalidLength));
     }
 
-    // Zeichensatz basierend auf no_symbols Flag
     let charset = if no_symbols {
         charsets::ALPHANUMERIC
     } else {
@@ -770,9 +758,6 @@ pub fn handle_command_generate(length: u32, no_symbols: bool) -> Result<String, 
     };
 
     let password = random_password(charset, length as usize, "")?;
-
-    // let entries_line = format!("  Entries: {}", opened_vault.entries.len());
-    //         println!("║{: <43}║", entries_line);
 
     println!("\n┌─────────────────────────────────────────┐");
     println!("│ Generated Password                      │");
@@ -834,7 +819,6 @@ pub fn handle_command_change_master(
                     println!("Passwords do not match! Try again.");
                     continue 'input_new_master;
                 }
-                //new_password = input;
                 break 'input_new_master input;
             }
         }
@@ -903,7 +887,6 @@ pub fn handle_command_edit(
         })
         .collect();
 
-    // Collecting user inputs
     println!("\n==== Editing entry: '{}' ====", entry_name);
     println!("Hint: (Press enter to keep current value)\n");
 
@@ -1002,8 +985,6 @@ pub fn handle_command_edit(
         add_password_to_entry()?
     };
 
-    // Write changes to Entry
-    //let vault = option_vault.as_mut().unwrap();
     let entry = vault
         .get_entry_by_name(&entry_name)
         .ok_or(SessionError::VaultError(VaultError::EntryNotFound))?;
@@ -1024,10 +1005,8 @@ pub fn handle_command_edit(
         entry.set_password(password);
     }
 
-    // Get final name for printing
     let final_entry_name = entry.get_entry_name().clone();
 
-    // Saving vault
     let spinner = spinner();
     spinner.enable_steady_tick(Duration::from_millis(80));
     spinner.set_message("Saving changes...");
@@ -1044,14 +1023,13 @@ pub fn handle_command_open(
     current_session: &mut Option<Session>,
     timeout: &Option<u64>,
 ) -> Result<Session, SessionError> {
-    // Check if vault file exists
+
     match vault_exists(&vault_to_open) {
         Ok(true) => { /* Do nothing */ }
         Ok(false) => return Err(SessionError::VaultError(VaultError::VaultDoesNotExist)),
         Err(e) => return Err(SessionError::VaultError(e)),
     }
 
-    //check if the same vault is already open
     if let Some(session) = current_session.as_ref() {
         if vault_to_open == session.vault_name && active_session(current_session) {
             println!();
@@ -1062,7 +1040,6 @@ pub fn handle_command_open(
         }
     }
 
-    //close any existing session
     if let Some(session) = current_session.as_mut() {
         let old_name = session.vault_name.clone();
 
@@ -1098,15 +1075,13 @@ pub fn handle_command_open(
     io::stdout().flush().unwrap();
     let master: SecretString = rpassword::prompt_password("Enter master password: ")?.into();
 
-    // Spinner
     let spinner = spinner();
     spinner.set_message("Opening vault ...");
     spinner.enable_steady_tick(Duration::from_millis(80));
 
-    //starting session for new vault
     let mut new_session = Session::new(vault_to_open.clone());
     if let Some(minutes) = timeout {
-        new_session.wished_timeout = minutes * 60; // Convert minutes to seconds
+        new_session.wished_timeout = minutes * 60;
     }
     match new_session.start_session(master) {
         Ok(()) => {
@@ -1383,7 +1358,6 @@ fn check_password_strength(password: &SecretString) -> Result<(), VaultError> {
         );
         return Err(VaultError::WeakPassword);
     }
-    //println!("Estimated guesses: {}", estimate.guesses());
 
     Ok(())
 }
@@ -1444,14 +1418,13 @@ pub fn clear_clipboard_after(duration: u64) {
         }
     });
 }
-// tests
 
 #[cfg(test)]
 mod tests {
     use super::*;
     use std::fs;
     use std::path::Path;
-    // Helper-function to delete testvault-file
+
     fn cleanup_test_vault(vault_name: &str) {
         let path = format!("vaults/{}.psdb", vault_name);
         if Path::new(&path).exists() {
