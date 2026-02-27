@@ -95,7 +95,6 @@ fn match_entries_by_url(session: &Session, url: &str) -> Value {
         if let Some(entry_url) = entry.url() {
             if url_matches(entry_url, url) {
                 matches.push(json!({
-                    "id": entry.id,
                     "username": entry.username(),
                     "password": entry.password(),
                     "url": entry.url(),

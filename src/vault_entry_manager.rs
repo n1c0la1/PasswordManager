@@ -18,8 +18,6 @@ pub struct Vault {
 
 #[derive(Debug, Clone, Serialize, Deserialize, PartialEq)]
 pub struct Entry {
-    #[serde(skip_serializing_if = "Option::is_none")]
-    pub id: Option<u32>,
     pub entryname: String,
     username: Option<String>,
     password: Option<String>,
@@ -36,7 +34,6 @@ impl Entry {
         notes: Option<String>,
     ) -> Entry {
         Entry {
-            id: None,
             entryname: name,
             username: user,
             password: pw,
