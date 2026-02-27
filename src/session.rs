@@ -1,8 +1,8 @@
 use crate::errors::{SessionError, VaultError};
 use crate::vault_entry_manager::*;
-use crate::vault_file_manager::{open_vault, close_vault, initialize_vault};
+use crate::vault_file_manager::{close_vault, initialize_vault, open_vault};
+use secrecy::{ExposeSecret, SecretString};
 use std::time::{Duration, Instant};
-use secrecy::{SecretString, ExposeSecret};
 
 #[derive(Debug)]
 pub struct Session {
@@ -141,7 +141,7 @@ impl Session {
 #[cfg(test)]
 mod tests {
     use super::*;
-    use crate::vault_file_manager:: delete_vault_file;
+    use crate::vault_file_manager::delete_vault_file;
 
     #[test]
     fn test_create_new_vault() {

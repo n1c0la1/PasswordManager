@@ -1627,27 +1627,27 @@ mod tests {
         cleanup_test_vault(vault_name);
     }
 
-/*  Test is ok, but takes user input, which breaks automatic testing
-    #[test]
-    fn test_delete_success() {
-        let vault_name = "test_vault_delete_success";
-        let mut session = create_test_session(vault_name);
-        let entry = Entry::new(
-            "test_entry".to_string(),
-            Some("testuser".to_string()),
-            Some("testpass123".to_string()),
-            Some("https://example.com".to_string()),
-            Some("test notes".to_string()),
-        );
-        let vault = session.opened_vault.as_mut().unwrap();
-        vault.add_entry(entry).unwrap();
-        match handle_command_delete(&mut Some(session), "test_entry".to_string()) {
-            Ok(()) => assert!(true),
-            Err(e) => panic!("Expected successful deletion, got error: {}", e),
+    /*  Test is ok, but takes user input, which breaks automatic testing
+        #[test]
+        fn test_delete_success() {
+            let vault_name = "test_vault_delete_success";
+            let mut session = create_test_session(vault_name);
+            let entry = Entry::new(
+                "test_entry".to_string(),
+                Some("testuser".to_string()),
+                Some("testpass123".to_string()),
+                Some("https://example.com".to_string()),
+                Some("test notes".to_string()),
+            );
+            let vault = session.opened_vault.as_mut().unwrap();
+            vault.add_entry(entry).unwrap();
+            match handle_command_delete(&mut Some(session), "test_entry".to_string()) {
+                Ok(()) => assert!(true),
+                Err(e) => panic!("Expected successful deletion, got error: {}", e),
+            }
+            cleanup_test_vault(vault_name);
         }
-        cleanup_test_vault(vault_name);
-    }
-*/
+    */
 
     // ================== FORMAT OF CUSTOM VAULTERRORS TESTS ==================
     // Testing format of custom VaultErrors

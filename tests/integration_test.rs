@@ -1,7 +1,6 @@
 use password_manager::*;
-use std::path::Path;
 use secrecy::SecretString;
-
+use std::path::Path;
 
 // ============================================================================
 // LIFECYCLE TESTS

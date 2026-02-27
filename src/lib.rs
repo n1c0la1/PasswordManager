@@ -9,4 +9,4 @@ pub mod vault_file_manager;
 pub use errors::{SessionError, VaultError};
 pub use session::{Session, active_session, create_new_vault};
 pub use vault_entry_manager::{Entry, Vault};
-pub use vault_file_manager::{close_vault, open_vault, delete_vault_file, get_vault_path};
+pub use vault_file_manager::{close_vault, delete_vault_file, get_vault_path, open_vault};
