@@ -28,8 +28,8 @@ impl Entry {
             entryname: name,
             username: user,
             password: pw,
-            url: url,
-            notes: notes,
+            url,
+            notes,
         }
     }
 
@@ -109,7 +109,7 @@ impl Entry {
 impl Vault {
     pub fn new(name: String) -> Vault {
         Vault {
-            name: name,
+            name,
             entries: vec![],
         }
     }
@@ -157,7 +157,7 @@ impl Vault {
     }
 
     pub fn entryname_exists(&self, name: &str) -> bool {
-        if let Some(_) = self.entries.iter().find(|value| value.entryname == name) {
+        if self.entries.iter().any(|value| value.entryname == name) {
             return true;
         }
         false
