@@ -92,15 +92,14 @@ fn match_entries_by_url(session: &Session, url: &str) -> Value {
     let mut matches = Vec::new();
 
     for entry in &vault.entries {
-        if let Some(entry_url) = entry.url() {
-            if url_matches(entry_url, url) {
+        if let Some(entry_url) = entry.url()
+            && url_matches(entry_url, url) {
                 matches.push(json!({
                     "username": entry.username(),
                     "password": entry.password(),
                     "url": entry.url(),
                 }));
             }
-        }
     }
 
     match matches.len() {
