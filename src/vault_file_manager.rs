@@ -1,13 +1,3 @@
-//coordinates crypto.rs and vault_entry_manager
-
-/*what belongs here:
-- Create new vault
-- Open existing vault
-- Close vault
-- Read/write encrypted files
--knows file names and paths
-
-*/
 use directories::ProjectDirs;
 use secrecy::SecretString;
 use std::fs::{self, File};
@@ -25,10 +15,6 @@ use crate::vault_entry_manager::Vault;
 //----------------------------------------------------------------------------
 
 pub fn initialize_vault(name: String) -> Result<Vault, VaultError> {
-    // if key.len() > 200 {
-    //    return Err(VaultError::PasswordTooLong);
-    // }
-
     let path = get_vaults_dir()?.join(format!("{name}.psdb"));
     if path.exists() {
         return Err(VaultError::FileExists);
@@ -49,10 +35,8 @@ pub fn close_vault(vault: &Vault, password: SecretString) -> Result<(), VaultErr
 //opens the vault + checks if master password was correct by successfully encrypting the file
 pub fn open_vault(file_name: String, password: SecretString) -> Result<Vault, VaultError> {
     let path = get_vaults_dir()?.join(format!("{file_name}.psdb"));
-
+    
     let encrypted_bytes = read_file_to_bytes(&path)?;
-    //handle error: enc_file::EncFileError::Crypto to validate password
-    //match error Crypto -> return Err(InvalidKey)
     let decrypted_json = crypto::decrypt_vault(password, &encrypted_bytes)?;
     let vault = vault_from_json(&decrypted_json)?; //deleted mut
     Ok(vault)
