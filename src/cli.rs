@@ -133,7 +133,7 @@ pub enum CommandCLI {
     },
 }
 
-static CANCEL_ARG: &'static str = "--CANCEL";
+static CANCEL_ARG: &str = "--CANCEL";
 
 pub fn clear_terminal() {
     print!("{esc}[2J{esc}[1;1H", esc = 27 as char);
@@ -1029,15 +1029,14 @@ pub fn handle_command_open(
         Err(e) => return Err(SessionError::VaultError(e)),
     }
 
-    if let Some(session) = current_session.as_ref() {
-        if vault_to_open == session.vault_name && active_session(current_session) {
+    if let Some(session) = current_session.as_ref()
+        && vault_to_open == session.vault_name && active_session(current_session) {
             println!();
             return Err(SessionError::VaultError(VaultError::AnyhowError(anyhow!(
                 "Vault '{}' already opened!",
                 vault_to_open
             ))));
         }
-    }
 
     if let Some(session) = current_session.as_mut() {
         let old_name = session.vault_name.clone();
@@ -1109,12 +1108,12 @@ pub fn handle_command_open(
             println!("╚═══════════════════════════════════════════╝");
             println!();
 
-            return Ok(new_session);
+            Ok(new_session)
         }
         Err(SessionError::VaultError(VaultError::InvalidKey)) => {
             spinner.finish_and_clear();
             println!();
-            return Err(SessionError::VaultError(VaultError::InvalidKey));
+            Err(SessionError::VaultError(VaultError::InvalidKey))
         }
         Err(SessionError::SessionActive) => {
             spinner.finish_and_clear();
@@ -1123,15 +1122,15 @@ pub fn handle_command_open(
 
             // because main.rs prints the returned error and only VaultErrors can be returned
             // a session error has to be printed out here and the main function prints an empty string
-            return Err(SessionError::VaultError(VaultError::AnyhowError(anyhow!(
+            Err(SessionError::VaultError(VaultError::AnyhowError(anyhow!(
                 ""
-            ))));
+            ))))
         }
         Err(e) => {
-            return Err(SessionError::VaultError(VaultError::AnyhowError(anyhow!(
+            Err(SessionError::VaultError(VaultError::AnyhowError(anyhow!(
                 "Session error: {}",
                 e
-            ))));
+            ))))
         }
     }
 }
@@ -1180,7 +1179,7 @@ pub fn handle_command_close(
     spinner.finish_and_clear();
     println!("Successfully closed '{}'!", open_vault_name);
 
-    return Ok(LoopCommand::Continue);
+    Ok(LoopCommand::Continue)
 }
 
 pub fn handle_command_vaults(current_session: &Option<Session>) {
@@ -1275,7 +1274,6 @@ fn add_password_to_entry() -> Result<Option<String>, SessionError> {
 
         if input_choice_gen.trim().eq_ignore_ascii_case("y") {
             let length: u32;
-            let no_symbols: bool;
 
             'input_length: loop {
                 print!("Enter desired password-length: ");
@@ -1298,11 +1296,7 @@ fn add_password_to_entry() -> Result<Option<String>, SessionError> {
             io::stdout().flush().unwrap();
             let mut no_symbols_input = String::new();
             io::stdin().read_line(&mut no_symbols_input)?;
-            if no_symbols_input.trim().eq_ignore_ascii_case("y") {
-                no_symbols = false;
-            } else {
-                no_symbols = true;
-            }
+            let no_symbols: bool = !no_symbols_input.trim().eq_ignore_ascii_case("y");
             loop_pw = handle_command_generate(length, no_symbols)?;
             break 'input_pw;
         }
@@ -1349,7 +1343,7 @@ fn check_password_strength(password: &SecretString) -> Result<(), VaultError> {
     }
 
     let min_number_of_guesses = 1_000_000_000;
-    let estimate = zxcvbn(&password.expose_secret(), &[])?;
+    let estimate = zxcvbn(password.expose_secret(), &[])?;
     if estimate.guesses() < min_number_of_guesses {
         println!("Estimated guesses: {}", estimate.guesses());
         println!(
@@ -1398,12 +1392,11 @@ pub fn extract_domain(url: &str) -> String {
         format!("https://{}", url)
     };
 
-    if let Ok(parsed) = url::Url::parse(&url_with_scheme) {
-        if let Some(host) = parsed.host_str() {
+    if let Ok(parsed) = url::Url::parse(&url_with_scheme)
+        && let Some(host) = parsed.host_str() {
             let host = host.strip_prefix("www.").unwrap_or(host);
             return host.to_string();
         }
-    }
 
     url.to_string()
 }
