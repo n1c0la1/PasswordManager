@@ -771,21 +771,21 @@ pub fn handle_command_generate(length: u32, no_symbols: bool) -> Result<String, 
 
     let password = random_password(charset, length as usize, "")?;
 
+    // let entries_line = format!("  Entries: {}", opened_vault.entries.len());
+    //         println!("║{: <43}║", entries_line);
+
     println!("\n┌─────────────────────────────────────────┐");
     println!("│ Generated Password                      │");
     println!("├─────────────────────────────────────────┤");
-    println!("│ {:<40} ", password);
+    println!("│ {: <40}│", password);
     println!("├─────────────────────────────────────────┤");
-    println!(
-        "│ Length: {} characters{}                 ",
-        length,
-        " ".repeat(27 - length.to_string().len())
-    );
-    println!(
-        "│ Symbols: {}{}                           ",
-        if no_symbols { "No" } else { "Yes" },
-        if no_symbols { " " } else { "" }.repeat(33)
-    );
+    
+    let length_line = format!("Length: {} characters", length);
+    println!("│ {: <40}│",length_line);
+    
+    let symbols_line = format!("Symbols: {}", if no_symbols { "No" } else { "Yes" });
+    println!("│ {: <40}│", symbols_line);
+
     println!("└─────────────────────────────────────────┘\n");
 
     copy_to_clipboard(&password)?;
