@@ -1030,13 +1030,15 @@ pub fn handle_command_open(
     }
 
     if let Some(session) = current_session.as_ref()
-        && vault_to_open == session.vault_name && active_session(current_session) {
-            println!();
-            return Err(SessionError::VaultError(VaultError::AnyhowError(anyhow!(
-                "Vault '{}' already opened!",
-                vault_to_open
-            ))));
-        }
+        && vault_to_open == session.vault_name
+        && active_session(current_session)
+    {
+        println!();
+        return Err(SessionError::VaultError(VaultError::AnyhowError(anyhow!(
+            "Vault '{}' already opened!",
+            vault_to_open
+        ))));
+    }
 
     if let Some(session) = current_session.as_mut() {
         let old_name = session.vault_name.clone();
@@ -1126,12 +1128,10 @@ pub fn handle_command_open(
                 ""
             ))))
         }
-        Err(e) => {
-            Err(SessionError::VaultError(VaultError::AnyhowError(anyhow!(
-                "Session error: {}",
-                e
-            ))))
-        }
+        Err(e) => Err(SessionError::VaultError(VaultError::AnyhowError(anyhow!(
+            "Session error: {}",
+            e
+        )))),
     }
 }
 
@@ -1393,10 +1393,11 @@ pub fn extract_domain(url: &str) -> String {
     };
 
     if let Ok(parsed) = url::Url::parse(&url_with_scheme)
-        && let Some(host) = parsed.host_str() {
-            let host = host.strip_prefix("www.").unwrap_or(host);
-            return host.to_string();
-        }
+        && let Some(host) = parsed.host_str()
+    {
+        let host = host.strip_prefix("www.").unwrap_or(host);
+        return host.to_string();
+    }
 
     url.to_string()
 }

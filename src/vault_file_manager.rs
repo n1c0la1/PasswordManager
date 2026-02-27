@@ -93,11 +93,10 @@ pub fn list_vaults() -> Result<Vec<String>, VaultError> {
             .map(|ext| ext == "psdb")
             .unwrap_or(false);
 
-        if is_psdb
-            && let Some(file_name) = entry_path.file_stem().and_then(|s| s.to_str()) {
-                let string_entry = file_name.to_string();
-                vector.push(string_entry);
-            }
+        if is_psdb && let Some(file_name) = entry_path.file_stem().and_then(|s| s.to_str()) {
+            let string_entry = file_name.to_string();
+            vector.push(string_entry);
+        }
     }
     Ok(vector)
 }

@@ -19,7 +19,10 @@ pub struct Session {
 pub fn active_session(option_session: &Option<Session>) -> bool {
     if option_session.is_none() {
         false
-    } else { !(option_session.as_ref().unwrap().opened_vault.is_none() || option_session.as_ref().unwrap().master_password.is_none()) }
+    } else {
+        !(option_session.as_ref().unwrap().opened_vault.is_none()
+            || option_session.as_ref().unwrap().master_password.is_none())
+    }
 }
 
 pub fn create_new_vault(vault_name: String, master: SecretString) -> Result<(), VaultError> {
