@@ -83,11 +83,11 @@ impl Session {
         let vault = self
             .opened_vault
             .take()
-            .ok_or(SessionError::SessionInactive)?;  
+            .ok_or(SessionError::SessionInactive)?;
         let master = self
             .master_password
             .take()
-            .ok_or(SessionError::SessionInactive)?; 
+            .ok_or(SessionError::SessionInactive)?;
 
         close_vault(&vault, master).map_err(|e| SessionError::VaultError(e))?;
         Ok(())

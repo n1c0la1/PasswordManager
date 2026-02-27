@@ -1,7 +1,6 @@
 use crate::errors::VaultError;
 use serde::{Deserialize, Serialize};
 
-
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct Vault {
     pub name: String,

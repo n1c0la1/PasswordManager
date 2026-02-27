@@ -1023,7 +1023,6 @@ pub fn handle_command_open(
     current_session: &mut Option<Session>,
     timeout: &Option<u64>,
 ) -> Result<Session, SessionError> {
-
     match vault_exists(&vault_to_open) {
         Ok(true) => { /* Do nothing */ }
         Ok(false) => return Err(SessionError::VaultError(VaultError::VaultDoesNotExist)),

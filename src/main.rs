@@ -134,9 +134,7 @@ fn main() {
             match cli.command {
                 CommandCLI::Init { name } => {
                     match handle_command_init(name) {
-                        Ok(()) => {
-                            /* Do nothing */
-                        }
+                        Ok(()) => { /* Do nothing */ }
                         Err(VaultError::NameExists) => {
                             println!();
                             println!("Error: {}", VaultError::NameExists);
@@ -212,7 +210,7 @@ fn main() {
                     if !active_session(&*session_guard) {
                         println!(
                             "There is no session active right now, consider using open <vault-name>!"
-                        );                        
+                        );
                     }
 
                     match handle_command_getall(&mut *session_guard, show) {
@@ -228,14 +226,14 @@ fn main() {
                         Err(e) => {
                             println!("Error: {}", e);
                         }
-                    }                    
+                    }
                 }
 
                 CommandCLI::Delete { name } => {
                     if !active_session(&*session_guard) {
                         println!(
                             "There is no session active right now, consider using open <vault-name>!"
-                        );                        
+                        );
                     }
 
                     match handle_command_delete(&mut *session_guard, name) {
@@ -251,14 +249,13 @@ fn main() {
                         Err(e) => {
                             println!("Error: {}", e);
                         }
-                    }                    
+                    }
                 }
 
                 CommandCLI::Deletevault {} => {
                     if !active_session(&*session_guard) {
                         println!("Due to RustPass's logic, you have to open your vault first!");
                         println!("Hint: Consider using open <vault-name>!");
-                        
                     }
 
                     match handle_command_deletevault(&mut *session_guard) {
@@ -278,7 +275,7 @@ fn main() {
                         Err(e) => {
                             println!("Error: {}", e);
                         }
-                    }                    
+                    }
                 }
 
                 CommandCLI::Generate { length, no_symbols } => {
@@ -289,14 +286,14 @@ fn main() {
                         Err(e) => {
                             println!("Error: {}", e)
                         }
-                    }                    
+                    }
                 }
 
                 CommandCLI::ChangeMaster {} => {
                     if !active_session(&*session_guard) {
                         println!(
                             "There is no session active right now, consider using open <vault-name>!"
-                        );                        
+                        );
                     }
 
                     match handle_command_change_master(&mut *session_guard) {
@@ -306,14 +303,14 @@ fn main() {
                         Err(e) => {
                             println!("Error: {}", e);
                         }
-                    }                    
+                    }
                 }
 
                 CommandCLI::Edit { name } => {
                     if !active_session(&*session_guard) {
                         println!(
                             "There is no session active right now, consider using open <vault-name>!"
-                        );                        
+                        );
                     }
 
                     match handle_command_edit(&mut *session_guard, name) {
@@ -324,14 +321,14 @@ fn main() {
                         Err(e) => {
                             println!("Error: {}", e)
                         }
-                    }                    
+                    }
                 }
 
                 CommandCLI::Open { name, timeout } => {
                     match handle_command_open(name, &mut *session_guard, &timeout) {
                         Ok(session) => {
                             if session.opened_vault.is_none() {
-                                println!("Something went wrong!");                                
+                                println!("Something went wrong!");
                             }
                             *session_guard = Some(session);
                         }
@@ -341,13 +338,13 @@ fn main() {
                         Err(e) => {
                             println!("Error opening vault: {}", e);
                         }
-                    }                    
+                    }
                 }
                 CommandCLI::Close { force } => {
                     if !active_session(&*session_guard) {
                         println!(
                             "There is no session active right now, consider using open <vault-name>!"
-                        );                        
+                        );
                     }
 
                     match handle_command_close(&mut *session_guard, force) {
@@ -355,13 +352,11 @@ fn main() {
                             // if the user says yes to closing.
                             *session_guard = None;
                         }
-                        Ok(LoopCommand::Cancel) => {
-                            /* Do nothing */
-                        }
+                        Ok(LoopCommand::Cancel) => { /* Do nothing */ }
                         Err(e) => {
                             println!("Error: {}", e);
                         }
-                    }                    
+                    }
                 }
 
                 CommandCLI::Vaults {} => {
@@ -394,10 +389,10 @@ fn main() {
                             break 'interactive_shell;
                         }
                         Ok(LoopCommand::Cancel) => {
-                            thread::sleep(Duration::from_millis(500));                            
+                            thread::sleep(Duration::from_millis(500));
                         }
                         Err(e) => {
-                            println!("Error: {}", e);                            
+                            println!("Error: {}", e);
                         }
                     }
                 }
@@ -408,7 +403,7 @@ fn main() {
             }
 
             continue 'interactive_shell;
-        } 
+        }
     }
 }
 

@@ -2,7 +2,6 @@ use std::error::Error;
 use std::fmt;
 use zxcvbn::ZxcvbnError;
 
-
 #[derive(Debug)]
 pub enum CryptoError {
     CouldNotEncrypt,
