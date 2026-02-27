@@ -779,10 +779,10 @@ pub fn handle_command_generate(length: u32, no_symbols: bool) -> Result<String, 
     println!("├─────────────────────────────────────────┤");
     println!("│ {: <40}│", password);
     println!("├─────────────────────────────────────────┤");
-    
+
     let length_line = format!("Length: {} characters", length);
-    println!("│ {: <40}│",length_line);
-    
+    println!("│ {: <40}│", length_line);
+
     let symbols_line = format!("Symbols: {}", if no_symbols { "No" } else { "Yes" });
     println!("│ {: <40}│", symbols_line);
 
