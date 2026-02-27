@@ -19,13 +19,7 @@ pub struct Session {
 pub fn active_session(option_session: &Option<Session>) -> bool {
     if option_session.is_none() {
         false
-    } else if option_session.as_ref().unwrap().opened_vault.is_none()
-        || option_session.as_ref().unwrap().master_password.is_none()
-    {
-        false
-    } else {
-        true
-    }
+    } else { !(option_session.as_ref().unwrap().opened_vault.is_none() || option_session.as_ref().unwrap().master_password.is_none()) }
 }
 
 pub fn create_new_vault(vault_name: String, master: SecretString) -> Result<(), VaultError> {
@@ -37,7 +31,7 @@ pub fn create_new_vault(vault_name: String, master: SecretString) -> Result<(), 
 impl Session {
     pub fn new(vault_name: String) -> Session {
         Session {
-            vault_name: vault_name,
+            vault_name,
             opened_vault: None,
             master_password: None,
             last_activity: Instant::now(),
@@ -89,13 +83,13 @@ impl Session {
             .take()
             .ok_or(SessionError::SessionInactive)?;
 
-        close_vault(&vault, master).map_err(|e| SessionError::VaultError(e))?;
+        close_vault(&vault, master).map_err(SessionError::VaultError)?;
         Ok(())
     }
 
     pub fn save(&mut self) -> Result<(), SessionError> {
         let (vault, master) = self.session_state()?;
-        close_vault(vault, master).map_err(|e| SessionError::VaultError(e))?;
+        close_vault(vault, master).map_err(SessionError::VaultError)?;
         Ok(())
     }
 
