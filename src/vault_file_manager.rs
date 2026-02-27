@@ -35,7 +35,7 @@ pub fn close_vault(vault: &Vault, password: SecretString) -> Result<(), VaultErr
 //opens the vault + checks if master password was correct by successfully encrypting the file
 pub fn open_vault(file_name: String, password: SecretString) -> Result<Vault, VaultError> {
     let path = get_vaults_dir()?.join(format!("{file_name}.psdb"));
-    
+
     let encrypted_bytes = read_file_to_bytes(&path)?;
     let decrypted_json = crypto::decrypt_vault(password, &encrypted_bytes)?;
     let vault = vault_from_json(&decrypted_json)?; //deleted mut

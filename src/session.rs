@@ -4,9 +4,9 @@ use crate::vault_entry_manager::*;
 use crate::vault_file_manager::close_vault;
 use crate::vault_file_manager::initialize_vault;
 use crate::vault_file_manager::open_vault;
-use std::time::{Duration, Instant};
 use secrecy::ExposeSecret;
 use secrecy::SecretString;
+use std::time::{Duration, Instant};
 
 #[derive(Debug)]
 pub struct Session {
@@ -87,11 +87,11 @@ impl Session {
         let vault = self
             .opened_vault
             .take()
-            .ok_or(SessionError::SessionInactive)?;  
+            .ok_or(SessionError::SessionInactive)?;
         let master = self
             .master_password
             .take()
-            .ok_or(SessionError::SessionInactive)?; 
+            .ok_or(SessionError::SessionInactive)?;
 
         close_vault(&vault, master).map_err(|e| SessionError::VaultError(e))?;
         Ok(())
