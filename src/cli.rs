@@ -1422,14 +1422,10 @@ pub fn clear_clipboard_after(duration: u64) {
 #[cfg(test)]
 mod tests {
     use super::*;
-    use std::fs;
-    use std::path::Path;
+    use crate::delete_vault_file;
 
     fn cleanup_test_vault(vault_name: &str) {
-        let path = format!("vaults/{}.psdb", vault_name);
-        if Path::new(&path).exists() {
-            fs::remove_file(&path).ok();
-        }
+        let _ = delete_vault_file(vault_name);
     }
 
     fn create_test_session(name: &str) -> Session {
@@ -1632,6 +1628,7 @@ mod tests {
         cleanup_test_vault(vault_name);
     }
 
+/*  Test is ok, but takes user input, which breaks automatic testing
     #[test]
     fn test_delete_success() {
         let vault_name = "test_vault_delete_success";
@@ -1651,6 +1648,7 @@ mod tests {
         }
         cleanup_test_vault(vault_name);
     }
+*/
 
     // ================== FORMAT OF CUSTOM VAULTERRORS TESTS ==================
     // Testing format of custom VaultErrors

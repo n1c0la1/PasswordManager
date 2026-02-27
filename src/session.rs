@@ -1,12 +1,8 @@
-use crate::errors::SessionError;
-use crate::errors::VaultError;
+use crate::errors::{SessionError, VaultError};
 use crate::vault_entry_manager::*;
-use crate::vault_file_manager::close_vault;
-use crate::vault_file_manager::initialize_vault;
-use crate::vault_file_manager::open_vault;
+use crate::vault_file_manager::{open_vault, close_vault, initialize_vault};
 use std::time::{Duration, Instant};
-use secrecy::ExposeSecret;
-use secrecy::SecretString;
+use secrecy::{SecretString, ExposeSecret};
 
 #[derive(Debug)]
 pub struct Session {
@@ -145,6 +141,7 @@ impl Session {
 #[cfg(test)]
 mod tests {
     use super::*;
+    use crate::vault_file_manager:: delete_vault_file;
 
     #[test]
     fn test_create_new_vault() {
@@ -154,7 +151,7 @@ mod tests {
         let result = create_new_vault(vault_name.clone(), master_pw.clone());
         assert!(result.is_ok(), "Failed to create a new vault");
 
-        let _ = std::fs::remove_file(format!("vaults/{}.psdb", vault_name));
+        let _ = delete_vault_file(&vault_name);
     }
 
     #[test]
@@ -180,7 +177,7 @@ mod tests {
             "Master password should be stored"
         );
 
-        let _ = std::fs::remove_file(format!("vaults/{}.psdb", vault_name));
+        let _ = delete_vault_file(&vault_name);
     }
 
     #[test]
@@ -226,7 +223,7 @@ mod tests {
         assert!(found.is_some(), "Saved entry was not persisted");
 
         new_session.end_session().unwrap();
-        let _ = std::fs::remove_file(format!("vaults/{}.psdb", vault_name));
+        let _ = delete_vault_file(&vault_name);
     }
 
     #[test]
@@ -256,6 +253,6 @@ mod tests {
             "Master password should be None after ending session"
         );
 
-        let _ = std::fs::remove_file(format!("vaults/{}.psdb", vault_name));
+        let _ = delete_vault_file(&vault_name);
     }
 }
