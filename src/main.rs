@@ -1,8 +1,6 @@
 use password_manager::*;
 
-use crate::errors::*;
 use crate::session::Session;
-use crate::session::*;
 use crate::vault_file_manager::*;
 use clap::Parser;
 use cli::*;
