@@ -1,14 +1,6 @@
-//assumption: vault already exists
-/* what belongs here:
-- Vault
-- Entry
-- Add / remove / edit entries
-- Validation (duplicate names, etc.)
-- Serialization / deserialization
-*/
+use crate::errors::VaultError;
 use serde::{Deserialize, Serialize};
 
-use crate::errors::VaultError;
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct Vault {
@@ -131,7 +123,6 @@ impl Vault {
         serde_json::to_string_pretty(self).expect("Conversion failed")
     }
 
-    //changed set_name to snake_case
     pub fn set_name(&mut self, name: String) {
         self.name = name;
     }
