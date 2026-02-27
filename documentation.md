@@ -105,7 +105,7 @@ The password manager offers the following features and capabilities for the user
 
 | Parameter | Type | Required to create | Description |
 | :--- | :--- | :--- | :--- |
-| `name` | `String` | Yes | Optional name of the password vault. |
+| `name` | `String` | Yes | Name of the password vault. |
 
 **Hint:**
 
@@ -129,9 +129,10 @@ $ init MyVault
 **Description:** Opens one of the existing vaults and accesses all passwords stored in this vault. 
 
 
-| Parameter | Type | Required | Description |
-| :--- | :--- | :--- | :--- |
-| `vault_name` | `String` | Yes | Name of the vault to be opened. |
+| Parameter | Short | Type | Required | Description |
+| :--- | :--- | :--- | :--- | :--- |
+| `vault_name` | - | `String` | Yes | Name of the vault to be opened. |
+| `timeout` | `-t` | `u32` | No | Set time for autolock in minutes. Default is 5. |
 
 **Hint:** 
 
