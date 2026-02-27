@@ -1,9 +1,6 @@
 use std::error::Error;
 use std::fmt;
-
 use zxcvbn::ZxcvbnError;
-
-//use crate::crypto::CryptoError;
 
 #[derive(Debug)]
 pub enum CryptoError {

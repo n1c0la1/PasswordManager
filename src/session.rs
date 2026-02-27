@@ -1,14 +1,7 @@
-//a session only exists when a vault has been opened successfully
-
-use crate::errors::SessionError;
-use crate::errors::VaultError;
+use crate::errors::{SessionError, VaultError};
 use crate::vault_entry_manager::*;
-use crate::vault_file_manager::close_vault;
-use crate::vault_file_manager::initialize_vault;
-use crate::vault_file_manager::open_vault;
-use secrecy::ExposeSecret;
-use secrecy::SecretString;
-
+use crate::vault_file_manager::{close_vault, initialize_vault, open_vault};
+use secrecy::{ExposeSecret, SecretString};
 use std::time::{Duration, Instant};
 
 #[derive(Debug)]
@@ -23,16 +16,12 @@ pub struct Session {
 //a session is active when: opened_vault and master_password = Some(_)
 //a session is inactive when: opened_vault and master_password = None
 
-/// Checks, if there is currently a session active
 pub fn active_session(option_session: &Option<Session>) -> bool {
     if option_session.is_none() {
         false
-    } else if option_session.as_ref().unwrap().opened_vault.is_none()
-        || option_session.as_ref().unwrap().master_password.is_none()
-    {
-        false
     } else {
-        true
+        !(option_session.as_ref().unwrap().opened_vault.is_none()
+            || option_session.as_ref().unwrap().master_password.is_none())
     }
 }
 
@@ -45,7 +34,7 @@ pub fn create_new_vault(vault_name: String, master: SecretString) -> Result<(), 
 impl Session {
     pub fn new(vault_name: String) -> Session {
         Session {
-            vault_name: vault_name,
+            vault_name,
             opened_vault: None,
             master_password: None,
             last_activity: Instant::now(),
@@ -66,7 +55,7 @@ impl Session {
     pub fn start_session(&mut self, master: SecretString) -> Result<(), SessionError> {
         //check if a vault is already open
         if self.opened_vault.is_some() {
-            return Err(SessionError::SessionActive); //error: vault already open
+            return Err(SessionError::SessionActive);
         }
 
         let master_for_session = master.clone();
@@ -85,36 +74,29 @@ impl Session {
 
     pub fn end_session(&mut self) -> Result<(), SessionError> {
         if self.opened_vault.is_none() || self.master_password.is_none() {
-            return Err(SessionError::SessionInactive); //error: no active session
+            return Err(SessionError::SessionInactive);
         }
 
         let vault = self
             .opened_vault
             .take()
-            .ok_or(SessionError::SessionInactive)?; //no active vault 
+            .ok_or(SessionError::SessionInactive)?;
         let master = self
             .master_password
             .take()
-            .ok_or(SessionError::SessionInactive)?; //no active master
+            .ok_or(SessionError::SessionInactive)?;
 
-        close_vault(&vault, master).map_err(|e| SessionError::VaultError(e))?;
+        close_vault(&vault, master).map_err(SessionError::VaultError)?;
         Ok(())
     }
 
-    // pub fn new_save(&mut self, vault: &Option<Vault>) -> Result<(), SessionError> {
-    //     self.opened_vault = vault.clone();
-
-    //     Ok(())
-    // }
-
     pub fn save(&mut self) -> Result<(), SessionError> {
         let (vault, master) = self.session_state()?;
-        close_vault(vault, master).map_err(|e| SessionError::VaultError(e))?;
+        close_vault(vault, master).map_err(SessionError::VaultError)?;
         Ok(())
     }
 
     pub fn verify_master_pw(&self, key: SecretString) -> Result<(), SessionError> {
-        // no need to check if self.is_some(), there are enough checks, where it's called.
         let master_password = self
             .master_password
             .as_ref()
@@ -156,6 +138,7 @@ impl Session {
 #[cfg(test)]
 mod tests {
     use super::*;
+    use crate::vault_file_manager::delete_vault_file;
 
     #[test]
     fn test_create_new_vault() {
@@ -165,8 +148,7 @@ mod tests {
         let result = create_new_vault(vault_name.clone(), master_pw.clone());
         assert!(result.is_ok(), "Failed to create a new vault");
 
-        // Clean up: optionally remove the vault file after test
-        let _ = std::fs::remove_file(format!("vaults/{}.psdb", vault_name));
+        let _ = delete_vault_file(&vault_name);
     }
 
     #[test]
@@ -192,8 +174,7 @@ mod tests {
             "Master password should be stored"
         );
 
-        // Clean up
-        let _ = std::fs::remove_file(format!("vaults/{}.psdb", vault_name));
+        let _ = delete_vault_file(&vault_name);
     }
 
     #[test]
@@ -212,7 +193,6 @@ mod tests {
         };
         session.start_session(master_pw.clone()).unwrap();
 
-        // Add an entry
         let (vault, _master) = session.session_state().unwrap();
         vault
             .add_entry(Entry::new(
@@ -224,13 +204,9 @@ mod tests {
             ))
             .unwrap();
 
-        // Save
         session.save().unwrap();
-
-        // End session
         session.end_session().unwrap();
 
-        // Start a new session and verify entry exists
         let mut new_session = Session {
             vault_name: vault_name.clone(),
             opened_vault: None,
@@ -243,9 +219,8 @@ mod tests {
         let found = vault.get_entry_by_name(&"Email".to_owned());
         assert!(found.is_some(), "Saved entry was not persisted");
 
-        // Clean up
         new_session.end_session().unwrap();
-        let _ = std::fs::remove_file(format!("vaults/{}.psdb", vault_name));
+        let _ = delete_vault_file(&vault_name);
     }
 
     #[test]
@@ -275,7 +250,6 @@ mod tests {
             "Master password should be None after ending session"
         );
 
-        // Clean up
-        let _ = std::fs::remove_file(format!("vaults/{}.psdb", vault_name));
+        let _ = delete_vault_file(&vault_name);
     }
 }

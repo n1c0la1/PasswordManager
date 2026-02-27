@@ -1,14 +1,5 @@
-//assumption: vault already exists
-/* what belongs here:
-- Vault
-- Entry
-- Add / remove / edit entries
-- Validation (duplicate names, etc.)
-- Serialization / deserialization
-*/
-use serde::{Deserialize, Serialize};
-
 use crate::errors::VaultError;
+use serde::{Deserialize, Serialize};
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct Vault {
@@ -37,8 +28,8 @@ impl Entry {
             entryname: name,
             username: user,
             password: pw,
-            url: url,
-            notes: notes,
+            url,
+            notes,
         }
     }
 
@@ -118,7 +109,7 @@ impl Entry {
 impl Vault {
     pub fn new(name: String) -> Vault {
         Vault {
-            name: name,
+            name,
             entries: vec![],
         }
     }
@@ -131,7 +122,6 @@ impl Vault {
         serde_json::to_string_pretty(self).expect("Conversion failed")
     }
 
-    //changed set_name to snake_case
     pub fn set_name(&mut self, name: String) {
         self.name = name;
     }
@@ -167,7 +157,7 @@ impl Vault {
     }
 
     pub fn entryname_exists(&self, name: &str) -> bool {
-        if let Some(_) = self.entries.iter().find(|value| value.entryname == name) {
+        if self.entries.iter().any(|value| value.entryname == name) {
             return true;
         }
         false

@@ -1,8 +1,6 @@
 use password_manager::*;
 
-use crate::errors::*;
 use crate::session::Session;
-use crate::session::*;
 use crate::vault_file_manager::*;
 use clap::Parser;
 use cli::*;
@@ -14,10 +12,9 @@ use std::time::Duration;
 
 fn main() {
     intro_animation();
-    // let mut current_session: Option<Session> = None;
+
     let current_session = Arc::new(Mutex::new(None::<Session>));
 
-    // Localhost extension server (token-based)
     let mut rng = rand::rng();
     let token: String = (0..32)
         .map(|_| {
@@ -48,7 +45,7 @@ fn main() {
                         if session.check_timeout(Duration::from_secs(session.wished_timeout)) {
                             let name = session.vault_name.clone();
                             // Attempt to end session
-                            if let Ok(_) = session.end_session() {
+                            if session.end_session().is_ok() {
                                 handle_command_clear();
                                 println!(
                                     "\n\nYou have been logged out. Last used vault was: '{}'.",
@@ -69,7 +66,6 @@ fn main() {
     });
 
     'interactive_shell: loop {
-        //println!("===================");
         println!("___________________");
 
         if let Ok(session_guard) = current_session.lock() {
@@ -93,7 +89,7 @@ fn main() {
                 eprintln!(
                     "\nHint: There are currently no vaults at all, consider using 'init' to create one!"
                 );
-            } else if !active_session(&*session_guard) {
+            } else if !active_session(&session_guard) {
                 eprintln!(
                     "\nHint: There are currently no vaults open, consider using 'open <vault-name>'!"
                 );
@@ -116,14 +112,12 @@ fn main() {
             continue 'interactive_shell;
         }
 
-        // split input like CLI-Args
         let args: Vec<String> = input.split_whitespace().map(|s| s.to_string()).collect();
 
         // Clap expects args including program names as args[0]
         let mut args_with_prog = vec!["pw".to_string()];
         args_with_prog.extend(args);
 
-        // parse input with parse
         let cli = match CLI::try_parse_from(args_with_prog) {
             Ok(cli) => cli,
             Err(e) => {
@@ -133,7 +127,6 @@ fn main() {
         };
 
         if let Ok(mut session_guard) = current_session.lock() {
-            // Update activity before command
             if let Some(session) = session_guard.as_mut() {
                 session.update_activity();
             }
@@ -141,10 +134,7 @@ fn main() {
             match cli.command {
                 CommandCLI::Init { name } => {
                     match handle_command_init(name) {
-                        Ok(()) => {
-                            // nothing needed to do, vault gets created and closed immidiatly
-                            /* Do nothing */
-                        }
+                        Ok(()) => { /* Do nothing */ }
                         Err(VaultError::NameExists) => {
                             println!();
                             println!("Error: {}", VaultError::NameExists);
@@ -165,13 +155,14 @@ fn main() {
                     notes,
                     password,
                 } => {
-                    if !active_session(&*session_guard) {
+                    if !active_session(&session_guard) {
                         println!(
                             "There is no session active right now, consider using open <vault-name>!"
                         );
                     }
+
                     match handle_command_add(
-                        &mut *session_guard,
+                        &mut session_guard,
                         name,
                         username,
                         url,
@@ -179,7 +170,7 @@ fn main() {
                         password,
                     ) {
                         Ok(()) => {
-                            try_save(&mut *session_guard);
+                            try_save(&mut session_guard);
                         }
                         Err(SessionError::VaultError(VaultError::NoVaultOpen)) => {
                             println!("Error: {}", VaultError::NoVaultOpen);
@@ -193,13 +184,14 @@ fn main() {
                 }
 
                 CommandCLI::Get { name, show, copy } => {
-                    if !active_session(&*session_guard) {
+                    if !active_session(&session_guard) {
                         println!(
                             "There is no session active right now, consider using open <vault-name>!"
                         );
                         continue 'interactive_shell;
                     }
-                    match handle_command_get(&mut *session_guard, name, show, copy) {
+
+                    match handle_command_get(&mut session_guard, name, show, copy) {
                         Ok(()) => { /* Do nothing */ }
                         Err(SessionError::VaultError(VaultError::NoVaultOpen)) => {
                             println!("No vault is active! Use init or open <vault-name>!");
@@ -212,17 +204,16 @@ fn main() {
                             println!("Error: {}", e);
                         }
                     }
-                    // continue happens below after updating activity
                 }
 
                 CommandCLI::Getall { show } => {
-                    if !active_session(&*session_guard) {
+                    if !active_session(&session_guard) {
                         println!(
                             "There is no session active right now, consider using open <vault-name>!"
                         );
-                        // continue happens below after updating activity
                     }
-                    match handle_command_getall(&mut *session_guard, show) {
+
+                    match handle_command_getall(&mut session_guard, show) {
                         Ok(()) => { /* Do nothing */ }
                         Err(SessionError::VaultError(VaultError::NoVaultOpen)) => {
                             println!("No vault is active! Use init or open <vault-name>!");
@@ -236,20 +227,18 @@ fn main() {
                             println!("Error: {}", e);
                         }
                     }
-                    // continue happens below after updating activity
                 }
 
                 CommandCLI::Delete { name } => {
-                    if !active_session(&*session_guard) {
+                    if !active_session(&session_guard) {
                         println!(
                             "There is no session active right now, consider using open <vault-name>!"
                         );
-                        // continue happens below after updating activity
                     }
-                    match handle_command_delete(&mut *session_guard, name) {
+
+                    match handle_command_delete(&mut session_guard, name) {
                         Ok(()) => {
-                            /* Save, even though vault did not change, just to be sure. */
-                            try_save(&mut *session_guard);
+                            try_save(&mut session_guard);
                         }
                         Err(SessionError::VaultError(VaultError::NoVaultOpen)) => {
                             println!("No vault is active! Use init or open <vault-name>!");
@@ -261,16 +250,15 @@ fn main() {
                             println!("Error: {}", e);
                         }
                     }
-                    // continue happens below after updating activity
                 }
 
                 CommandCLI::Deletevault {} => {
-                    if !active_session(&*session_guard) {
+                    if !active_session(&session_guard) {
                         println!("Due to RustPass's logic, you have to open your vault first!");
                         println!("Hint: Consider using open <vault-name>!");
-                        // continue happens below after updating activity
                     }
-                    match handle_command_deletevault(&mut *session_guard) {
+
+                    match handle_command_deletevault(&mut session_guard) {
                         Ok(()) => {
                             *session_guard = None;
                         }
@@ -288,7 +276,6 @@ fn main() {
                             println!("Error: {}", e);
                         }
                     }
-                    // continue happens below after updating activity
                 }
 
                 CommandCLI::Generate { length, no_symbols } => {
@@ -300,17 +287,16 @@ fn main() {
                             println!("Error: {}", e)
                         }
                     }
-                    // continue happens below after updating activity
                 }
 
                 CommandCLI::ChangeMaster {} => {
-                    if !active_session(&*session_guard) {
+                    if !active_session(&session_guard) {
                         println!(
                             "There is no session active right now, consider using open <vault-name>!"
                         );
-                        // continue happens below after updating activity
                     }
-                    match handle_command_change_master(&mut *session_guard) {
+
+                    match handle_command_change_master(&mut session_guard) {
                         Ok(()) => {
                             *session_guard = None;
                         }
@@ -318,34 +304,31 @@ fn main() {
                             println!("Error: {}", e);
                         }
                     }
-                    // continue happens below after updating activity
                 }
 
                 CommandCLI::Edit { name } => {
-                    if !active_session(&*session_guard) {
+                    if !active_session(&session_guard) {
                         println!(
                             "There is no session active right now, consider using open <vault-name>!"
                         );
-                        // continue happens below after updating activity
                     }
-                    match handle_command_edit(&mut *session_guard, name) {
+
+                    match handle_command_edit(&mut session_guard, name) {
                         Ok(()) => {
                             /* Save, even though vault did not change, just to be sure. */
-                            try_save(&mut *session_guard);
+                            try_save(&mut session_guard);
                         }
                         Err(e) => {
                             println!("Error: {}", e)
                         }
                     }
-                    // continue happens below after updating activity
                 }
 
                 CommandCLI::Open { name, timeout } => {
-                    match handle_command_open(name, &mut *session_guard, &timeout) {
+                    match handle_command_open(name, &mut session_guard, &timeout) {
                         Ok(session) => {
                             if session.opened_vault.is_none() {
                                 println!("Something went wrong!");
-                                // continue happens below after updating activity
                             }
                             *session_guard = Some(session);
                         }
@@ -356,33 +339,28 @@ fn main() {
                             println!("Error opening vault: {}", e);
                         }
                     }
-                    // continue happens below after updating activity
                 }
                 CommandCLI::Close { force } => {
-                    if !active_session(&*session_guard) {
+                    if !active_session(&session_guard) {
                         println!(
                             "There is no session active right now, consider using open <vault-name>!"
                         );
-                        // continue happens below after updating activity
                     }
-                    match handle_command_close(&mut *session_guard, force) {
+
+                    match handle_command_close(&mut session_guard, force) {
                         Ok(LoopCommand::Continue) => {
                             // if the user says yes to closing.
                             *session_guard = None;
                         }
-                        Ok(LoopCommand::Cancel) => {
-                            // if the user wishes to cancel the closing process.
-                            /* Do nothing */
-                        }
+                        Ok(LoopCommand::Cancel) => { /* Do nothing */ }
                         Err(e) => {
                             println!("Error: {}", e);
                         }
                     }
-                    // continue happens below after updating activity
                 }
 
                 CommandCLI::Vaults {} => {
-                    handle_command_vaults(&*session_guard);
+                    handle_command_vaults(&session_guard);
                 }
 
                 CommandCLI::Clear {} => {
@@ -412,28 +390,24 @@ fn main() {
                         }
                         Ok(LoopCommand::Cancel) => {
                             thread::sleep(Duration::from_millis(500));
-                            // continue happens below after updating activity
                         }
                         Err(e) => {
                             println!("Error: {}", e);
-                            // continue happens below after updating activity
                         }
                     }
                 }
             }
 
-            // Update activity after command
             if let Some(session) = session_guard.as_mut() {
                 session.update_activity();
             }
 
             continue 'interactive_shell;
-        } // End of session_guard scope
+        }
     }
 }
 
 fn try_save(current_session: &mut Option<Session>) {
-    /* Save, even though vault did not change, just to be sure. */
     if let Some(session) = current_session {
         let spinner = spinner();
         spinner.set_message("Saving vault ...");
@@ -442,7 +416,6 @@ fn try_save(current_session: &mut Option<Session>) {
             Ok(()) => {
                 spinner.finish_and_clear();
                 println!("Vault saved.")
-                /* Do nothing else */
             }
             Err(e) => {
                 spinner.finish_and_clear();

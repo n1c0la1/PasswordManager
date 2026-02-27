@@ -1,13 +1,3 @@
-//coordinates crypto.rs and vault_entry_manager
-
-/*what belongs here:
-- Create new vault
-- Open existing vault
-- Close vault
-- Read/write encrypted files
--knows file names and paths
-
-*/
 use directories::ProjectDirs;
 use secrecy::SecretString;
 use std::fs::{self, File};
@@ -25,10 +15,6 @@ use crate::vault_entry_manager::Vault;
 //----------------------------------------------------------------------------
 
 pub fn initialize_vault(name: String) -> Result<Vault, VaultError> {
-    // if key.len() > 200 {
-    //    return Err(VaultError::PasswordTooLong);
-    // }
-
     let path = get_vaults_dir()?.join(format!("{name}.psdb"));
     if path.exists() {
         return Err(VaultError::FileExists);
@@ -51,8 +37,6 @@ pub fn open_vault(file_name: String, password: SecretString) -> Result<Vault, Va
     let path = get_vaults_dir()?.join(format!("{file_name}.psdb"));
 
     let encrypted_bytes = read_file_to_bytes(&path)?;
-    //handle error: enc_file::EncFileError::Crypto to validate password
-    //match error Crypto -> return Err(InvalidKey)
     let decrypted_json = crypto::decrypt_vault(password, &encrypted_bytes)?;
     let vault = vault_from_json(&decrypted_json)?; //deleted mut
     Ok(vault)
@@ -109,11 +93,9 @@ pub fn list_vaults() -> Result<Vec<String>, VaultError> {
             .map(|ext| ext == "psdb")
             .unwrap_or(false);
 
-        if is_psdb {
-            if let Some(file_name) = entry_path.file_stem().and_then(|s| s.to_str()) {
-                let string_entry = file_name.to_string();
-                vector.push(string_entry);
-            }
+        if is_psdb && let Some(file_name) = entry_path.file_stem().and_then(|s| s.to_str()) {
+            let string_entry = file_name.to_string();
+            vector.push(string_entry);
         }
     }
     Ok(vector)

@@ -1,4 +1,3 @@
-//this file includes all security
 /*what belongs here:
 - Encryption (AEAD)
 - Decryption (AEAD)
