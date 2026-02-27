@@ -1,10 +1,3 @@
-$currentPolicy = Get-ExecutionPolicy -Scope CurrentUser
-if ($currentPolicy -eq "Restricted" -or $currentPolicy -eq "Undefined") {
-    Write-Host "Script requires execution rights. Restarting with Bypass policy..."
-    $scriptPath = $MyInvocation.MyCommand.Path
-    Start-Process powershell.exe -ArgumentList "-ExecutionPolicy", "Bypass", "-File", "`"$scriptPath`"", "-NoExit" -NoNewWindow -Wait
-    exit
-}
 
 if (Test-Path -Path ".\password_manager.exe") {
     Write-Host "Found pre-built binary 'password_manager.exe'. Skipping build."

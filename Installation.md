@@ -20,16 +20,19 @@ bash install.sh
 
 ```
 
-**Windows (PowerShell)** Run:
+**Windows** Run one of:
+
+```cmd
+install.cmd
+```
+
+Or if you prefer PowerShell directly:
 
 ```powershell
 ./install.ps1
 ```
 
-> If you get an execution policy error, run:
-> ```powershell
-> powershell -ExecutionPolicy Bypass -File install.ps1 # uninstall.ps1
-> ```
+> **Note:** If you get an execution policy error with `install.ps1`, use `install.cmd` instead - it automatically bypasses the policy.
 
 ### 3. Offline / USB Installation
 
@@ -40,10 +43,10 @@ The scripts supports installing without `cargo` (Rust) if a pre-built binary is 
 1. **Build** the project on a developer machine (`cargo build --release`).
 2. **Copy** the binary and the install script to the new machine.
 
-> **Mac/Linux:** Copy `target/release/password_manager` and `install.sh`.                   
-  **Windows:** Copy `target/release/password_manager.exe` and `install.ps1`. 
+**Mac/Linux:** Copy `target/release/password_manager` and `install.sh`.                   
+**Windows:** Copy `target/release/password_manager.exe` and `install.cmd` (or `install.ps1`). 
 
-3. 	**Run** the script (`bash install.sh` or `./install.ps1`).
+3. 	**Run** the script (`bash install.sh` on Mac/Linux, or `install.cmd` on Windows).
 
 > It will detect the binary in the same folder and install it.
 

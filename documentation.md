@@ -35,15 +35,52 @@ The scripts supports installing without `cargo` (Rust) if a pre-built binary is 
 **macOS / Linux** Run:
 
 ```bash
-sudo bash install.sh
-
+$ sudo bash install.sh
 ```
 
-**Windows (PowerShell)** Run:
+**Windows** Run one of:
+
+```cmd
+$ install.cmd
+```
+
+Or if you prefer PowerShell directly:
 
 ```powershell
 .\install.ps1
+```
 
+> **Note:** If you get an execution policy error with `install.ps1`, use `install.cmd` instead - it automatically bypasses the policy for this process.
+
+### 3. Offline / USB Installation
+
+The scripts supports installing without `cargo` (Rust) if a pre-built binary is present.
+
+**Steps:**
+
+1. **Build** the project on a developer machine (`cargo build --release`).
+2. **Copy** the binary and the install script to the new machine.
+
+**Mac/Linux:** Copy `target/release/password_manager` and `install.sh`.                   
+**Windows:** Copy `target/release/password_manager.exe` and `install.cmd` and `install.ps1`. 
+
+3. 	**Run** the script (`bash install.sh` on Mac/Linux, or `install.cmd` on Windows).
+
+> It will detect the binary in the same folder and install it.
+
+### Uninstall
+
+To uninstall the `pw` command, simply run:
+
+```shell
+# macOS
+$ sudo bash uninstall.sh
+```
+
+```powershell
+.\uninstall.cmd
+# OR
+.\uninstall.ps1
 ```
 
 ---
@@ -54,14 +91,14 @@ If you have existing vaults in the old `vaults/` folder, move them to the new lo
 
 ```bash
 # Linux
-mkdir -p "~/.local/share/password_manager/vaults"
-mv vaults/*.psdb "~/.local/share/password_manager/vaults"
+$ mkdir -p "~/.local/share/password_manager/vaults"
+$ mv vaults/*.psdb "~/.local/share/password_manager/vaults"
 ```
 
 ```bash
 # macOS
-mkdir -p "~/Library/Application\ Support/password_manager/vaults"
-mv vaults/*.psdb "~/Library/Application\ Support/password_manager/vaults"
+$ mkdir -p "~/Library/Application\ Support/password_manager/vaults"
+$ mv vaults/*.psdb "~/Library/Application\ Support/password_manager/vaults"
 ```
 
 ```powershell
@@ -79,7 +116,6 @@ Move-Item -Path .\vaults\*.psdb -Destination "$env:APPDATA\password_manager\vaul
 **Steps**
 1. Open `about:debugging#/runtime/this-firefox` in a new Firefox Tab
 2. Load a temporary addon by selecting the `manifest.json` file in the build folder (either in webextension or webextension_secure)
-
 
 If you are using the secure extension, you are already done. You can copy & paste the URL into the CLI with `get [URL] -c`, to have the entry in the right format copied to the clipboard. Click the extension Icon afterwards to paste the entry and emtpy the clipboard.
 
