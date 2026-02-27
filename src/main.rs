@@ -1,10 +1,4 @@
-mod cli;
-mod crypto;
-mod errors;
-mod extension_server;
-mod session;
-mod vault_entry_manager;
-mod vault_file_manager;
+use password_manager::*;
 
 use crate::errors::*;
 use crate::session::Session;
