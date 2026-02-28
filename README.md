@@ -1052,3 +1052,4 @@ The logbook detailing the daily progress is submitted as a separate PDF file via
 
 * **Feature Discovery:** All commands are discoverable via the `--help` flag.
 * **Encryption:** (See `/src/crypto.rs`) Implementation of the AES-256 standard.
+* **(G4) requirement** We utilized git with feature branches. Our code review process consisted of in-person review sessions or online Github reviews before rebasing branches into main.
