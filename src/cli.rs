@@ -1436,7 +1436,7 @@ mod tests {
         let result = handle_command_quit(true);
         assert!(result.is_ok());
         match result.unwrap() {
-            LoopCommand::Continue => assert!(true),
+            LoopCommand::Continue => { /* Test passes */},
             LoopCommand::Cancel => panic!("Expected Break, got Continue"),
         }
     }
@@ -1446,11 +1446,11 @@ mod tests {
         let continue_cmd = LoopCommand::Continue;
         let break_cmd = LoopCommand::Cancel;
         match continue_cmd {
-            LoopCommand::Continue => assert!(true),
+            LoopCommand::Continue => { /* Test passes */},
             LoopCommand::Cancel => panic!("Wrong variant for Continue"),
         }
         match break_cmd {
-            LoopCommand::Cancel => assert!(true),
+            LoopCommand::Cancel => { /* Test passes */},
             LoopCommand::Continue => panic!("Wrong variant for Break"),
         }
     }
@@ -1471,7 +1471,7 @@ mod tests {
         let result = handle_command_edit(&mut option_session, "test_entry".to_string());
         assert!(result.is_err());
         match result {
-            Err(SessionError::VaultError(VaultError::NoVaultOpen)) => assert!(true),
+            Err(SessionError::VaultError(VaultError::NoVaultOpen)) => { /* Test passes */},
             _ => panic!("Expected NoVaultOpen error"),
         }
     }
@@ -1483,7 +1483,7 @@ mod tests {
         let result = handle_command_edit(&mut Some(session), "nonexistent".to_string());
         assert!(result.is_err());
         match result {
-            Err(SessionError::VaultError(VaultError::EntryNotFound)) => assert!(true),
+            Err(SessionError::VaultError(VaultError::EntryNotFound)) => { /* Test passes */},
             _ => panic!("Expected EntryNotFound error"),
         }
         cleanup_test_vault(vault_name);
@@ -1636,7 +1636,7 @@ mod tests {
             let vault = session.opened_vault.as_mut().unwrap();
             vault.add_entry(entry).unwrap();
             match handle_command_delete(&mut Some(session), "test_entry".to_string()) {
-                Ok(()) => assert!(true),
+                Ok(()) => { /* Test passes */},
                 Err(e) => panic!("Expected successful deletion, got error: {}", e),
             }
             cleanup_test_vault(vault_name);
@@ -1675,7 +1675,7 @@ mod tests {
         let vault_ref = opt_session.as_ref().unwrap().opened_vault.as_ref().unwrap();
         assert!(vault_ref.entryname_exists("test_entry"));
 
-        cleanup_test_vault(vault_name.into());
+        cleanup_test_vault(vault_name);
     }
 
     #[test]
@@ -1713,7 +1713,7 @@ mod tests {
             Err(SessionError::VaultError(VaultError::NameExists))
         ));
 
-        cleanup_test_vault(vault_name.into());
+        cleanup_test_vault(vault_name);
     }
 
     // ================== GET TESTS ==================
@@ -1768,7 +1768,7 @@ mod tests {
             Err(SessionError::VaultError(VaultError::EntryNotFound))
         ));
 
-        cleanup_test_vault(vault_name.into());
+        cleanup_test_vault(vault_name);
     }
 
     // ================== PASSWORD STRENGTH TESTS ==================

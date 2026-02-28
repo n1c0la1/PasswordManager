@@ -122,14 +122,13 @@ fn test_save_and_reload() {
         .add_entry(entry.clone())
         .unwrap();
     session.save().unwrap();
-    assert_eq!(
+    assert!(
         session
             .opened_vault
             .as_mut()
             .unwrap()
             .get_entries()
             .contains(&entry),
-        true,
         "vault does not contain entry"
     );
 
@@ -138,14 +137,13 @@ fn test_save_and_reload() {
     let mut session2 = Session::new(vault_name.to_string());
     session2.start_session(password).unwrap();
 
-    assert_eq!(
+    assert!(
         session2
             .opened_vault
             .as_mut()
             .unwrap()
             .get_entries()
             .contains(&entry),
-        true,
         "vault does not contain entry"
     );
 
@@ -205,45 +203,41 @@ fn test_multiple_vaults() {
 
     let mut session1_check = Session::new(vault_name1.to_string());
     session1_check.start_session(password1.clone()).unwrap();
-    assert_eq!(
+    assert!(
         session1_check
             .opened_vault
             .as_ref()
             .unwrap()
             .get_entries()
-            .contains(&entry1),
-        true
+            .contains(&entry1)
     );
-    assert_eq!(
-        session1_check
+    assert!(
+        !session1_check
             .opened_vault
             .as_ref()
             .unwrap()
             .get_entries()
-            .contains(&entry2),
-        false
+            .contains(&entry2)
     );
     session1_check.end_session().unwrap();
 
     let mut session2_check = Session::new(vault_name2.to_string());
     session2_check.start_session(password2.clone()).unwrap();
-    assert_eq!(
-        session2_check
+    assert!(
+        !session2_check
             .opened_vault
             .as_ref()
             .unwrap()
             .get_entries()
-            .contains(&entry1),
-        false
+            .contains(&entry1)
     );
-    assert_eq!(
+    assert!(
         session2_check
             .opened_vault
             .as_ref()
             .unwrap()
             .get_entries()
-            .contains(&entry2),
-        true
+            .contains(&entry2)
     );
     session2_check.end_session().unwrap();
 
@@ -435,8 +429,8 @@ fn test_list_and_search_entries() {
     session.save().unwrap();
 
     let list = session.opened_vault.as_mut().unwrap().get_entries();
-    assert_eq!(list.contains(&entry), true);
-    assert_eq!(list.contains(&entry2), true);
+    assert!(list.contains(&entry));
+    assert!(list.contains(&entry2));
 
     assert_eq!(list.len(), 2);
 
