@@ -1436,7 +1436,7 @@ mod tests {
         let result = handle_command_quit(true);
         assert!(result.is_ok());
         match result.unwrap() {
-            LoopCommand::Continue => { /* Test passes */},
+            LoopCommand::Continue => { /* Test passes */ }
             LoopCommand::Cancel => panic!("Expected Break, got Continue"),
         }
     }
@@ -1446,11 +1446,11 @@ mod tests {
         let continue_cmd = LoopCommand::Continue;
         let break_cmd = LoopCommand::Cancel;
         match continue_cmd {
-            LoopCommand::Continue => { /* Test passes */},
+            LoopCommand::Continue => { /* Test passes */ }
             LoopCommand::Cancel => panic!("Wrong variant for Continue"),
         }
         match break_cmd {
-            LoopCommand::Cancel => { /* Test passes */},
+            LoopCommand::Cancel => { /* Test passes */ }
             LoopCommand::Continue => panic!("Wrong variant for Break"),
         }
     }
@@ -1471,7 +1471,7 @@ mod tests {
         let result = handle_command_edit(&mut option_session, "test_entry".to_string());
         assert!(result.is_err());
         match result {
-            Err(SessionError::VaultError(VaultError::NoVaultOpen)) => { /* Test passes */},
+            Err(SessionError::VaultError(VaultError::NoVaultOpen)) => { /* Test passes */ }
             _ => panic!("Expected NoVaultOpen error"),
         }
     }
@@ -1483,7 +1483,7 @@ mod tests {
         let result = handle_command_edit(&mut Some(session), "nonexistent".to_string());
         assert!(result.is_err());
         match result {
-            Err(SessionError::VaultError(VaultError::EntryNotFound)) => { /* Test passes */},
+            Err(SessionError::VaultError(VaultError::EntryNotFound)) => { /* Test passes */ }
             _ => panic!("Expected EntryNotFound error"),
         }
         cleanup_test_vault(vault_name);
