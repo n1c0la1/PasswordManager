@@ -1036,7 +1036,6 @@ The logbook detailing the daily progress is submitted as a separate PDF file via
 
 * **Tool:** ChatGPT
 * **Purpose:**
-  * Time Planning?
   * Strategic Roadmap & Milestone Planning
   * Generation of the following unit tests (later adapted by the team):
     * `fn test_create_new_vault() `
