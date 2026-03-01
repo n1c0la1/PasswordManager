@@ -11,6 +11,8 @@ fn test_create_open_close_vault() {
     let vault_name = "lifecycle_test";
     let master = SecretString::new("password123!".to_string().into());
 
+    let _ = delete_vault_file(vault_name);
+
     let create_vault = create_new_vault(vault_name.to_string(), master.clone());
     assert!(create_vault.is_ok(), "failed to create vault");
     let path = get_vault_path(vault_name).unwrap();
@@ -34,6 +36,8 @@ fn test_create_open_close_vault() {
 fn test_vault_persistence() {
     let vault_name = "test_persistence";
     let password = SecretString::new("PersistenceTest123!".to_string().into());
+
+    let _ = delete_vault_file(vault_name);
 
     create_new_vault(vault_name.to_string(), password.clone()).unwrap();
     let mut session = Session::new(vault_name.to_string());
@@ -73,6 +77,8 @@ fn test_change_master() {
     let vault_name = "test_change_master";
     let password = SecretString::new("ChangeMasterTest123!".to_string().into());
 
+    let _ = delete_vault_file(vault_name);
+
     create_new_vault(vault_name.to_string(), password.clone()).unwrap();
     let mut session = Session::new(vault_name.to_string());
     session.start_session(password.clone()).unwrap();
@@ -102,6 +108,8 @@ fn test_change_master() {
 fn test_save_and_reload() {
     let vault_name = "test_save_and_reload";
     let password = SecretString::new("PasswordTest123!".to_string().into());
+
+    let _ = delete_vault_file(vault_name);
 
     create_new_vault(vault_name.to_string(), password.clone()).unwrap();
     let mut session = Session::new(vault_name.to_string());
@@ -158,6 +166,9 @@ fn test_multiple_vaults() {
     let password1 = SecretString::new("firstPassword".into());
     let password2 = SecretString::new("secondPassword".into());
 
+    let _ = delete_vault_file(vault_name1);
+    let _ = delete_vault_file(vault_name2);
+
     create_new_vault(vault_name1.to_string(), password1.clone()).unwrap();
     create_new_vault(vault_name2.to_string(), password2.clone()).unwrap();
 
@@ -186,7 +197,7 @@ fn test_multiple_vaults() {
         .add_entry(entry1.clone())
         .unwrap();
     assert!(
-        session1.start_session(password2.clone()).is_err(),
+        session1.start_session(password1.clone()).is_err(),
         "Starting the same session while a it is open should fail"
     );
     session1.end_session().unwrap();
@@ -254,6 +265,8 @@ fn test_edit_entry() {
     let vault_name = "test_edit";
     let password = SecretString::new("EditTest123!".to_string().into());
 
+    let _ = delete_vault_file(vault_name);
+
     create_new_vault(vault_name.to_string(), password.clone()).unwrap();
     let mut session = Session::new(vault_name.to_string());
     session.start_session(password.clone()).unwrap();
@@ -314,6 +327,8 @@ fn test_edit_entry() {
 fn test_delete_entry() {
     let vault_name = "test_delete";
     let password = SecretString::new("DeleteTest123!".to_string().into());
+
+    let _ = delete_vault_file(vault_name);
 
     create_new_vault(vault_name.to_string(), password.clone()).unwrap();
     let mut session = Session::new(vault_name.to_string());
@@ -393,6 +408,8 @@ fn test_list_and_search_entries() {
     let vault_name = "test_list_and_search";
     let password = SecretString::new("PasswordTest123!".to_string().into());
 
+    let _ = delete_vault_file(vault_name);
+
     create_new_vault(vault_name.to_string(), password.clone()).unwrap();
     let mut session = Session::new(vault_name.to_string());
     session.start_session(password.clone()).unwrap();
@@ -443,6 +460,8 @@ fn test_duplicate_entry_names_rejected() {
     let vault_name = "test_duplicates";
     let password = SecretString::new("DuplicateTest123!".to_string().into());
 
+    let _ = delete_vault_file(vault_name);
+
     create_new_vault(vault_name.to_string(), password.clone()).unwrap();
     let mut session = Session::new(vault_name.to_string());
     session.start_session(password).unwrap();
@@ -485,7 +504,9 @@ fn test_wrong_password_rejected() {
     let vault_name = "test_auth";
     let correct = SecretString::new("CorrectPassword123!".to_string().into());
     let wrong = SecretString::new("WrongPassword123!".to_string().into());
-
+    
+    let _ = delete_vault_file(vault_name);
+    
     create_new_vault(vault_name.to_string(), correct.clone()).unwrap();
 
     let mut session = Session::new(vault_name.to_string());
@@ -509,7 +530,9 @@ fn test_wrong_password_rejected() {
 fn test_tampering_detection() {
     let vault_name = "test_tamper";
     let password = SecretString::new("TamperTest123!".to_string().into());
-
+    
+    let _ = delete_vault_file(vault_name);
+    
     create_new_vault(vault_name.to_string(), password.clone()).unwrap();
 
     // Tamper with file
