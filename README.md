@@ -750,7 +750,7 @@ We conducted extensive manual testing of user workflows:
 ### Test Results
 
 All automated tests pass successfully:
-- Unit tests: 49 tests passed
+- Unit tests: 48 tests passed
 - Integration tests: 11 tests passed
 - Manual test scenarios: All completed successfully
 
@@ -814,9 +814,9 @@ Total threats identified: 35
 Critical risks: 1
 - Memory dumps - partially mitigated
 
-High risks: 7
+High risks: 6
 
-Medium risks: 7
+Medium risks: 8
 
 Low risks: 20
 
@@ -970,7 +970,7 @@ Residual risks (accepted):
 | Tampering | NA | | |
 | Repudiation | NA | | |
 | Information disclosure | Passwords are visible on screen, risk of shoulder surfing | High | PM - User can use --copy flag to avoid displaying password. Clipboard is cleared after 30 seconds | 
-| Information disclosure | Terminal history captures passwords | High | NM - Improvement: disable history for password inputs | 
+| Information disclosure | Terminal scrollback shows passwords | Medium | PM - rpassword hides input, but terminal scrollback may briefly show output if --show flag is used. Scrollback is cleared on terminal close | 
 | Denial of service | NA | | |
 | Elevation of privilege | NA | | |
 
