@@ -504,9 +504,9 @@ fn test_wrong_password_rejected() {
     let vault_name = "test_auth";
     let correct = SecretString::new("CorrectPassword123!".to_string().into());
     let wrong = SecretString::new("WrongPassword123!".to_string().into());
-    
+
     let _ = delete_vault_file(vault_name);
-    
+
     create_new_vault(vault_name.to_string(), correct.clone()).unwrap();
 
     let mut session = Session::new(vault_name.to_string());
@@ -530,9 +530,9 @@ fn test_wrong_password_rejected() {
 fn test_tampering_detection() {
     let vault_name = "test_tamper";
     let password = SecretString::new("TamperTest123!".to_string().into());
-    
+
     let _ = delete_vault_file(vault_name);
-    
+
     create_new_vault(vault_name.to_string(), password.clone()).unwrap();
 
     // Tamper with file
